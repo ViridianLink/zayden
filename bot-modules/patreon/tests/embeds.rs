@@ -39,3 +39,18 @@ fn a_patrons_only_post_withholds_its_body() {
     assert!(rendered.contains("A post"), "{rendered}");
     assert!(rendered.contains("https://www.patreon.com/creator/posts/a-post-1"));
 }
+
+#[test]
+fn a_bracketed_title_stays_one_link() {
+    let mut post = post(false);
+    post.title = Some("[Beta] Sonarr v5".to_owned());
+
+    let rendered = render(&post);
+
+    assert!(
+        rendered.contains(
+            r"[\\[Beta\\] Sonarr v5](https://www.patreon.com/creator/posts/a-post-1)"
+        ),
+        "{rendered}"
+    );
+}

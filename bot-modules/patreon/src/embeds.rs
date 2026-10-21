@@ -5,10 +5,13 @@ use serenity::all::{
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
+    CreateMediaGallery,
+    CreateMediaGalleryItem,
     CreateTextDisplay,
+    CreateUnfurledMediaItem,
 };
 use zayden_core::announce::{escape, render};
-use zayden_core::templates::{body_component, separator, text};
+use zayden_core::templates::text;
 
 use crate::content;
 use crate::store::{PatreonAnnounceRow, PendingPost};
@@ -54,45 +57,40 @@ pub fn intro_component(
 
 pub fn post_component(post: &PendingPost) -> CreateComponent<'static> {
     let title = post.title.as_deref().unwrap_or(UNTITLED);
-    let access = access(post);
 
-    let mut header = format!(
-        "## {title}\n-# Patreon \u{b7} {access} \u{b7} <t:{}:R>",
-        post.published_at.to_jiff().as_second()
-    );
+    let mut heading = format!("### [{}]({})", link_text(title), post.url);
 
-    let body = post
+    if let Some(body) = post
         .content_html
         .as_deref()
         .filter(|_| post.is_public)
-        .map(content::to_discord);
-
-    let mut components: Vec<CreateContainerComponent<'static>> =
-        Vec::with_capacity(4);
-
-    match body.as_deref().filter(|body| !body.is_empty()) {
-        Some(body) => {
-            components.push(text(header));
-            components.push(body_component(
-                body.to_owned(),
-                post.thumbnail_url.as_deref(),
-            ));
-        },
-        None => {
-            let note = if post.is_public {
-                "_(no post text)_"
-            } else {
-                "_(patrons only \u{2014} become a patron to read it on Patreon)_"
-            };
-            let _ = write!(header, "\n\n-# {note}");
-            components.push(body_component(header, post.thumbnail_url.as_deref()));
-        },
+        .map(content::to_discord)
+        .filter(|body| !body.is_empty())
+    {
+        let _ = write!(heading, "\n{body}");
     }
 
-    components.push(separator());
-    components.push(text(post.url.clone()));
+    let mut components = vec![text(heading)];
+
+    if let Some(url) = &post.thumbnail_url {
+        components.push(CreateContainerComponent::MediaGallery(
+            CreateMediaGallery::new(vec![CreateMediaGalleryItem::new(
+                CreateUnfurledMediaItem::new(url.clone()),
+            )]),
+        ));
+    }
+
+    components.push(text(format!(
+        "-# Patreon \u{b7} {} \u{b7} <t:{}:f>",
+        access(post),
+        post.published_at.to_jiff().as_second()
+    )));
 
     CreateComponent::Container(
         CreateContainer::new(components).accent_colour(ACCENT),
     )
+}
+
+fn link_text(title: &str) -> String {
+    escape(title).replace('[', "\\[").replace(']', "\\]")
 }
