@@ -179,14 +179,14 @@ google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.g
 
 # -- Discord
 serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", default-features = false, features = [
-  "rustls_backend",
-  "transport_compression_zlib",
-  "transport_compression_zstd",
+    "rustls_backend",
+    "transport_compression_zlib",
+    "transport_compression_zstd",
 ] }
 songbird = { git = "https://github.com/KiloOscarSix/songbird", branch = "ringbuf-bump", default-features = false }
 twilight-http = { version = "*", default-features = false, features = [
-  "decompression",
-  "rustls-webpki-roots",
+    "decompression",
+    "rustls-webpki-roots",
 ] }
 twilight-model = { version = "*" }
 
@@ -236,8 +236,8 @@ dotenvy = { version = "*", default-features = false }
 # -- HTTP client
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 oauth2 = { version = "*", default-features = false, features = [
-  "reqwest",
-  "rustls-tls",
+    "reqwest",
+    "rustls-tls",
 ] }
 rustls = { version = "*", default-features = false }
 ego-tree = { version = "*", default-features = false }
@@ -254,10 +254,10 @@ url = { version = "*", default-features = false }
 
 # -- Database
 sqlx = { version = "*", default-features = false, features = [
-  "macros",
-  "postgres",
-  "tls-rustls-aws-lc-rs",
-  "runtime-tokio",
+    "macros",
+    "postgres",
+    "tls-rustls-aws-lc-rs",
+    "runtime-tokio",
 ] }
 # Unused; uncomment instead of hand-rolling UUID generation or parsing.
 # uuid = { version = "*", default-features = false, features = [
@@ -282,15 +282,15 @@ async-openai = { version = "*", default-features = false }
 image = { version = "*", default-features = false, features = ["jpeg", "png"] }
 png = { version = "*", default-features = false }
 resvg = { version = "*", default-features = false, features = [
-  "text",
-  "memmap-fonts",
+    "text",
+    "memmap-fonts",
 ] }
 rspotify = { version = "*", default-features = false }
 symphonia = { version = "0.5", default-features = false }
 
 # -- Game-save and archive formats
 flate2 = { version = "1", default-features = false, features = [
-  "rust_backend",
+    "rust_backend",
 ] }
 gvas = { version = "0.11" }
 oozextract = { version = "=0.5.0" }
@@ -312,11 +312,11 @@ aws-lc-rs = { version = "*", default-features = false }
 secrecy = { version = "*", default-features = false }
 
 # -- Frontend (Topcoat)
-topcoat = { version = "0.10", default-features = false, }
+topcoat = { version = "0.10", default-features = false }
 
 # ── Testing and benchmarking ─────────────────────────────────────────────────
 criterion = { version = "*", default-features = false, features = [
-  "cargo_bench_support",
+    "cargo_bench_support",
 ] }
 http-body-util = { version = "*", default-features = false }
 
@@ -343,4 +343,3 @@ debug = false
 debug-assertions = false
 overflow-checks = false
 incremental = false
-
