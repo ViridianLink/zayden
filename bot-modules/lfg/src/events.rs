@@ -77,12 +77,7 @@ pub async fn guild_create<Data: CronJobData>(
         let Some(last_message_id) = thread.base.last_message_id else {
             continue;
         };
-        let Ok(created_at) =
-            Timestamp::from_second(last_message_id.created_at().unix_timestamp())
-        else {
-            continue;
-        };
-        let created_at = created_at.to_zoned(TimeZone::UTC);
+        let created_at = last_message_id.created_at().to_zoned(TimeZone::UTC);
 
         if created_at < month_ago {
             match thread.delete(&ctx.http, Some("Thread older than 30 days")).await {

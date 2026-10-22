@@ -165,10 +165,10 @@ async fn mute(
 ) -> Result<CreateEmbed<'static>, HandlerError> {
     let mut member = case.guild_id.member(&case.ctx.http, case.target.id).await?;
 
-    let until = Timestamp::from_unix_timestamp(
-        jiff::Timestamp::now().as_second().saturating_add(duration.as_secs()),
-    )
-    .map_err(|e| CoreError::Other(e.to_string()))?;
+    let until = jiff::Timestamp::now()
+        .checked_add(duration)
+        .map(Timestamp::from)
+        .map_err(|e| CoreError::Other(e.to_string()))?;
     member.disable_communication_until(&case.ctx.http, until).await?;
 
     case.record(InfractionKind::Mute).await?;

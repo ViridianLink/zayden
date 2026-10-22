@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use jiff::Timestamp;
 use serenity::all::{Context, Guild};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
@@ -18,8 +17,7 @@ impl Handler {
         guild: &Guild,
         pool: &PgPool,
     ) -> Result<()> {
-        let joined_at =
-            Timestamp::from_millisecond(guild.joined_at.unix_timestamp_millis())?;
+        let joined_at = *guild.joined_at;
 
         let join = match ctx.http.application_id() {
             Some(application_id) => GuildPresence::joined(

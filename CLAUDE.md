@@ -62,11 +62,10 @@ When validation is requested:
 - `.claude/skills/rust-skills/` — Rust guidelines.
 - `README.md` — Layout, build commands, Docker/CI setup.
 
-## Agent workflow (main agent only; subagents ignore)
+## Agent notes
 
-For multi-file or interface-changing work; trivial edits stay inline:
+The global agent workflow applies. Project specifics:
 
-1. Scout: `repo-scout` for signatures/call sites; don't read large files yourself.
-2. Spec: write a TDS: exact signatures/types/schemas, files in edit order, out-of-bounds areas, error/edge rules.
-3. Build: pass the TDS to `code-builder`; on PARTIAL/BLOCKED, resolve and re-dispatch, never let it decide.
-4. Verify: `test-runner`, then review the diff against the TDS yourself before done.
+- **`code-builder`**: any TDS touching `web/` must cite the `docs/topcoat/` sections (or pinned crate source paths) for every Topcoat API it uses; for bot code, specify the Serenity builders explicitly (no `poise`). A TDS that changes a `query!` must say so; regenerate `.sqlx/` yourself afterwards.
+- **`test-runner`**: give it narrow `-p <crate>` commands while iterating; the full suite only when requested or at milestone handoff.
+- **`repo-scout`**: use for `docs/topcoat/` lookups and cross-module questions across `bot-modules/*`.
