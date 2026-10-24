@@ -320,6 +320,10 @@ criterion = { version = "*", default-features = false, features = [
 ] }
 http-body-util = { version = "*", default-features = false }
 
+# serenity-rs/serenity#3623 (bump next dependencies); drop once merged.
+[patch."https://github.com/serenity-rs/serenity"]
+serenity = { git = "https://github.com/GnomedDev/serenity", branch = "bump-deps" }
+
 [profile.dev]
 opt-level = 0
 debug = false

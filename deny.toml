@@ -72,6 +72,7 @@ allow-registry = [
 
 allow-git = [
     "https://github.com/serenity-rs/serenity",
+    "https://github.com/GnomedDev/serenity",
     "https://github.com/serenity-rs/songbird",
     "https://github.com/KiloOscarSix/songbird",
     "https://github.com/Erk-/rsget",
