@@ -11,6 +11,7 @@ ignore = [
     { id = "RUSTSEC-2026-0207", reason = "unreachable: incremental squeeze API unused by ML-KEM path" },
     { id = "RUSTSEC-2026-0208", reason = "unreachable: AVX2 SHAKE-256 buffer lengths are always /8 in ML-KEM" },
     { id = "RUSTSEC-2026-0212", reason = "unreachable: aarch64-only, and the VPS target is x86_64" },
+    { id = "RUSTSEC-2026-0387", reason = "no upgrade path: davey 0.1.5 (latest) pins elliptic-curve 0.13 / crypto-bigint 0.5; needs local side-channel access" },
 ]
 
 [licenses]
