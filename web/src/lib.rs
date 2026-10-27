@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 
-pub mod account;
 pub mod admin;
+pub mod app;
 pub mod auth;
 pub mod components;
 pub mod config;
@@ -14,11 +14,8 @@ pub mod form;
 pub mod guild;
 pub mod nav;
 pub mod pages;
-pub mod providers;
-pub mod public;
 mod router;
 pub mod session_pruning;
-pub mod settings;
 pub mod shell;
 pub mod state;
 pub mod util;

@@ -50,7 +50,7 @@ fn write_bundle() -> TestResult<PathBuf> {
 
 fn app() -> TestResult<Router> {
     let bundle = AssetBundle::load_dir(bundle_dir()?)?;
-    Ok(router(Router::builder().assets(bundle)))
+    Ok(router().assets(bundle).build())
 }
 
 async fn send(path: &str) -> TestResult<Response> {

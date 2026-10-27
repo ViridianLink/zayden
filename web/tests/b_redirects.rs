@@ -12,9 +12,12 @@ use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
 use url::form_urlencoded;
+use web::app::guild::guild_id::engagement::{
+    greeting_actions,
+    reaction_role_actions,
+};
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::engagement::pages::{greeting_actions, reaction_role_actions};
 use web::flash::FLASH_COOKIE;
 use web::state::WebState;
 use zayden_app::config::BotConfig;
@@ -127,10 +130,10 @@ fn router() -> TestResult<Router> {
         .connect_lazy("postgres://127.0.0.1:1/unused")?;
     let app = Arc::new(ZaydenAppState::new(pool, &config));
     let state = WebState::new(app, &config)?;
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
-    Ok(web::router(base))
+    Ok(base.build())
 }
 
 struct Answer {

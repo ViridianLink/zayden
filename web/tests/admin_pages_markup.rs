@@ -11,7 +11,7 @@ use topcoat::router::{Body, Router, RouterBuilder, page};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 use topcoat::view::{View, view};
 use web::admin::AdminError;
-use web::admin::pages::servers::servers_page;
+use web::app::admin::servers::servers_page;
 use web::auth::AuthError;
 use web::components::guild_grid::GuildCard;
 

@@ -31,8 +31,8 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
-use web::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
 use web::admin::{draft, loadout_form, summaries, write_unchecked};
+use web::app::admin::{LOADOUTS_TITLE, SERVERS_TITLE};
 use web::auth::{SessionUser, WebRole, has_role};
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
@@ -167,10 +167,10 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
     }
     seed_users(&state.discord.users, &[41, 50]).await;
 
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
-    Ok(Harness { router: web::router(base) })
+    Ok(Harness { router: base.build() })
 }
 
 impl Harness {

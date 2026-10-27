@@ -1,6 +1,6 @@
+use web::app::guild::guild_id::settings::title;
 use web::document::PAGE_TITLES;
 use web::nav::{Dest, MODULES, section};
-use web::settings::title;
 
 #[test]
 fn section_titles_name_the_page() {

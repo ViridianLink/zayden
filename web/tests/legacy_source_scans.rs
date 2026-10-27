@@ -82,7 +82,7 @@ fn collect(dir: &Path, out: &mut Vec<String>) {
 
 #[test]
 fn the_leaderboard_does_not_infer_the_next_page() {
-    let page = read("src/engagement/pages/levels.rs");
+    let page = read("src/app/guild/guild_id/engagement/levels.rs");
 
     assert!(
         !page.contains("entries.len() =="),
@@ -118,7 +118,7 @@ fn the_probe_row_never_reaches_the_page() {
 
 #[test]
 fn the_pager_escapes_an_empty_page() {
-    let page = squeezed(&read("src/engagement/pages/levels.rs"));
+    let page = squeezed(&read("src/app/guild/guild_id/engagement/levels.rs"));
     let view = squeezed(&read("src/engagement/leaderboard_view.rs"));
 
     assert!(page.contains("if board.shows_pager(page.has_next) {"));
@@ -130,7 +130,10 @@ fn the_pager_escapes_an_empty_page() {
 #[test]
 fn the_leaderboard_scan_still_reaches_both_files() {
     assert!(read("src/engagement/levels.rs").contains("get_leaderboard"));
-    assert!(read("src/engagement/pages/levels.rs").contains("fn leaderboard"));
+    assert!(
+        read("src/app/guild/guild_id/engagement/levels.rs")
+            .contains("fn leaderboard")
+    );
 }
 
 #[test]
@@ -138,10 +141,13 @@ fn the_monolithic_settings_dto_is_gone() {
     let mut files = vec![
         ("src/guild/dto/guild.rs".to_owned(), read("src/guild/dto/guild.rs")),
         ("src/guild/sections.rs".to_owned(), read("src/guild/sections.rs")),
-        ("src/settings/mod.rs".to_owned(), read("src/settings/mod.rs")),
+        (
+            "src/app/guild/guild_id/settings/mod.rs".to_owned(),
+            read("src/app/guild/guild_id/settings/mod.rs"),
+        ),
     ];
     for (tab, _) in SECTION_TABS {
-        let path = format!("src/settings/{tab}");
+        let path = format!("src/app/guild/guild_id/settings/{tab}");
         let text = read(&path);
         files.push((path, text));
     }
@@ -156,7 +162,8 @@ fn the_monolithic_settings_dto_is_gone() {
 #[test]
 fn each_tab_declares_only_its_own_projection() {
     for (file, type_name) in SECTION_TABS {
-        let source = squeezed(&read(&format!("src/settings/{file}")));
+        let source =
+            squeezed(&read(&format!("src/app/guild/guild_id/settings/{file}")));
         let pattern = format!("settings: &{type_name}");
 
         assert!(source.contains(&pattern), "{file} does not declare `{pattern}`");
@@ -166,7 +173,8 @@ fn each_tab_declares_only_its_own_projection() {
         if file.starts_with("support/") {
             continue;
         }
-        let source = squeezed(&read(&format!("src/settings/{file}")));
+        let source =
+            squeezed(&read(&format!("src/app/guild/guild_id/settings/{file}")));
 
         for foreign in SECTION_TYPES {
             assert!(
@@ -195,7 +203,7 @@ fn the_server_dispatches_to_one_section_at_a_time() {
 
 #[test]
 fn the_directory_is_loaded_for_the_guild_and_the_settings_for_the_section() {
-    let shell = squeezed(&read("src/settings/mod.rs"));
+    let shell = squeezed(&read("src/app/guild/guild_id/settings/mod.rs"));
 
     assert_eq!(1, shell.matches("get_guild_directory(cx, guild_id)").count());
     assert_eq!(1, shell.matches("get_section_settings(cx, guild_id, slug)").count());
@@ -203,7 +211,7 @@ fn the_directory_is_loaded_for_the_guild_and_the_settings_for_the_section() {
 
 #[test]
 fn the_rendered_tab_comes_from_the_returned_variant() {
-    let shell = squeezed(&read("src/settings/mod.rs"));
+    let shell = squeezed(&read("src/app/guild/guild_id/settings/mod.rs"));
 
     for variant in ["Support(", "Patreon(", "General("] {
         let pattern = format!("SectionSettings::{variant}");
@@ -225,11 +233,13 @@ fn the_wiki_api_key_never_enters_a_dto() {
 fn the_settings_scan_still_reaches_every_file() {
     assert!(read("src/guild/dto/guild.rs").contains("enum SectionSettings"));
     assert!(read("src/guild/sections.rs").contains("fn get_section_settings"));
-    assert!(read("src/settings/mod.rs").contains("fn settings_page"));
+    assert!(
+        read("src/app/guild/guild_id/settings/mod.rs").contains("fn settings_page")
+    );
 
     for (tab, _) in SECTION_TABS {
         assert!(
-            !read(&format!("src/settings/{tab}")).is_empty(),
+            !read(&format!("src/app/guild/guild_id/settings/{tab}")).is_empty(),
             "{tab} read back empty"
         );
     }
@@ -269,10 +279,10 @@ fn the_whole_state_is_fetched_only_by_the_context_accessors() {
 
 #[test]
 fn the_route_modules_only_name_what_they_use() {
-    let kofi = read("src/providers/kofi.rs");
-    let login = read("src/auth/login.rs");
-    let patreon = read("src/providers/patreon.rs");
-    let youtube = read("src/providers/youtube.rs");
+    let kofi = read("src/app/providers/kofi.rs");
+    let login = read("src/app/auth.rs");
+    let patreon = read("src/app/providers/patreon.rs");
+    let youtube = read("src/app/providers/youtube.rs");
 
     for group in [".oauth", ".discord", ".urls"] {
         assert!(!kofi.contains(group), "the Ko-fi route reaches into {group}");
@@ -301,9 +311,9 @@ fn the_route_modules_only_name_what_they_use() {
 #[test]
 fn the_legal_pages_need_no_session_or_database() {
     for file in [
-        "src/public/privacy.rs",
-        "src/public/terms.rs",
-        "src/public/legal.rs",
+        "src/app/public/privacy.rs",
+        "src/app/public/terms.rs",
+        "src/app/public/legal.rs",
         "src/components/legal.rs",
     ] {
         let source = read(file);
@@ -415,7 +425,7 @@ fn ends_inside_a_view(item: &str) -> bool {
 /// Whether the end of `item` is in a `#[page]` handler's own code, which runs
 /// before the response headers are written.
 fn in_page_prologue(item: &str) -> bool {
-    item.contains("\n#[page(")
+    (item.contains("\n#[page(") || item.contains("\n#[page]"))
         && !item.contains("\n#[component]")
         && !ends_inside_a_view(item)
 }

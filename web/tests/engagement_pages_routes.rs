@@ -40,11 +40,15 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use url::form_urlencoded;
+use web::app::guild::guild_id::engagement::greetings::channel_section;
+use web::app::guild::guild_id::engagement::{
+    GREETINGS_TITLE,
+    LEVELS_TITLE,
+    REACTION_ROLES_TITLE,
+};
 use web::auth::{ChannelInfo, SessionUser};
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::engagement::pages::greetings::channel_section;
-use web::engagement::pages::{GREETINGS_TITLE, LEVELS_TITLE, REACTION_ROLES_TITLE};
 use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
@@ -392,11 +396,11 @@ fn web_state(pool: PgPool) -> TestResult<(WebState, Discord, Arc<ZaydenAppState>
 
 fn harness_without_database(pool: PgPool) -> TestResult<Harness> {
     let (state, discord, app) = web_state(pool.clone())?;
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
 
-    Ok(Harness { router: web::router(base), pool, discord, app })
+    Ok(Harness { router: base.build(), pool, discord, app })
 }
 
 async fn harness(
@@ -443,11 +447,11 @@ async fn harness(
     .execute(&pool)
     .await?;
 
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
 
-    Ok(Harness { router: web::router(extra(base)), pool, discord, app })
+    Ok(Harness { router: extra(base).build(), pool, discord, app })
 }
 
 impl Harness {
@@ -2469,10 +2473,10 @@ async fn channel_variants(cx: &Cx) -> ViewResult<impl View> {
 }
 
 async fn standalone(path: &str) -> TestResult<String> {
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .page(channel_variants);
-    let router = web::router(base);
+    let router = base.build();
     let response = router.handle(Request::get(path).body(Body::empty())?).await;
     body_text(response).await
 }

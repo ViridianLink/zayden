@@ -26,7 +26,7 @@ Impact column: **none** (the repo does not touch the changed API), **changed in 
 
 | Area | API | Purpose | Impact on this repo |
 |---|---|---|---|
-| view | `element_id(cx) -> String` | per-instance, rerender-stable HTML IDs from component identity and call site (core.md section 3.5) | opportunity: `web` writes literal IDs for labels and ARIA references |
+| view | `element_id(cx) -> String` | per-instance, rerender-stable HTML IDs from component identity and call site (core.md section 3.5) | changed in web: `web/src/components/confirm_dialog.rs` (form fields keep their readable IDs) |
 | runtime | `Expr::dynamic()` | evaluate an expression in the browser on every render even without signal reads | none |
 | core | `impl From<&Error> for Error` | `?` on the `Result<&T, &Error>` of `#[memoize(as_ref)]` | none: `web` does not use `#[memoize]` |
 | l10n | features `l10n`, `l10n-number`, `l10n-datetime`, `l10n-fluent`, `jiff`; `topcoat::l10n` (`Locale`, `negotiate`, `accept_language`, `locale(cx)`, `Number`, `DateTime`, `fluent::messages!` and `t!`) | localization (core.md section 1, UNVERIFIED beyond `cargo tree`) | none: not enabled |
@@ -79,6 +79,7 @@ Unchanged and re-verified: `runtime` still fails to compile without `asset`; the
 - `Cargo.toml`: `topcoat = { version = "0.11" }`, `rust-version = "1.99"`; `Cargo.lock` updated.
 - `README.md`, `docker/Dockerfile.web`: `topcoat-cli@0.11.0`.
 - `web/components.toml` and `web/src/components/*.rs`: `topcoat ui add --all --overwrite`; the 13 wired files were three-way merged so their local edits survive (upstream changes to them are formatting and doc comments); `floating`, `navigation_menu` and `popover` added as parked components (`web/styles.css` `@source not`).
+- After the upgrade, `web` moved onto the registry and runtime APIs: registry `button_variants`, `badge_variants`, `input`, `textarea`, `select`, `alert`, `table`, `pagination` and `tabs` replace the app's own CSS-class markup ([ui.md](ui.md#what-is-installed-in-web)); internal links use `runtime::link_attrs` with prefetch off by default (core.md 12.2); routes use `module_router!` under `web/src/app/` (core.md 5.2).
 - `web/style/partials/tokens.css`: `--shadow-xs` and `--shadow-sm` changed from `none` to `0 0 #0000`. With `none`, the combined `box-shadow` of `shadow-xs` plus `focus-visible:ring-2` was invalid and primary, secondary and destructive buttons lost their focus ring; the 0.11 theme documents the same trap.
 
 ## What to re-check when this file changes

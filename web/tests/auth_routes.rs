@@ -152,7 +152,7 @@ fn harness(pool: PgPool) -> TestResult<Harness> {
     let sessions = state.sessions.clone();
     let user_guilds = state.discord.user_guilds.clone();
 
-    let base = Router::builder()
+    let base = web::router()
         .app_context(state)
         .route(members)
         .route(whoami)
@@ -163,7 +163,7 @@ fn harness(pool: PgPool) -> TestResult<Harness> {
         .route(start)
         .route(protected)
         .layer(auth::require_auth("/test/protected"));
-    let router = web::router(base);
+    let router = base.build();
 
     Ok(Harness { router, pool, sessions, user_guilds })
 }
@@ -523,7 +523,7 @@ async fn protected_routes_refuse_requests_without_a_live_session(pool: PgPool) {
 /// the sign-in routes from it fails here.
 #[sqlx::test(migrations = "../migrations")]
 async fn the_app_router_serves_the_sign_in_routes(pool: PgPool) {
-    let app = web::router(Router::builder().app_context(web_state(&pool).unwrap()));
+    let app = web::router().app_context(web_state(&pool).unwrap()).build();
     let get = |path: &str, cookie: Option<&str>| {
         let mut request = Request::get(path);
         if let Some(cookie) = cookie {

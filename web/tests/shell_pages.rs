@@ -30,11 +30,11 @@ use topcoat::view::{View, view};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::app::guild::guild_id::GuildId;
 use web::auth::{SessionUser, WebRole, has_role};
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::nav::{GENERAL, MODULES};
-use web::shell::GuildId;
 use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
@@ -276,11 +276,11 @@ async fn web_state(
 }
 
 fn app_router(state: WebState) -> TestResult<Router> {
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state)
         .page(guild_probe);
-    Ok(web::router(base))
+    Ok(base.build())
 }
 
 async fn harness(pool: &PgPool, upgrade_url: Option<&str>) -> TestResult<Harness> {

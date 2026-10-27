@@ -9,10 +9,10 @@ use super::session::session_for_token;
 
 #[must_use]
 pub fn require_auth(path: &'static str) -> LayerFn {
-    LayerFn::new(Some(path), require_auth_handler)
+    LayerFn::new(Some(path), require_session)
 }
 
-fn require_auth_handler<'a>(
+pub fn require_session<'a>(
     cx: &'a Cx,
     body: Body,
     next: Next<'a>,

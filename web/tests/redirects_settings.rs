@@ -12,11 +12,11 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, Router, StatusCode, header};
+use web::app::guild::guild_id::settings::NOT_SAVED;
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::flash::{FLASH_COOKIE, Flash, FlashKind};
 use web::router;
-use web::settings::NOT_SAVED;
 
 const STYLESHEET_FILE: &str = "tailwind-0123456789abcdef.css";
 const RUNTIME_FILE: &str = "topcoat-0123456789abcdef.js";
@@ -77,7 +77,7 @@ fn write_bundle() -> TestResult<PathBuf> {
 
 fn app() -> TestResult<Router> {
     let bundle = AssetBundle::load_dir(bundle_dir()?)?;
-    Ok(router(Router::builder().assets(bundle)))
+    Ok(router().assets(bundle).build())
 }
 
 async fn send(

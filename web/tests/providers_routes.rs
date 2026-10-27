@@ -22,17 +22,16 @@ use sha1::Sha1;
 use sqlx::PgPool;
 use sqlx::postgres::{PgListener, PgPoolOptions};
 use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
-use topcoat::cookie::RouterBuilderCookieExt;
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, OriginPolicy, Router, StatusCode, header};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::app::providers;
 use web::auth::SessionUser;
 use web::components::brand::LOGO;
 use web::document::STYLESHEET;
-use web::providers;
 use web::state::{SessionUsersCache, WebState};
 use web::util::{email_hash, hex_encode};
 use zayden_app::config::{BotConfig, PatreonConfig, YoutubeConfig};
@@ -134,19 +133,16 @@ struct App {
     router: Router,
 }
 
-/// The provider routes on their own, with the given cross-site policy.
+/// The application routes with the given cross-site policy.
 async fn providers_app(
     pool: PgPool,
     connectable: bool,
     policy: OriginPolicy,
 ) -> TestResult<App> {
-    let router = providers::routes(
-        Router::builder()
-            .app_context(state(pool, connectable).await?)
-            .origin_policy(policy),
-    )
-    .cookies()
-    .build();
+    let router = web::router()
+        .app_context(state(pool, connectable).await?)
+        .origin_policy(policy)
+        .build();
     Ok(App { router })
 }
 
@@ -165,9 +161,8 @@ async fn application() -> TestResult<App> {
         .acquire_timeout(Duration::from_secs(2))
         .connect_lazy("postgres://127.0.0.1:1/unused")?;
     let bundle = AssetBundle::load_dir(bundle_dir()?)?;
-    let router = web::router(
-        Router::builder().assets(bundle).app_context(state(pool, true).await?),
-    );
+    let router =
+        web::router().assets(bundle).app_context(state(pool, true).await?).build();
     Ok(App { router })
 }
 

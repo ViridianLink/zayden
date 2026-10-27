@@ -2,16 +2,6 @@
 //! missing-emoji warning, draft keys, id parsing, the inline JSON data block and
 //! the JSON reply shape the editor script reads.
 
-use web::admin::editor::{
-    CatalogIndex,
-    NewEmoji,
-    Reply,
-    draft_key,
-    editor_data,
-    editor_id,
-    emoji_keys,
-    missing_emojis,
-};
 use web::admin::{
     AspectForm,
     EmojiInfo,
@@ -22,6 +12,16 @@ use web::admin::{
     WeaponForm,
     blank,
     options,
+};
+use web::app::admin::d2::loadouts::editor::{
+    CatalogIndex,
+    NewEmoji,
+    Reply,
+    draft_key,
+    editor_data,
+    editor_id,
+    emoji_keys,
+    missing_emojis,
 };
 
 fn catalog(emojis: &[(&str, &str)]) -> LoadoutCatalog {

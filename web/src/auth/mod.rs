@@ -1,5 +1,5 @@
 mod context;
-mod cookie;
+pub(crate) mod cookie;
 mod discord;
 mod dto;
 mod error;
@@ -45,10 +45,11 @@ pub use guild::{
     user_guilds,
 };
 pub use login::start_session;
-pub use middleware::require_auth;
+pub use middleware::{require_auth, require_session};
 pub use next::{remember_login_next, safe_next};
 pub use ownership::{GuildIds, first_foreign};
 pub use roles::{WebRole, has_role, require_role};
+pub(crate) use session::remember_session_user;
 pub use session::{
     LOGIN_PATH,
     check_session,
@@ -59,11 +60,3 @@ pub use session::{
     lookup_session_user,
     require_user,
 };
-use topcoat::router::RouterBuilder;
-
-#[must_use]
-pub fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.route(login::login_handler)
-        .route(login::discord_auth_callback_handler)
-        .route(login::logout_handler)
-}

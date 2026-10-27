@@ -5,7 +5,6 @@ use std::sync::Arc;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
-use topcoat::router::Router;
 use tracing::{error, info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -54,7 +53,7 @@ async fn run() -> Result<(), StartupError> {
     EventListener::spawn(app.db.clone(), app.events.clone());
     session_pruning::spawn(app.db.clone());
 
-    let base = Router::builder().app_context(state).assets(assets);
+    let base = router().app_context(state).assets(assets);
     let base = match cookie_key {
         Some(key) => base.app_context(key),
         None => {
@@ -68,7 +67,7 @@ async fn run() -> Result<(), StartupError> {
     };
 
     info!("Dashboard listening on {addr}");
-    topcoat::serve(listener, router(base)).await.map_err(StartupError::Serve)
+    topcoat::serve(listener, base.build()).await.map_err(StartupError::Serve)
 }
 
 fn logging() {

@@ -76,7 +76,7 @@ async fn current_guild(
 }
 
 #[component]
-pub(super) async fn frame(
+pub(crate) async fn frame(
     cx: &Cx,
     #[default] guild_id: Option<&str>,
     #[default] guilds: &[GuildInfo],

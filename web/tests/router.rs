@@ -72,7 +72,7 @@ fn write_bundle() -> TestResult<PathBuf> {
 
 fn app() -> TestResult<Router> {
     let bundle = AssetBundle::load_dir(bundle_dir()?)?;
-    Ok(router(Router::builder().assets(bundle).page(missing_record)))
+    Ok(router().assets(bundle).page(missing_record).build())
 }
 
 async fn send(method: Method, path: &str) -> TestResult<Response> {

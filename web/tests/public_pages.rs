@@ -13,10 +13,10 @@ use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, RouterBuilder, StatusCode, header, page};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 use topcoat::view::{View, view};
+use web::app::public::layout::{SessionSlot, public_nav};
 use web::auth::SessionUser;
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::public::layout::{SessionSlot, public_nav};
 use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
@@ -132,12 +132,12 @@ fn builder() -> TestResult<RouterBuilder> {
 }
 
 fn app(state: Option<WebState>) -> TestResult<Router> {
-    let base = builder()?;
+    let base = web::router().assets(AssetBundle::load_dir(bundle_dir()?)?);
     let base = match state {
         Some(state) => base.app_context(state),
         None => base,
     };
-    Ok(web::router(base))
+    Ok(base.build())
 }
 
 async fn get(

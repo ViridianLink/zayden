@@ -128,7 +128,7 @@ pub async fn lookup_session_user(
     Some(user)
 }
 
-pub(super) async fn remember_session_user(cx: &Cx, user_id: i64, user: CurrentUser) {
+pub(crate) async fn remember_session_user(cx: &Cx, user_id: i64, user: CurrentUser) {
     if let Some(state) = try_web_state(cx) {
         state.discord.users.insert(user_id, session_user(user)).await;
     }

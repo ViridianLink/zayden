@@ -187,7 +187,7 @@ fn harness(pool: &PgPool) -> TestResult<Harness> {
     let state = WebState::new(app, &config)?;
     let user_guilds = state.discord.user_guilds.clone();
 
-    let base = Router::builder()
+    let base = web::router()
         .app_context(state)
         .route(roles)
         .route(operator_access)
@@ -201,7 +201,7 @@ fn harness(pool: &PgPool) -> TestResult<Harness> {
         .route(delete_missing)
         .route(emoji);
 
-    Ok(Harness { router: web::router(base), user_guilds })
+    Ok(Harness { router: base.build(), user_guilds })
 }
 
 impl Harness {

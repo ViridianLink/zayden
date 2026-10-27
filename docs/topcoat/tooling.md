@@ -227,7 +227,7 @@ Status: VERIFIED for the files read (`web/build.rs`, `web/Cargo.toml`, `docker/D
 
 ### Locally
 
-- `web/Cargo.toml`: `topcoat` (workspace entry `version = "0.11", default-features = false`; workspace `rust-version = "1.99"`, the floor of topcoat 0.11) with `asset`, `compression`, `cookie`, `router`, `runtime`, `serve`, `view`; `[build-dependencies]` `topcoat` with `tailwind`, `ui`. No `font`, `icon` or `discover`.
+- `web/Cargo.toml`: `topcoat` (workspace entry `version = "0.11", default-features = false`; workspace `rust-version = "1.99"`, the floor of topcoat 0.11) with `asset`, `compression`, `cookie`, `discover` (for `module_router!`), `font`, `icon`, `router`, `runtime`, `serve`, `view`; `[build-dependencies]` `topcoat` with `tailwind`, `ui`.
 - `web/build.rs`: `BuildConfig::new().input("style/input.css")`, then `executable_env("TAILWIND_CLI")` when `TAILWIND_CLI` is set and non-empty, else on Linux x86-64 `version_checksum("4.3.2", "sha256:5036...425c1")`, else `version("4.3.2")`. Errors are printed as `cargo::error=tailwind failed: ...`. It prints `rerun-if-env-changed=TAILWIND_CLI` and `rerun-if-changed` for `style`, `src` and `assets`.
 - `web/src/document.rs`: `STYLESHEET = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"))` linked in `<head>`, followed by `topcoat::runtime::script()` and the `pending-submit.js` asset.
 - `web/src/main.rs`: `AssetBundle::load()` and `Router::builder().app_context(state).assets(assets)`, then `topcoat::serve(listener, router(base))`.

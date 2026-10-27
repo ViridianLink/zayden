@@ -578,7 +578,7 @@ async fn harness(pool: PgPool) -> TestResult<Harness> {
     .execute(&pool)
     .await?;
 
-    let base = Router::builder()
+    let base = web::router()
         .app_context(state)
         .route(levels)
         .route(levels_raw)
@@ -589,7 +589,7 @@ async fn harness(pool: PgPool) -> TestResult<Harness> {
         .route(greetings_page)
         .route(greetings_post);
 
-    Ok(Harness { router: web::router(base), pool, discord, app })
+    Ok(Harness { router: base.build(), pool, discord, app })
 }
 
 impl Harness {

@@ -55,8 +55,9 @@ command weaker than CI is how drift starts.
 ## Web dashboard (`web/`)
 
 `web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.11 app: every page
-renders on the server, and `web/src/router.rs` registers every layout, page and
-route in one `router()` function that the binary and the `tests/` harness share.
+renders on the server. Routes follow the module tree under `web/src/app/`
+(Topcoat module routing: the module path is the URL), and `web::router()`
+returns the builder that the binary and the `tests/` harness share.
 It reads the `[dashboard]` keys of `bot/config.toml` and the `DASHBOARD_*`
 environment variables.
 

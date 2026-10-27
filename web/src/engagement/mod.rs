@@ -5,7 +5,6 @@ mod form;
 pub mod greetings;
 mod leaderboard_view;
 pub mod levels;
-pub mod pages;
 mod parse;
 pub mod reaction_roles;
 

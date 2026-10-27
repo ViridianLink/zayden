@@ -19,14 +19,14 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
-use web::admin::editor::{
+use web::admin::keys::display_name;
+use web::admin::{LoadoutForm, stored_form};
+use web::app::admin::d2::loadouts::editor::{
     EDITOR_TITLE,
     LOADOUT_EDITOR_JS,
     LOADOUT_NOT_FOUND_TITLE,
     NEW_LOADOUT_TITLE,
 };
-use web::admin::keys::display_name;
-use web::admin::{LoadoutForm, stored_form};
 use web::auth::SessionUser;
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
@@ -173,10 +173,10 @@ async fn harness(
         state.discord.user_guilds.insert(user_id, Arc::from([])).await;
         seed_users(&state.discord.users, &[user_id]).await;
     }
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
-    Ok((Harness { router: web::router(base) }, pool))
+    Ok((Harness { router: base.build() }, pool))
 }
 
 impl Harness {

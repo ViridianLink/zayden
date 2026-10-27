@@ -431,7 +431,7 @@ async fn harness_for(pool: PgPool, zayden_id: u64) -> TestResult<Harness> {
     insert_session(&pool, "admin-token", 41).await?;
     insert_session(&pool, "member-token", 43).await?;
 
-    let base = Router::builder()
+    let base = web::router()
         .app_context(state)
         .route(guilds)
         .route(active)
@@ -444,7 +444,7 @@ async fn harness_for(pool: PgPool, zayden_id: u64) -> TestResult<Harness> {
         .route(server_tier_zero)
         .route(command_context);
 
-    Ok(Harness { router: web::router(base), pool })
+    Ok(Harness { router: base.build(), pool })
 }
 
 impl Harness {

@@ -398,10 +398,10 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
         )
         .await;
 
-    let base = Router::builder()
+    let base = web::router()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
         .app_context(state);
-    Ok(Harness { router: web::router(base), app, discord })
+    Ok(Harness { router: base.build(), app, discord })
 }
 
 impl Harness {

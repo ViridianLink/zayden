@@ -2846,6 +2846,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6928282826c822ad91bf1c9a1cb90a30ba1c26770749929b4656cd6be829cd7c"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6899,6 +6908,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70b5093d8133b513742b7461a28d374107b8bf9168aa60f4f567ad89acd2ed9e"
 dependencies = [
  "futures-util",
+ "inventory",
  "serde",
  "tokio",
  "tokio-tungstenite 0.29.0",
@@ -7003,6 +7013,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caa4656294aac116def1e7633f03117a84b65126c503242793ff4adc78577fb8"
 dependencies = [
  "heck 0.5.0",
+ "inventory",
  "serde",
  "serde_json",
  "topcoat-asset",
@@ -7117,6 +7128,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "inventory",
  "ipnet",
  "matchit",
  "percent-encoding",

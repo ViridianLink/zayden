@@ -3,30 +3,29 @@ use std::borrow::Cow;
 use topcoat::Result;
 use topcoat::asset::{Asset, asset};
 use topcoat::context::Cx;
-use topcoat::font::RouterBuilderFontExt;
 use topcoat::router::error::NotFoundError;
-use topcoat::router::{RouterBuilder, Slot, StatusCode, layout, try_endpoint};
+use topcoat::router::{Slot, StatusCode, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
-use crate::account::ACCOUNT_TITLE;
-use crate::admin::editor::{
+use crate::app::account::ACCOUNT_TITLE;
+use crate::app::admin::d2::loadouts::editor::{
     EDITOR_TITLE,
     LOADOUT_NOT_FOUND_TITLE,
     NEW_LOADOUT_TITLE,
     missing_loadout,
 };
-use crate::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
-use crate::components::brand::LOGO;
-use crate::engagement::pages::{
+use crate::app::admin::{LOADOUTS_TITLE, SERVERS_TITLE};
+use crate::app::guild::guild_id::engagement::{
     GREETINGS_TITLE,
     LEVELS_TITLE,
     REACTION_ROLES_TITLE,
 };
+use crate::app::guild::guild_id::settings::route_title;
+use crate::app::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
+use crate::components::brand::LOGO;
 use crate::error::MissingPage;
-use crate::font::{GEIST, font_head};
+use crate::font::font_head;
 use crate::pages::not_found::not_found_page;
-use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
-use crate::settings::route_title;
 use crate::shell::{GUILDS_TITLE, OVERVIEW_TITLE, UPGRADE_TITLE};
 
 pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
@@ -104,16 +103,12 @@ pub const PAGE_DESCRIPTIONS: &[(&str, &str)] = &[
 ];
 
 #[must_use]
-pub fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.font(GEIST)
-}
-
-#[must_use]
 pub fn page_title(cx: &Cx) -> Cow<'static, str> {
     let Some(endpoint) = try_endpoint(cx) else {
         return Cow::Borrowed(NOT_FOUND_TITLE);
     };
-    let pattern = endpoint.path().as_str();
+    let pattern = endpoint.path().to_matchit_path();
+    let pattern: &str = &pattern;
 
     route_title(cx, pattern).map_or_else(
         || Cow::Borrowed(title_for(pattern).unwrap_or(NOT_FOUND_TITLE)),
@@ -127,7 +122,7 @@ fn title_for(pattern: &str) -> Option<&'static str> {
 
 #[must_use]
 pub fn page_description(cx: &Cx) -> Option<&'static str> {
-    lookup(PAGE_DESCRIPTIONS, try_endpoint(cx)?.path().as_str())
+    lookup(PAGE_DESCRIPTIONS, &try_endpoint(cx)?.path().to_matchit_path())
 }
 
 fn lookup(table: &[(&str, &'static str)], pattern: &str) -> Option<&'static str> {
@@ -135,8 +130,8 @@ fn lookup(table: &[(&str, &'static str)], pattern: &str) -> Option<&'static str>
     table.iter().find(|(route, _)| *route == pattern).map(|(_, text)| *text)
 }
 
-#[layout("/")]
-pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
+#[component]
+pub(crate) async fn document_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
     let title = page_title(cx);
     let description = page_description(cx);
 
