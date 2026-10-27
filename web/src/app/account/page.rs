@@ -122,7 +122,7 @@ async fn account_page(
     summaries: Option<&DeadlockPrefs>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="page account-page">
+        <div class="page w-full mx-auto my-0 py-16 px-6">
             <div class="page-header">
                 <div>
                     <h1>"Linked accounts"</h1>
@@ -143,7 +143,7 @@ async fn account_page(
                     )
                 }
                 Some(links) => {
-                    <ul class="account-list">
+                    <ul class="list-none m-0 p-0 flex flex-col gap-3">
                         #[key(provider.as_str())]
                         for provider in AccountProvider::ALL {
                             provider_row(
@@ -176,24 +176,24 @@ async fn provider_row(
     let link_label = format!("Link {}", provider.label());
 
     Ok(view! {
-        <li class="card account-row">
-            <div class="account-main">
+        <li class="card flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-col gap-1 min-w-0">
                 <h2 class="label">(provider.label())</h2>
                 match &details {
                     Some((account_id, id64, linked)) => {
-                        <p class="account-id">
+                        <p class="m-0 text-text wrap-anywhere">
                             <code>(account_id.as_str())</code>
                             " (SteamID64 "
                             <code>(id64.as_str())</code>
                             ")"
                         </p>
-                        <p class="account-meta">
+                        <p class="m-0 text-[13.5px] text-text-2">
                             "Linked "
                             (linked.as_str())
                         </p>
                     }
                     None => {
-                        <p class="account-meta">"Not linked"</p>
+                        <p class="m-0 text-[13.5px] text-text-2">"Not linked"</p>
                     }
                 }
             </div>

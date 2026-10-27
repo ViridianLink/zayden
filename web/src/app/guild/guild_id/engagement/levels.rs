@@ -165,10 +165,18 @@ async fn entry_row(entry: &LeaderboardEntry) -> Result<impl View> {
                 label: "Member",
                 header: true,
                 match &entry.avatar {
-                    Some(url) => <img class="lb-avatar" src=(url.as_str()) alt="">,
-                    None => <span class="lb-avatar placeholder"></span>,
+                    Some(url) => <img
+                        class="w-[32px] h-[32px] rounded-(--radius-full) object-cover shrink-0 bg-wash-2"
+                        src=(url.as_str())
+                        alt=""
+                    >,
+                    None => <span
+                        class="w-[32px] h-[32px] rounded-(--radius-full) object-cover shrink-0 bg-line"
+                    ></span>,
                 }
-                <span class="lb-name">(entry.name.as_str())</span>
+                <span class="truncate font-semibold text-text">
+                    (entry.name.as_str())
+                </span>
             )
             data_cell(label: "Level", numeric: true, (entry.level))
             data_cell(label: "XP", numeric: true, (entry.xp))

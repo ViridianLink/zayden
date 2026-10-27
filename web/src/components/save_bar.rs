@@ -17,8 +17,8 @@ pub async fn save_bar(
 ) -> Result<impl View> {
     Ok(view! {
         <div class="save-bar" data-save-bar="">
-            <div class="save-bar-status" role="status">
-                <span class="save-bar-dirty" data-dirty-status="" hidden="">
+            <div class="flex-1 min-w-[12rem] m-0 text-text-2" role="status">
+                <span class="text-text font-semibold" data-dirty-status="" hidden="">
                     "Unsaved changes"
                 </span>
                 if let Some(notice) = notice {

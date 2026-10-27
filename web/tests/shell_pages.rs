@@ -383,7 +383,7 @@ fn nav_link(href: &str, icon: Option<&str>, label: &str, current: bool) -> Strin
 /// admin group. The rail and the menu sheet each render them once.
 fn outer_nav(servers: bool, plans: bool, admin: &str) -> String {
     format!(
-        r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}</ul><ul class="nav-list nav-group">{}</ul>{admin}</nav>"#,
+        r#"<nav class="{NAV}" aria-label="Dashboard"><ul class="{NAV_LIST}">{}</ul><ul class="{NAV_PLANS}">{}</ul>{admin}</nav>"#,
         nav_link("/guilds", Some(SERVER), "Servers", servers),
         nav_link("/upgrade", Some(ZAP), "Plans", plans),
     )
@@ -394,17 +394,45 @@ const ZAP: &str = r#"<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.4
 const GRID: &str = r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>"#;
 const SETTINGS: &str = r#"<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>"#;
 const MAIN: &str = r#"<main id="main" class="app-main" tabindex="-1">"#;
-const FREE_CHIP: &str = r#"<a href="/upgrade" class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-foreground plan-chip hover:bg-foreground/5" aria-label="Upgrade, current plan: Free">Upgrade</a>"#;
+const PLAN_CHIP: &str = "max-md:hidden hover:bg-foreground/5";
+const FREE_CHIP: &str = r#"<a href="/upgrade" class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-foreground max-md:hidden hover:bg-foreground/5" aria-label="Upgrade, current plan: Free">Upgrade</a>"#;
+const TOPBAR: &str = "fixed top-0 left-0 right-0 z-100 flex items-center gap-3 h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule max-md:gap-2 max-md:px-3";
+const BRAND: &str = r#"<a href="/guilds" class="brand"><img class="flex-none w-[28px] h-[28px] rounded-(--radius-full)" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="max-md:hidden">Zayden</span></a>"#;
+const NAV: &str = "flex flex-col gap-1";
+const NAV_LIST: &str = "flex flex-col gap-1 m-0 p-0 list-none";
+const NAV_PLANS: &str = "flex flex-col gap-1 m-0 mt-4 p-0 list-none";
+const NAV_GROUP: &str = "flex flex-col gap-1 mt-4";
+const NAV_HEADING: &str = "m-0 py-1 px-3 font-mono text-[12px] font-medium tracking-[0.06em] uppercase text-text-3";
+const EMPTY_STATE: &str = "flex flex-col items-start gap-2 max-w-(--form-max) py-8 px-6 border border-dashed border-line rounded-panel";
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const LAMP_WRAP: &str = "inline-flex items-center gap-2 whitespace-nowrap";
+const LAMP_DOT: &str =
+    "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const LAMP_OFF: &str = "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent";
+const FLASH_TEXT: &str = r#"<span class="text-text">"#;
+const FIELD_HELP: &str = "m-0 text-[13px] text-text-2";
+const PLATE_PLACEHOLDER: &str = "w-[24px] h-[24px] rounded-control object-cover shrink-0 grid place-items-center bg-surface-2 border border-solid border-line text-text text-[12px] font-semibold";
+const PLATE_IMAGE: &str = "w-[24px] h-[24px] rounded-control object-cover shrink-0";
+const GUILD_PLACEHOLDER: &str = "grid h-[48px] w-[48px] shrink-0 place-items-center rounded-control border border-solid border-line bg-surface-2 object-cover text-[18px] font-semibold text-text";
+const GUILD_IMAGE: &str = "h-[48px] w-[48px] shrink-0 rounded-control object-cover";
+const GUILD_GRID: &str =
+    "grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4";
+const RACK_ROW: &str = "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 min-h-(--row-h) py-3 px-4 border-t border-solid border-t-rule first:[border-top:0] max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-y-2 max-md:min-h-[48px]";
+const RACK_STATE: &str = "min-w-[7rem] max-md:col-[1] max-md:row-[2]";
+const RACK_CONTROL: &str = "flex items-center justify-end min-w-[48px] max-md:col-[2] max-md:row-[1/span_2]";
+const RACK_LINK: &str =
+    "inline-flex items-center gap-1 min-h-(--target-min) text-text font-medium";
+const PLAN_SPECS: &str = r#"<ul class="list-none m-0 p-0 flex flex-col gap-2 flex-1"><li class="text-[13.5px] text-text-2"><strong class="font-semibold text-text">50 MB</strong> Palworld save uploads</li><li class="text-[13.5px] text-text-2"><strong class="font-semibold text-text">30 min</strong> upload cooldown</li></ul>"#;
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
 const TIER_BADGE: &str = "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-transparent bg-foreground/5 text-foreground";
-const LEGAL: &str = r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav>"#;
+const LEGAL: &str = r#"<nav class="flex flex-wrap gap-y-1 gap-x-4 mt-4 p-3 border-t border-solid border-t-rule text-[13px]" aria-label="Legal"><a href="/privacy" class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]">Privacy Policy</a><a href="/terms" class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]">Terms of Service</a></nav>"#;
 
 const SHIELD: &str = r#"<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>"#;
 const GAMEPAD: &str = r#"<line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>"#;
 fn subscribe() -> String {
     format!(
-        r#"<div class="upgrade-actions"><p class="page-lead">Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord.</p><a href="/invite" rel="external" class="{}">Add Zayden to Discord</a></div>"#,
+        r#"<div class="flex flex-wrap gap-3 mb-8"><p class="page-lead">Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord.</p><a href="/invite" rel="external" class="{}">Add Zayden to Discord</a></div>"#,
         support::btn("secondary")
     )
 }
@@ -416,9 +444,20 @@ fn overview_header() -> String {
     )
 }
 
-const ROW: &str = r#"<li class="rack-row">"#;
-const NOT_SYNCED: &str =
-    r#"<span class="lamp lamp-sync" aria-hidden="true"></span>"#;
+const NOT_SYNCED: &str = r#"<span class="lamp-sync inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)" aria-hidden="true"></span>"#;
+
+fn row() -> String {
+    format!(r#"<li class="{RACK_ROW}">"#)
+}
+
+fn lamp_dot(on: bool) -> String {
+    if on { format!("lamp-on {LAMP_DOT}") } else { LAMP_OFF.to_owned() }
+}
+
+/// The failure alert a rack row shows under its own module.
+fn rack_error() -> String {
+    format!("{ERROR_ALERT} col-span-full m-0 mt-2")
+}
 
 /// The `name=value` pair of the flash cookie a response sets.
 fn flash_cookie(response: &Response) -> Option<String> {
@@ -434,28 +473,27 @@ fn flash_cookie(response: &Response) -> Option<String> {
 
 /// The rack switch of a command module, in its posting form.
 fn rack_switch(module_id: &str, label: &str, on: bool) -> String {
-    let (lamp, text, checked, wanted) = if on {
-        ("on", "On", "true", "false")
-    } else {
-        ("off", "Off", "false", "true")
-    };
+    let (text, checked, wanted) =
+        if on { ("On", "true", "false") } else { ("Off", "false", "true") };
+    let dot = lamp_dot(on);
     format!(
-        r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="rack-control"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
+        r#"<form class="contents" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="{RACK_STATE}"><span class="{LAMP_WRAP}"><span class="{dot}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="{RACK_CONTROL}"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
     )
 }
 
 /// The status and link a module switched on its own page shows in the rack.
 fn rack_status(module_path: &str, on: bool) -> String {
-    let (lamp, text) = if on { ("on", "On") } else { ("off", "Off") };
+    let text = if on { "On" } else { "Off" };
+    let dot = lamp_dot(on);
     format!(
-        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="/guild/7/{module_path}" class="rack-link">Manage{ICON_OPEN}<path d="m9 18 6-6-6-6"/></svg></a></div>"#
+        r#"<div class="{RACK_STATE}"><span class="{LAMP_WRAP}"><span class="{dot}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="{RACK_CONTROL}"><a href="/guild/7/{module_path}" class="{RACK_LINK}">Manage{ICON_OPEN}<path d="m9 18 6-6-6-6"/></svg></a></div>"#
     )
 }
 
 /// The result line a rack group shows after a switch.
 fn group_flash(group: &str, message: &str) -> String {
     format!(
-        r#"<div id="modules-{group}"><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}<span class="flash-text">{message}</span></p></div><section class="rack-group""#
+        r#"<div id="modules-{group}"><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}{FLASH_TEXT}{message}</span></p></div><section class="mb-8""#
     )
 }
 
@@ -474,13 +512,11 @@ async fn the_guild_list_frames_the_managed_guilds(
     let html = app.page("/guilds", Some(MEMBER)).await.unwrap();
 
     assert!(html.contains("<title>Servers - Zayden Dashboard</title>"), "{html}");
-    assert!(html.contains(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
-    ), "{html}");
-    let sorted = canonical(&html);
-    assert!(sorted.contains(&canonical(
-        r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
+    assert!(html.contains(&format!(
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="min-h-screen"><header><div class="{TOPBAR}"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
     )), "{html}");
+    let sorted = canonical(&html);
+    assert!(sorted.contains(&canonical(BRAND)), "{html}");
     assert!(
         html.contains(&format!(
             r#"<a href="/logout" rel="external" class="menu-item">{ICON_OPEN}"#
@@ -492,20 +528,20 @@ async fn the_guild_list_frames_the_managed_guilds(
     assert_eq!(count(&sorted, &canonical(&nav)), 2, "{html}");
     assert!(
         sorted.contains(&canonical(&format!(
-            r#"<div class="rail">{nav}<div class="nav-spacer"></div>{LEGAL}</div>"#
+            r#"<div class="rail">{nav}<div class="flex-1"></div>{LEGAL}</div>"#
         ))),
         "{html}"
     );
     assert!(sorted.contains(&canonical(&format!(
-        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div><div class="guild-grid">"#,
+        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div><div class="{GUILD_GRID}">"#,
         support::btn("secondary")
     ))), "{html}");
-    assert!(sorted.contains(&canonical(
-        r#"<a href="/guild/7" class="guild-card"><span class="guild-icon placeholder">G</span><div class="guild-card-body"><div class="guild-name">Guild 7</div>"#
-    )), "{html}");
-    assert!(sorted.contains(&canonical(
-        r#"<a href="/guild/9" class="guild-card"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon">"#
-    )), "{html}");
+    assert!(sorted.contains(&canonical(&format!(
+        r#"<a href="/guild/7" class="guild-card"><span class="{GUILD_PLACEHOLDER}">G</span><div class="min-w-0"><div class="truncate font-semibold">Guild 7</div>"#
+    ))), "{html}");
+    assert!(sorted.contains(&canonical(&format!(
+        r#"<a href="/guild/9" class="guild-card"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="{GUILD_IMAGE}">"#
+    ))), "{html}");
     assert!(!html.contains("Guild 8"), "{html}");
     assert!(html.contains("</div></div></main></div></body>"), "{html}");
     assert!(!html.contains("server-switcher"));
@@ -515,7 +551,7 @@ async fn the_guild_list_frames_the_managed_guilds(
     let html = app.page("/guilds", Some(STAFF)).await.unwrap();
     for prefix in ["rail", "sheet"] {
         let admin = format!(
-            r#"<div class="nav-group"><p class="nav-heading" id="{prefix}-admin">Admin</p><ul class="nav-list" aria-labelledby="{prefix}-admin">{}{}</ul></div>"#,
+            r#"<div class="{NAV_GROUP}"><p class="{NAV_HEADING}" id="{prefix}-admin">Admin</p><ul class="{NAV_LIST}" aria-labelledby="{prefix}-admin">{}{}</ul></div>"#,
             nav_link("/admin/servers", Some(SHIELD), "All bot servers", false),
             nav_link(
                 "/admin/destiny2/loadouts",
@@ -531,7 +567,7 @@ async fn the_guild_list_frames_the_managed_guilds(
     }
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div></div><div class="empty-state"><h2 class="empty-title">Add Zayden to a server you manage</h2><p class="empty-text">Servers appear here when you have Manage Server in them.</p><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
+            r#"<h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div></div><div class="{EMPTY_STATE}"><h2 class="m-0 text-[17px] font-semibold">Add Zayden to a server you manage</h2><p class="m-0 mb-2 text-text-2">Servers appear here when you have Manage Server in them.</p><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
             support::btn("primary")
         ))),
         "{html}"
@@ -573,18 +609,16 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
 
     assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
     let sorted = canonical(&html);
-    assert!(sorted.contains(&canonical(
-        r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
-    )), "{html}");
+    assert!(sorted.contains(&canonical(BRAND)), "{html}");
     assert!(html.contains(&format!(
-        r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#
+        r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="{PLATE_PLACEHOLDER}" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#
     )), "{html}");
     assert!(sorted.contains(&canonical(&format!(
-        r#"<div class="menu-list"><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="plate-avatar"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
+        r#"<div class="menu-list"><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="{PLATE_PLACEHOLDER}" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="{PLATE_IMAGE}"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
     ))), "{html}");
     assert!(!html.contains("operator-badge"), "{html}");
     assert!(sorted.contains(&canonical(&format!(
-        r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}{}</ul><div class="nav-group"><p class="nav-heading" id="rail-community">Community</p><ul class="nav-list" aria-labelledby="rail-community">{}"#,
+        r#"<nav class="{NAV}" aria-label="Dashboard"><ul class="{NAV_LIST}">{}{}</ul><div class="{NAV_GROUP}"><p class="{NAV_HEADING}" id="rail-community">Community</p><ul class="{NAV_LIST}" aria-labelledby="rail-community">{}"#,
         nav_link("/guild/7", Some(GRID), "Overview", true),
         nav_link("/guild/7/settings", Some(SETTINGS), "Server settings", false),
         nav_link("/guild/7/greetings", None, "Greetings", false),
@@ -614,7 +648,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     );
     assert!(
         sorted.contains(&canonical(&format!(
-            r#"{MAIN}{}<div class="flash-region" role="status"></div><div id="modules-community"><section class="rack-group" aria-labelledby="rack-community"><h2 class="rack-heading label" id="rack-community">Community</h2><ul class="rack"><li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/greetings">Greetings</a></h3>"#,
+            r#"{MAIN}{}<div class="flash-region" role="status"></div><div id="modules-community"><section class="mb-8" aria-labelledby="rack-community"><h2 class="m-0 mb-2 label" id="rack-community">Community</h2><ul class="rack"><li class="{RACK_ROW}"><div class="min-w-0"><h3 class="m-0 text-[15px] font-semibold"><a class="inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h) text-text no-underline decoration-current hover:underline" href="/guild/7/greetings">Greetings</a></h3>"#,
             overview_header()
         ))),
         "{html}"
@@ -626,12 +660,12 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     ] {
         assert!(
             html.contains(&format!(
-                r#"<div id="modules-{group}"><section class="rack-group" aria-labelledby="rack-{heading}"><h2 class="rack-heading label" id="rack-{heading}">{title}</h2><ul class="rack">"#
+                r#"<div id="modules-{group}"><section class="mb-8" aria-labelledby="rack-{heading}"><h2 class="m-0 mb-2 label" id="rack-{heading}">{title}</h2><ul class="rack">"#
             )),
             "{group}: {html}"
         );
     }
-    assert_eq!(count(&html, ROW), 16, "{html}");
+    assert_eq!(count(&html, &row()), 16, "{html}");
     assert_eq!(count(&html, NOT_SYNCED), 12, "{html}");
     assert_eq!(count(&html, r#"role="switch""#), 1, "{html}");
     assert!(
@@ -682,7 +716,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     let html = app.page("/guild/abc", Some(MEMBER)).await.unwrap();
     let sorted = canonical(&html);
     assert!(sorted.contains(&canonical(&format!(
-        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Server not found</h1><p class="error-text">That address doesn't name a Discord server.</p><div class="error-actions"><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
+        r#"{MAIN}<div class="page"><section class="{ERROR_PANEL}"><h1 class="error-title">Server not found</h1><p class="m-0 text-text-2">That address doesn't name a Discord server.</p><div class="flex flex-wrap gap-2"><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
         support::btn("primary")
     ))), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
@@ -740,7 +774,7 @@ async fn the_chrome_and_a_streamed_page_body_share_one_connection(
         assert!(html.contains(loaded), "{path}: {html}");
     }
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
-    assert_eq!(count(&html, ROW), 16, "{html}");
+    assert_eq!(count(&html, &row()), 16, "{html}");
 
     pool.close().await;
 }
@@ -771,9 +805,9 @@ async fn module_toggles_save_or_report_why_not(
         canonical(&html).contains(&canonical(&rack_status("ai", true))),
         "{html}"
     );
-    assert_eq!(count(&html, "flash-text"), 1, "{html}");
+    assert_eq!(count(&html, "data-flash"), 1, "{html}");
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
-    assert!(!html.contains("flash-text"), "{html}");
+    assert!(!html.contains("data-flash"), "{html}");
 
     let response = app
         .post("/guild/7", "guild=7&module_id=gambling&enabled=true", Some(MEMBER))
@@ -809,10 +843,11 @@ async fn module_toggles_save_or_report_why_not(
     assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(r#"aria-controls="server-switcher""#), "{html}");
     assert!(canonical(&html).contains(&canonical(&format!(
-        r#"{}<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: Patreon is switched on from its own settings page, not from this toggle.</p></div></li>"#,
-        rack_status("patreon", false)
+        r#"{}<div class="{error}" role="alert">{ALERT_TITLE}Not changed: Patreon is switched on from its own settings page, not from this toggle.</p></div></li>"#,
+        rack_status("patreon", false),
+        error = rack_error()
     ))), "{html}");
-    assert_eq!(count(&html, "rack-error"), 1, "{html}");
+    assert_eq!(count(&html, &rack_error()), 1, "{html}");
 
     let response = app
         .post("/guild/7", "guild=8&module_id=ai&enabled=false", Some(MEMBER))
@@ -821,7 +856,8 @@ async fn module_toggles_save_or_report_why_not(
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     assert!(canonical(&html).contains(&canonical(&format!(
-        r#"<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: invalid value for `guild`</p></div>"#
+        r#"<div class="{error}" role="alert">{ALERT_TITLE}Not changed: invalid value for `guild`</p></div>"#,
+        error = rack_error()
     ))), "{html}");
     assert!(app.app.settings.ai.get(7).await.unwrap().enabled);
 
@@ -832,7 +868,8 @@ async fn module_toggles_save_or_report_why_not(
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     assert!(canonical(&html).contains(&canonical(&format!(
-        r#"<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: unknown field `extra`</p></div>"#
+        r#"<div class="{error}" role="alert">{ALERT_TITLE}Not changed: unknown field `extra`</p></div>"#,
+        error = rack_error()
     ))), "{html}");
 
     for (body, message) in [
@@ -848,7 +885,7 @@ async fn module_toggles_save_or_report_why_not(
             ))),
             "{html}"
         );
-        assert_eq!(count(&html, "rack-error"), 0, "{html}");
+        assert_eq!(count(&html, &rack_error()), 0, "{html}");
     }
 
     let response = app
@@ -857,7 +894,7 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(canonical(&html).contains(&canonical(&format!(r#"<section class="error-panel"><h1 class="error-title">You can't manage this server</h1><p class="error-text">You need Manage Server in this server to change its modules.</p><div class="error-actions"><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary")))), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(r#"<section class="{ERROR_PANEL}"><h1 class="error-title">You can't manage this server</h1><p class="m-0 text-text-2">You need Manage Server in this server to change its modules.</p><div class="flex flex-wrap gap-2"><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary")))), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
 
     pool.close().await;
@@ -886,7 +923,7 @@ fn kofi_form(email: Option<&str>, error: Option<&str>) -> String {
     let invalid_row = if error.is_some() { r#" data-invalid="""# } else { "" };
     let primary = support::btn("primary");
     format!(
-        r#"<div class="field-row"{invalid_row}><label class="field-label" for="kofi-email">Ko-fi email</label><div class="kofi-link-form"><input class="{INPUT} flex-1 [&amp;]:min-w-[220px]" id="kofi-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required=""{value} aria-describedby="{described}"{invalid}><button type="submit" class="{primary}" data-pending-label="Linking…">Link email</button></div><p class="field-help" id="kofi-email-help">{KOFI_HELP}</p>{line}</div></form></section>"#
+        r#"<div class="field-row"{invalid_row}><label class="field-label" for="kofi-email">Ko-fi email</label><div class="flex flex-wrap items-center gap-2 mt-3"><input class="{INPUT} flex-1 [&amp;]:min-w-[220px]" id="kofi-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required=""{value} aria-describedby="{described}"{invalid}><button type="submit" class="{primary}" data-pending-label="Linking…">Link email</button></div><p class="{FIELD_HELP}" id="kofi-email-help">{KOFI_HELP}</p>{line}</div></form></section>"#
     )
 }
 
@@ -900,7 +937,7 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
 
     let html = app.page("/upgrade", None).await.unwrap();
     assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
-    assert!(html.contains(r#"<header class="public-header">"#), "{html}");
+    assert!(html.contains(r#"<header class="sticky top-0 z-100 flex items-center justify-center h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule">"#), "{html}");
     assert!(
         html.contains(&format!(
             r#"<a href="/auth/discord" rel="external" class="{}">Sign in</a>"#,
@@ -918,14 +955,14 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
         2,
         "{html}"
     );
-    assert!(!html.contains("plan-chip"), "{html}");
+    assert!(!html.contains(PLAN_CHIP), "{html}");
     assert!(!html.contains(r#"aria-label="Dashboard""#), "{html}");
-    assert!(html.contains(r#"<main id="main" class="public-main" tabindex="-1"><div class="page upgrade-page"><div class="page-header"><div><h1>Plans</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p></div></div><div class="flash-region" role="status"></div><ul class="pro-features">"#), "{html}");
+    assert!(html.contains(r#"<main id="main" class="public-main" tabindex="-1"><div class="page w-full mx-auto my-0 py-16 px-6"><div class="page-header"><div><h1>Plans</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p></div></div><div class="flash-region" role="status"></div><ul class="list-none m-0 mb-8 p-0 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">"#), "{html}");
     assert!(html.contains(
         "<strong>Lower greeting cooldowns</strong><span>Drop the per-member and server-wide limits on <code>/good</code> - for servers busy enough to hit them.</span>"
     ), "{html}");
     assert!(html.contains(&format!(
-        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="plan-head"><span class="{TIER_BADGE} tier-pro">Pro</span><span class="plan-price">$2.99<small>/mo</small></span></div><ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul><a href="{UPGRADE_URL}" class="{}" rel="external noopener noreferrer" target="_blank">Get Pro on upgrade.example</a></div></div>{}"#,
+        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="flex items-baseline justify-between gap-3"><span class="{TIER_BADGE} tier-pro">Pro</span><span class="text-[22px] font-bold text-text">$2.99<small class="text-[13px] font-medium text-text-2">/mo</small></span></div>{PLAN_SPECS}<a href="{UPGRADE_URL}" class="{}" rel="external noopener noreferrer" target="_blank">Get Pro on upgrade.example</a></div></div>{}"#,
         support::btn("primary"),
         subscribe()
     )), "{html}");
@@ -948,9 +985,11 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
         ))),
         "{html}"
     );
-    assert!(!html.contains("plan-chip"), "{html}");
+    assert!(!html.contains(PLAN_CHIP), "{html}");
     assert!(
-        html.contains(r#"</ul><span class="plan-current">Your plan</span></div>"#),
+        html.contains(
+            r#"</ul><span class="py-2 px-0 rounded-control text-[13px] font-semibold text-center bg-lamp-wash text-accent">Your plan</span></div>"#
+        ),
         "{html}"
     );
     assert!(!html.contains("Get Pro"), "{html}");
@@ -968,7 +1007,7 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     let html =
         app.page("/upgrade", Some(&format!("{MEMBER}; {flash}"))).await.unwrap();
     assert!(canonical(&html).contains(&canonical(&format!(
-        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}<span class="flash-text">Ko-fi email linked. Your paid membership now follows your Discord account.</span></p></div><form method="post" action="/upgrade" data-pending="">{}"#,
+        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}{FLASH_TEXT}Ko-fi email linked. Your paid membership now follows your Discord account.</span></p></div><form method="post" action="/upgrade" data-pending="">{}"#,
         kofi_form(None, None)
     ))), "{html}");
     assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
@@ -994,10 +1033,7 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
 
     let unlinked = harness(&pool, None).await.unwrap();
     let html = unlinked.page("/upgrade", None).await.unwrap();
-    assert!(
-        html.contains(r#"<ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul></div></div>"#),
-        "{html}"
-    );
+    assert!(html.contains(&format!("{PLAN_SPECS}</div></div>")), "{html}");
     assert!(html.contains(&subscribe()), "{html}");
     assert!(!html.contains("Get Pro"), "{html}");
     let html = unlinked.page("/guilds", Some(MEMBER)).await.unwrap();
@@ -1026,7 +1062,7 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
         "{html}"
     );
     assert!(!html.contains("Open dashboard"), "{html}");
-    assert!(!html.contains("plan-chip"), "{html}");
+    assert!(!html.contains(PLAN_CHIP), "{html}");
     assert!(!html.contains("plan-ladder"), "{html}");
     assert!(!html.contains(&subscribe()), "{html}");
     assert!(
@@ -1038,14 +1074,14 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
 
     let html = app.page("/guilds", cookie).await.unwrap();
     assert!(
-        html.contains(
-            r#"<section class="error-panel"><h1 class="error-title">Couldn't load your servers</h1><p class="error-text">Your server list couldn't be loaded: "#
-        ),
+        html.contains(&format!(
+            r#"<section class="{ERROR_PANEL}"><h1 class="error-title">Couldn't load your servers</h1><p class="m-0 text-text-2">Your server list couldn't be loaded: "#
+        )),
         "{html}"
     );
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<div class="error-actions"><a href="/guilds" class="{}">Try again</a><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
+            r#"<div class="flex flex-wrap gap-2"><a href="/guilds" class="{}">Try again</a><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
             support::btn("primary"),
             support::btn("secondary")
         ))),
@@ -1081,7 +1117,7 @@ async fn a_missing_page_inside_a_managed_guild_keeps_the_guild_shell(
     assert!(html.contains("<title>Not found - Zayden</title>"), "{html}");
     assert!(html.contains(r#"popovertarget="server-switcher""#), "{html}");
     assert!(canonical(&html).contains(&canonical(&format!(
-        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Page not found</h1><p class="error-text">There is no page at this address in this server. The link may have a typo, or the page may have moved.</p><div class="error-actions"><a href="/guild/7" class="{}">Back to Guild 7</a><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
+        r#"{MAIN}<div class="page"><section class="{ERROR_PANEL}"><h1 class="error-title">Page not found</h1><p class="m-0 text-text-2">There is no page at this address in this server. The link may have a typo, or the page may have moved.</p><div class="flex flex-wrap gap-2"><a href="/guild/7" class="{}">Back to Guild 7</a><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
         support::btn("primary"),
         support::btn("secondary")
     ))), "{html}");

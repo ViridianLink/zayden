@@ -41,10 +41,13 @@ pub async fn error_panel(
     let role = alert.then_some("alert");
 
     Ok(view! {
-        <section class="error-panel" role=(role)>
+        <section
+            class="flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1"
+            role=(role)
+        >
             <h1 class="error-title">(title)</h1>
-            <p class="error-text">(message)</p>
-            <div class="error-actions">
+            <p class="m-0 text-text-2">(message)</p>
+            <div class="flex flex-wrap gap-2">
                 #[key(index)]
                 for (index, action) in actions.iter().enumerate() {
                     let variant = if index == 0 {

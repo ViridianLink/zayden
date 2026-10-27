@@ -105,9 +105,12 @@ async fn plate_avatar(guild: &GuildCard) -> Result<impl View> {
                 alt=""
                 width="24"
                 height="24"
-                class="plate-avatar"
+                class="w-[24px] h-[24px] rounded-control object-cover shrink-0"
             >,
-            None => <span class="plate-avatar placeholder" aria-hidden="true">
+            None => <span
+                class="w-[24px] h-[24px] rounded-control object-cover shrink-0 grid place-items-center bg-surface-2 border border-solid border-line text-text text-[12px] font-semibold"
+                aria-hidden="true"
+            >
                 (guild.initial())
             </span>,
         }

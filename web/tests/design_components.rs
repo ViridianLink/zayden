@@ -59,6 +59,34 @@ const TBODY: &str = "[&amp;_tr:last-child]:border-0";
 const ROW: &str = "border-b border-border transition-colors hover:bg-foreground/5";
 const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
 const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
+const LAMP_STATUS: &str = "inline-flex items-center gap-2 whitespace-nowrap";
+const LAMP_ON: &str = "lamp-on inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const LAMP_OFF: &str = "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent";
+const LAMP_SYNC: &str = "lamp-sync inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const RACK_GROUP: &str = "mb-8";
+const RACK_HEADING: &str = "m-0 mb-2 label";
+const RACK_ROW: &str = "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 min-h-(--row-h) py-3 px-4 border-t border-solid border-t-rule first:[border-top:0] max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-y-2 max-md:min-h-[48px]";
+const RACK_NAME: &str = "m-0 text-[15px] font-semibold";
+const RACK_NAME_LINK: &str = "inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h) text-text no-underline decoration-current hover:underline";
+const RACK_LINK: &str =
+    "inline-flex items-center gap-1 min-h-(--target-min) text-text font-medium";
+const RACK_NOTE: &str = "col-span-full m-0 mt-2 text-[13px] text-caution";
+const SAVE_BAR_STATUS: &str = "flex-1 min-w-[12rem] m-0 text-text-2";
+const SAVE_BAR_DIRTY: &str = "text-text font-semibold";
+const FLASH_TEXT: &str = "text-text";
+const FIELD_HELP: &str = "m-0 text-[13px] text-text-2";
+const EMPTY_STATE: &str = "flex flex-col items-start gap-2 max-w-(--form-max) py-8 px-6 border border-dashed border-line rounded-panel";
+const EMPTY_TITLE: &str = "m-0 text-[17px] font-semibold";
+const EMPTY_TEXT: &str = "m-0 mb-2 text-text-2";
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const ERROR_TEXT: &str = "m-0 text-text-2";
+const PLAN_NOTE: &str =
+    "flex flex-wrap items-center gap-2 m-0 text-[13px] text-text-2";
+const PLAN_LINK: &str =
+    "inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h)";
+const NAV: &str = "flex flex-col gap-1";
+const NAV_LIST: &str = "flex flex-col gap-1 m-0 p-0 list-none";
+const NAV_HEADING: &str = "m-0 py-1 px-3 font-mono text-[12px] font-medium tracking-[0.06em] uppercase text-text-3";
 
 async fn render(builder: RouterBuilder, path: &str) -> TestResult<String> {
     let router = builder.runtime().build();
@@ -98,10 +126,16 @@ async fn the_lamp_pairs_a_hidden_light_with_its_state_in_words() {
 
     assert_eq!(
         html,
-        concat!(
-            r#"<span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text">On</span></span>"#,
-            r#"<span class="lamp-status"><span class="lamp lamp-off" aria-hidden="true"></span><span class="lamp-text">Disabled</span></span>"#,
-            r#"<span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving">Not synced</span></span>"#,
+        format!(
+            concat!(
+                r#"<span class="{status}"><span class="{on}" aria-hidden="true"></span><span class="lamp-text">On</span></span>"#,
+                r#"<span class="{status}"><span class="{off}" aria-hidden="true"></span><span class="lamp-text">Disabled</span></span>"#,
+                r#"<span class="{status}"><span class="{sync}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving">Not synced</span></span>"#,
+            ),
+            status = LAMP_STATUS,
+            on = LAMP_ON,
+            off = LAMP_OFF,
+            sync = LAMP_SYNC,
         )
     );
 }
@@ -129,14 +163,14 @@ async fn a_module_switch_is_a_named_role_switch_posting_the_opposite_state() {
         .await
         .unwrap();
 
-    assert!(html.starts_with(
-        r#"<section class="rack-group" aria-labelledby="rack-voice---games"><h2 class="rack-heading label" id="rack-voice---games">Voice &amp; games</h2><ul class="rack"><li class="rack-row">"#
-    ), "{html}");
-    assert!(canonical(&html).contains(&canonical(
-        r#"<h3 class="rack-name"><a href="/guild/7/settings/music" data-topcoat-link="intent">Music</a></h3>"#
+    assert!(html.starts_with(&format!(
+        r#"<section class="{RACK_GROUP}" aria-labelledby="rack-voice---games"><h2 class="{RACK_HEADING}" id="rack-voice---games">Voice &amp; games</h2><ul class="rack"><li class="{RACK_ROW}">"#
     )), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<h3 class="{RACK_NAME}"><a href="/guild/7/settings/music" class="{RACK_NAME_LINK}" data-topcoat-link="intent">Music</a></h3>"#
+    ))), "{html}");
     assert!(html.contains(
-        r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="music">"#
+        r#"<form class="contents" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="music">"#
     ), "{html}");
     assert!(html.contains(
         r#"<button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Music module" name="enabled" value="false"><span class="switch-thumb" aria-hidden="true"></span></button>"#
@@ -175,24 +209,29 @@ async fn status_and_unsynced_rows_have_no_switch() {
     assert_eq!(count(&html, "role=\"switch\""), 0, "{html}");
     assert_eq!(count(&html, "<form"), 0, "{html}");
     assert!(
-        canonical(&html).contains(&canonical(
-            r#"<a href="/guild/7/settings/patreon" class="rack-link" data-topcoat-link="intent">Manage"#
-        )),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<a href="/guild/7/settings/patreon" class="{RACK_LINK}" data-topcoat-link="intent">Manage"#
+        ))),
         "{html}"
     );
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<div class="{ERROR_ALERT} rack-error" role="alert"><p class="col-start-2 font-medium tracking-tight">Couldn't save.</p></div>"#
+            r#"<div class="{ERROR_ALERT} col-span-full m-0 mt-2" role="alert"><p class="col-start-2 font-medium tracking-tight">Couldn't save.</p></div>"#
         ))),
         "{html}"
     );
-    assert!(html.contains(r#"<h3 class="rack-name">LFG</h3>"#), "{html}");
     assert!(
-        html.contains(r#"<span class="lamp lamp-sync" aria-hidden="true"></span>"#),
+        html.contains(&format!(r#"<h3 class="{RACK_NAME}">LFG</h3>"#)),
         "{html}"
     );
     assert!(
-        html.contains(&format!(r#"<p class="rack-note">{NOT_SYNCED_NOTE}</p>"#)),
+        html.contains(&format!(
+            r#"<span class="{LAMP_SYNC}" aria-hidden="true"></span>"#
+        )),
+        "{html}"
+    );
+    assert!(
+        html.contains(&format!(r#"<p class="{RACK_NOTE}">{NOT_SYNCED_NOTE}</p>"#)),
         "{html}"
     );
 }
@@ -208,9 +247,9 @@ async fn the_save_bar_announces_its_state_and_hides_discard_until_dirty() {
     let html =
         render(Router::builder().page(save_bar_page), "/save-bar").await.unwrap();
 
-    assert!(html.starts_with(
-        r#"<div class="save-bar" data-save-bar=""><div class="save-bar-status" role="status"><span class="save-bar-dirty" data-dirty-status="" hidden="">Unsaved changes</span><p class="flash flash-success" data-flash="">"#
-    ), "{html}");
+    assert!(html.starts_with(&format!(
+        r#"<div class="save-bar" data-save-bar=""><div class="{SAVE_BAR_STATUS}" role="status"><span class="{SAVE_BAR_DIRTY}" data-dirty-status="" hidden="">Unsaved changes</span><p class="flash flash-success" data-flash="">"#
+    )), "{html}");
     assert!(html.contains(&format!(
         r#"<button type="button" class="{}" data-discard="" hidden="">Discard</button><button type="submit" class="{}" data-pending-label="Saving…">Save changes</button></div>"#,
         support::btn("ghost"),
@@ -233,7 +272,9 @@ async fn the_flash_region_is_a_live_status_even_when_empty() {
 
     assert!(html.starts_with(r#"<div class="flash-region" role="status"></div><p class="flash flash-error" data-flash=""><svg"#), "{html}");
     assert!(
-        html.ends_with(r#"<span class="flash-text">Couldn't save.</span></p>"#),
+        html.ends_with(&format!(
+            r#"<span class="{FLASH_TEXT}">Couldn't save.</span></p>"#
+        )),
         "{html}"
     );
 }
@@ -279,11 +320,14 @@ async fn a_field_row_labels_its_control_and_names_its_help_and_error() {
 
     assert_eq!(
         html,
-        concat!(
-            r#"<div class="field-row" data-invalid=""><label class="field-label" for="prefix">Prefix</label>"#,
-            r#"<input class="input" id="prefix" name="prefix" aria-describedby="prefix-help prefix-error" aria-invalid="true">"#,
-            r#"<p class="field-help" id="prefix-help">One or two characters.</p>"#,
-            r#"<p class="field-error" id="prefix-error">Too long.</p></div>"#,
+        format!(
+            concat!(
+                r#"<div class="field-row" data-invalid=""><label class="field-label" for="prefix">Prefix</label>"#,
+                r#"<input class="input" id="prefix" name="prefix" aria-describedby="prefix-help prefix-error" aria-invalid="true">"#,
+                r#"<p class="{help}" id="prefix-help">One or two characters.</p>"#,
+                r#"<p class="field-error" id="prefix-error">Too long.</p></div>"#,
+            ),
+            help = FIELD_HELP
         )
     );
 }
@@ -384,12 +428,12 @@ async fn empty_and_error_states_lead_with_one_primary_action() {
 
     let canonical_html = canonical(&html);
     assert!(canonical_html.starts_with(&canonical(&format!(
-        r#"<div class="empty-state"><h2 class="empty-title">No servers yet</h2><p class="empty-text">Add Zayden to a server you manage.</p><a href="/invite" rel="external" class="{}">Add Zayden</a></div>"#,
+        r#"<div class="{EMPTY_STATE}"><h2 class="{EMPTY_TITLE}">No servers yet</h2><p class="{EMPTY_TEXT}">Add Zayden to a server you manage.</p><a href="/invite" rel="external" class="{}">Add Zayden</a></div>"#,
         support::btn("primary")
     ))), "{html}");
-    assert!(html.contains(
-        r#"<section class="error-panel" role="alert"><h1 class="error-title">Zayden isn't in this server yet</h1><p class="error-text">Add it, then come back.</p>"#
-    ), "{html}");
+    assert!(html.contains(&format!(
+        r#"<section class="{ERROR_PANEL}" role="alert"><h1 class="error-title">Zayden isn't in this server yet</h1><p class="{ERROR_TEXT}">Add it, then come back.</p>"#
+    )), "{html}");
     assert!(canonical_html.contains(&canonical(&format!(
         r#"<a href="/invite?guild=7" rel="external" class="{}">Add Zayden to Guild 7</a><a href="/guilds" data-topcoat-link="intent" class="{}">Back to servers</a>"#,
         support::btn("primary"),
@@ -413,7 +457,7 @@ async fn a_plan_note_names_the_tier_in_text_and_links_the_plans_once() {
     assert_eq!(
         canonical(&html),
         canonical(&format!(
-            r#"<p class="plan-note"><span class="{BADGE_OUTLINE}">Pro</span><span>Cooldowns below 60 seconds need Pro.</span><a href="/upgrade" data-topcoat-link="intent">See plans</a></p><span class="{BADGE_OUTLINE}">Pro</span>"#
+            r#"<p class="{PLAN_NOTE}"><span class="{BADGE_OUTLINE}">Pro</span><span>Cooldowns below 60 seconds need Pro.</span><a href="/upgrade" class="{PLAN_LINK}" data-topcoat-link="intent">See plans</a></p><span class="{BADGE_OUTLINE}">Pro</span>"#
         ))
     );
 }
@@ -450,7 +494,7 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
         .unwrap();
 
     assert_eq!(
-        count(&html, r#"<nav class="nav" aria-label="Dashboard">"#),
+        count(&html, &format!(r#"<nav class="{NAV}" aria-label="Dashboard">"#)),
         2,
         "{html}"
     );
@@ -467,7 +511,7 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
     assert_eq!(count(&html, r#"aria-current="page""#), 2, "{html}");
     for prefix in ["rail", "sheet"] {
         assert!(html.contains(&format!(
-            r#"<p class="nav-heading" id="{prefix}-voice---games">Voice &amp; games</p><ul class="nav-list" aria-labelledby="{prefix}-voice---games">"#
+            r#"<p class="{NAV_HEADING}" id="{prefix}-voice---games">Voice &amp; games</p><ul class="{NAV_LIST}" aria-labelledby="{prefix}-voice---games">"#
         )), "{prefix}: {html}");
     }
     assert_eq!(

@@ -50,16 +50,20 @@ const SCRIPT_SRC: &str = "/_topcoat/assets/loadout-editor-0123456789abcdef.js";
 const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
 const TEXTAREA: &str = "field-sizing-content min-h-16 max-md:min-h-20 w-full rounded-lg border border-input bg-popover px-3 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
 
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const ERROR_TEXT: &str = "m-0 text-text-2";
+const ERROR_ACTIONS: &str = "flex flex-wrap gap-2";
+
 fn forbidden() -> String {
     format!(
-        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's loadout admins.</p><div class="error-actions"><a href="/guilds" data-topcoat-link="never" class="{}">Back to servers</a></div></section></div></main>"#,
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="{ERROR_PANEL}"><h1 class="error-title">You don't have access to this page</h1><p class="{ERROR_TEXT}">This page is for Zayden's loadout admins.</p><div class="{ERROR_ACTIONS}"><a href="/guilds" data-topcoat-link="never" class="{}">Back to servers</a></div></section></div></main>"#,
         support::btn("primary")
     )
 }
 
 fn not_found() -> String {
     format!(
-        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">Loadout not found</h1><p class="error-text">There is no loadout at this address. It may have been deleted, or the link has a typo.</p><div class="error-actions"><a href="/admin/destiny2/loadouts" data-topcoat-link="never" class="{}">Back to loadouts</a></div></section></div></main>"#,
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="{ERROR_PANEL}"><h1 class="error-title">Loadout not found</h1><p class="{ERROR_TEXT}">There is no loadout at this address. It may have been deleted, or the link has a typo.</p><div class="{ERROR_ACTIONS}"><a href="/admin/destiny2/loadouts" data-topcoat-link="never" class="{}">Back to loadouts</a></div></section></div></main>"#,
         support::btn("primary")
     )
 }

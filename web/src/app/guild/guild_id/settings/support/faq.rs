@@ -116,7 +116,7 @@ async fn article_list(cx: &Cx, guild_id: &str) -> Result<impl View> {
                             href: Some(&new_href)
                         )
                     } else {
-                        <div class="settings-actions">
+                        <div class="flex flex-wrap items-center gap-2">
                             <a
                                 class=(button_variants(
                                     ButtonVariant::Primary,
@@ -354,14 +354,17 @@ async fn article_editor(
                 if let Some(failure) = state.any_failure() {
                     form_summary(form: "page", message: failure)
                 }
-                <section class="error-panel" aria-labelledby="faq-missing-title">
+                <section
+                    class="flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1"
+                    aria-labelledby="faq-missing-title"
+                >
                     <h3 class="error-title" id="faq-missing-title">
                         "Article not found"
                     </h3>
-                    <p class="error-text">
+                    <p class="m-0 text-text-2">
                         "This FAQ article doesn't exist. It may have been deleted."
                     </p>
-                    <div class="error-actions">
+                    <div class="flex flex-wrap gap-2">
                         <a
                             class=(button_variants(
                                 ButtonVariant::Primary,

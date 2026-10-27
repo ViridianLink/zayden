@@ -242,7 +242,7 @@ async fn panel(
                         outcome: "Not disconnected"
                     )
                 }
-                <div class="settings-actions">
+                <div class="flex flex-wrap items-center gap-2">
                     <a
                         class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         href=(connect_href.as_str())
@@ -334,7 +334,7 @@ async fn panel(
                 <p class="page-lead">
                     "No Patreon account is connected. The campaign's own creator has to authorise Zayden - the connection reads their posts, so nobody else can grant it."
                 </p>
-                <div class="settings-actions">
+                <div class="flex flex-wrap items-center gap-2">
                     <a
                         class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                         href=(connect_href.as_str())

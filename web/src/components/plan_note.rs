@@ -20,10 +20,15 @@ pub async fn plan_tag(label: &str) -> Result<impl View> {
 #[component]
 pub async fn plan_note(cx: &Cx, tier: &str, text: &str) -> Result<impl View> {
     Ok(view! {
-        <p class="plan-note">
+        <p class="flex flex-wrap items-center gap-2 m-0 text-[13px] text-text-2">
             plan_tag(label: tier)
             <span>(text)</span>
-            <a (link_attrs(cx, PLANS_PATH, prefetch_mode(cx)))>"See plans"</a>
+            <a
+                class="inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h)"
+                (link_attrs(cx, PLANS_PATH, prefetch_mode(cx)))
+            >
+                "See plans"
+            </a>
         </p>
     })
 }

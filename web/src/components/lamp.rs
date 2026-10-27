@@ -17,9 +17,15 @@ impl LampState {
     #[must_use]
     pub const fn class(self) -> &'static str {
         match self {
-            Self::On => "lamp lamp-on",
-            Self::Off => "lamp lamp-off",
-            Self::NotSynced => "lamp lamp-sync",
+            Self::On => {
+                "lamp-on inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)"
+            },
+            Self::Off => {
+                "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent"
+            },
+            Self::NotSynced => {
+                "lamp-sync inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)"
+            },
         }
     }
 
@@ -42,7 +48,7 @@ pub async fn lamp(
     let text = text.unwrap_or_else(|| state.text());
 
     Ok(view! {
-        <span class="lamp-status">
+        <span class="inline-flex items-center gap-2 whitespace-nowrap">
             <span class=(state.class()) aria-hidden="true"></span>
             <span class="lamp-text" data-pending-text=(pending)>(text)</span>
         </span>

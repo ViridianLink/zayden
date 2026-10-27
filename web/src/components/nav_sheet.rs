@@ -40,7 +40,7 @@ pub async fn nav_sheet(
             </div>
             <div class="sheet-body">
                 nav_links(prefix: "sheet", access: access, guild_id: guild_id)
-                <div class="nav-spacer"></div>
+                <div class="flex-1"></div>
                 legal_links()
             </div>
         </div>

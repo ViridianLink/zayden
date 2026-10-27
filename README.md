@@ -97,7 +97,9 @@ cargo run -p web
   repeats whenever the build script's output directory changes. Point it at a
   local copy to build offline; CI and `docker/Dockerfile.web` always set it to a
   checksummed download.
-- Styles live in `web/style/` (`input.css` plus partials). Tailwind only sees
+- Styles are utilities in the markup over the app tokens mapped in
+  `web/styles.css`; `web/style/partials/` keeps the rules utilities cannot
+  express (`docs/topcoat/ui.md`, "App styling"). Tailwind only sees
   class names written literally in `web/src/**/*.rs`.
 - `view!` bodies are formatted by `topcoat fmt`; `topcoat fmt --check` exits
   non-zero when a file would change. Pass explicit paths

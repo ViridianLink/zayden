@@ -85,7 +85,7 @@ pub(crate) async fn frame(
     let viewer = Box::pin(Viewer::load(cx, guild_id, guilds)).await;
 
     Ok(view! {
-        <div class="app">
+        <div class="min-h-screen">
             <header>
                 topbar(viewer: &viewer, show_plate: guild_id.is_some(), guilds: guilds)
                 progress_bar()
@@ -113,7 +113,9 @@ async fn topbar(
     let home = if viewer.session == Some(true) { "/guilds" } else { "/" };
 
     Ok(view! {
-        <div class="topbar">
+        <div
+            class="fixed top-0 left-0 right-0 z-100 flex items-center gap-3 h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule max-md:gap-2 max-md:px-3"
+        >
             <button
                 type="button"
                 class="topbar-button menu-button"
@@ -126,7 +128,7 @@ async fn topbar(
             </button>
             <a class="brand" (link_attrs(cx, home, prefetch_mode(cx)))>
                 brand_mark()
-                <span class="brand-name">"Zayden"</span>
+                <span class="max-md:hidden">"Zayden"</span>
             </a>
             if show_plate {
                 server_plate(current: viewer.current.as_ref(), guilds: guilds)
@@ -163,7 +165,7 @@ async fn plan_chip(cx: &Cx, tier: Option<Tier>) -> Result<impl View> {
                 <a
                     class=(class!(
                         badge_variants(BadgeVariant::Outline),
-                        "plan-chip hover:bg-foreground/5",
+                        "max-md:hidden hover:bg-foreground/5",
                     ))
                     aria-label="Upgrade, current plan: Free"
                     (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
@@ -174,7 +176,7 @@ async fn plan_chip(cx: &Cx, tier: Option<Tier>) -> Result<impl View> {
                 <a
                     class=(class!(
                         badge_variants(BadgeVariant::Outline),
-                        "plan-chip hover:bg-foreground/5",
+                        "max-md:hidden hover:bg-foreground/5",
                     ))
                     (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
                 >
@@ -203,7 +205,7 @@ async fn account_menu(cx: &Cx, name: &str) -> Result<impl View> {
             aria-label="Account menu"
         >
             icon(name: Icon::Users)
-            <span class="account-name">(name)</span>
+            <span class="max-w-[12ch] truncate max-md:hidden">(name)</span>
             icon(name: Icon::ChevronDown)
         </button>
         <div

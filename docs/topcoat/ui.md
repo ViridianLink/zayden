@@ -8,7 +8,7 @@ Status labels are defined in [README.md](README.md). The probes under `scratch/t
 
 ## Contents
 
-- [What is installed in `web/`](#what-is-installed-in-web)
+- [What is installed in `web/`](#what-is-installed-in-web), [app styling](#app-styling-utilities-first-partials-for-what-utilities-cannot-express)
 - [Conventions shared by every component](#conventions-shared-by-every-component)
 - [Component index](#component-index)
 - [Form controls](#form-controls), [overlays](#overlays), [navigation](#navigation), [data display](#data-display)
@@ -35,6 +35,29 @@ Status: VERIFIED (checked against the files in `web/`).
 How the app uses them: literal `<button>` and `<a>` elements take `button_variants(..)` (and badges `badge_variants(..)`) as their `class`, because a component's `attrs` are a `HashMap` and render in random order; `field_row` helpers render `input`, `textarea` and `select`; notices are `alert` + `alert_title` (the text must be inside `alert_title`, the grid's first column is the 0-wide icon column); `data_table` wraps the `table` family with the reflow hooks (`data-label`, roles) in `attrs`; the leaderboard pager is `pagination`, and the scope switch and support sub-navigation are `tabs_list`/`tabs_trigger`. Tests compare markup from attribute-spreading components through `web/tests/canonical/mod.rs`, which sorts attributes. The confirm dialog, menus, sheets, progress bar, skeleton shapes, module switches, chips and status lamp stay app-owned (the registry dialog and sheet do not call `showModal()`; the others have no registry equivalent).
 
 The app's own skeleton is `shape_skeleton.rs`, so the registry `skeleton` keeps its name (`sidebar` imports `super::skeleton::skeleton`). The app's selects (`SelectOption`, `select_field`) live in `pickers.rs` and `field_row.rs`; `select.rs` is the registry component.
+
+### App styling: utilities first, partials for what utilities cannot express
+
+`@theme inline` in `web/styles.css` also maps the app's own tokens from `tokens.css`, so markup can use them as utilities: colors `bg`, `surface-1`, `surface-2`, `text`, `text-2`, `text-3`, `line`, `rule`, `lamp*`, `on-lamp`, `accent`, `focus`, `danger`, `on-danger`, `caution`, the `*-wash` fills and `scrim` (`text-text-2`, `bg-surface-2`, `border-line`); radii `rounded-control` and `rounded-panel`; fonts `font-sans` (`--font-ui`) and `font-mono` (`--font-code`).
+
+Single-element styling lives in the markup as utilities. The 19 partials in `web/style/partials/` keep only what a utility cannot reproduce exactly:
+
+- selectors driven by state the server does not render: `:has(..)`, `aria-current`, `[data-dirty]`, `[data-active]`, `[hidden]`, `[aria-busy]`, `:popover-open`, `::backdrop`, pseudo-elements, keyframes and `@starting-style`;
+- classes that `web/assets/*.js` creates or queries (`setting-field`, `form-actions`, `alert*`, `settings-section`, `nav-progress`), or that a CSS-reading test checks (`.rail`, `.menu-button`);
+- the shared panel shell in `card.css` and every class in its selector lists, the `data-table` reflow, and the `tokens.css`, `fonts.css`, `base.css` foundations;
+- a class with any rule from the lists above keeps all its rules in CSS, so no class is split between a partial and utilities.
+
+Partial rules are unlayered and beat `@layer utilities` whatever their specificity, so a utility on an element that a partial rule also styles for the same property has no effect. When converting a rule, keep the computed value identical:
+
+| CSS | Utility |
+|---|---|
+| `var(--space-1)` .. `var(--space-10)` | spacing steps `1, 2, 3, 4, 6, 8, 10, 12, 16, 24` (`p-6` for `--space-5`) |
+| any other `var(--x)` length | `min-h-(--target-min)`, `max-w-(--content-max)` |
+| `font-size` | always arbitrary, `text-[13px]`: `text-xs`/`text-sm` also set `line-height` |
+| `border-radius: var(--radius-full)` | `rounded-(--radius-full)`: Tailwind's `rounded-full` is `calc(infinity * 1px)`, not the app's `999px` |
+| `text-decoration: none` | `no-underline decoration-current`: `base.css` sets a decoration color that `no-underline` alone leaves in place |
+| `border-top: 0` on `:first-child` | `first:[border-top:0]`: `first:border-t-0` keeps the style and color of the base `border-t border-solid border-t-*` |
+| `@media (max-width: 767px)` / `1023px` | `max-md:` / `max-lg:` |
 
 `topcoat ui list` compares the recorded hash with the registry's current hash and never reads the file on disk, so local edits are invisible to it.
 

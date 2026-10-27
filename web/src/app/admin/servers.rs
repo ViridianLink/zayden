@@ -115,7 +115,7 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
     });
 
     Ok(view! {
-        <div class="operator-tools">
+        <div class="flex flex-wrap items-center gap-3 mb-6">
             <div class="field-row">
                 <label class="field-label" for="server-filter">"Filter by name"</label>
                 input(
@@ -160,8 +160,13 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
             </div>
         </div>
         <div role="status">
-            <p class="empty" :hidden=$(shown != 0.0)>"No server matches that name."</p>
-            <p class="operator-count" :hidden=$(shown == 0.0)>
+            <p
+                class="rounded-panel border border-dashed border-border px-4 py-12 text-center text-text-2"
+                :hidden=$(shown != 0.0)
+            >
+                "No server matches that name."
+            </p>
+            <p class="m-0 mb-4 text-[12.5px] text-text-3" :hidden=$(shown == 0.0)>
                 $(shown)
                 " of "
                 (total)
@@ -191,15 +196,21 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
                             header: true,
                             <a (link_attrs(cx, guild.href(), prefetch_mode(cx)))>
                                 match guild.icon_url() {
-                                    Some(url) => <img src=(url) alt="" class="guild-icon">,
+                                    Some(url) => <img
+                                        src=(url)
+                                        alt=""
+                                        class="h-[48px] w-[48px] shrink-0 rounded-control object-cover"
+                                    >,
                                     None => <span
-                                        class="guild-icon placeholder"
+                                        class="grid h-[48px] w-[48px] shrink-0 place-items-center rounded-control border border-solid border-line bg-surface-2 object-cover text-[18px] font-semibold text-text"
                                         aria-hidden="true"
                                     >
                                         (guild.initial())
                                     </span>,
                                 }
-                                <span class="guild-name">(guild.name.as_str())</span>
+                                <span class="truncate font-semibold">
+                                    (guild.name.as_str())
+                                </span>
                             </a>
                         )
                         data_cell(

@@ -78,7 +78,7 @@ pub(super) async fn page_header(
             </div>
             match (module, switch) {
                 (Some(ModuleState::Switch(on)), Some(action)) => <form
-                    class="settings-actions"
+                    class="flex flex-wrap items-center gap-2"
                     method="post"
                     action=(action)
                     data-pending=""
@@ -98,11 +98,13 @@ pub(super) async fn page_header(
                     </button>
                 </form>,
                 (Some(ModuleState::Switch(on) | ModuleState::Status(on)), _) => <div
-                    class="settings-actions"
+                    class="flex flex-wrap items-center gap-2"
                 >
                     lamp(state: lamp_state(on))
                 </div>,
-                (Some(ModuleState::NotSynced), _) => <div class="settings-actions">
+                (Some(ModuleState::NotSynced), _) => <div
+                    class="flex flex-wrap items-center gap-2"
+                >
                     lamp(state: LampState::NotSynced)
                 </div>,
                 (None, _) => "",

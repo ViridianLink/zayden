@@ -26,6 +26,11 @@ const RUNTIME_BODY: &str = "export {};";
 const PENDING_FILE: &str = "pending-submit-0123456789abcdef.js";
 const LOGO_FILE: &str = "logo-0123456789abcdef.png";
 const PENDING_BODY: &str = "export {};";
+const PUBLIC: &str = "flex flex-col min-h-screen";
+const HEADER: &str = "sticky top-0 z-100 flex items-center justify-center h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule";
+const BRAND_MARK: &str = "flex-none w-[28px] h-[28px] rounded-(--radius-full)";
+const FOOTER: &str =
+    "border-t border-solid border-t-rule py-6 px-4 text-text-2 text-[13px]";
 
 type TestResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -103,14 +108,14 @@ async fn unknown_path_is_404_with_not_found_card() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(
-        "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><div class=\"public\"><header class=\"public-header\">"
-    ));
+    assert!(html.contains(&format!(
+        "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><div class=\"{PUBLIC}\"><header class=\"{HEADER}\">"
+    )));
     assert!(html.contains(
         "<main id=\"main\" class=\"public-main\" tabindex=\"-1\"><div class=\"login-page\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
     ));
     assert!(html.contains(
-        &format!("<span class=\"brand\"><img class=\"brand-mark\" src=\"/_topcoat/assets/{LOGO_FILE}\" alt=\"\" width=\"28\" height=\"28\">Zayden</span>")
+        &format!("<span class=\"brand\"><img class=\"{BRAND_MARK}\" src=\"/_topcoat/assets/{LOGO_FILE}\" alt=\"\" width=\"28\" height=\"28\">Zayden</span>")
     ));
     assert!(html.contains("<h1>404</h1>"));
     assert!(html.contains("<p>We couldn't find that page.</p>"));
@@ -118,10 +123,10 @@ async fn unknown_path_is_404_with_not_found_card() {
         "<a href=\"/\" class=\"{} w-full\" data-topcoat-link=\"never\">Back home</a>",
         support::btn("primary-lg")
     ))));
-    assert!(
-        html.contains("Back home</a></div></div></main><footer class=\"footer\">")
-    );
-    assert_eq!(1, html.matches("<header class=\"public-header\">").count());
+    assert!(html.contains(&format!(
+        "Back home</a></div></div></main><footer class=\"{FOOTER}\">"
+    )));
+    assert_eq!(1, html.matches(&format!("<header class=\"{HEADER}\">")).count());
 }
 
 #[tokio::test]

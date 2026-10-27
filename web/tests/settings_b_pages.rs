@@ -583,6 +583,13 @@ fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const NEUTRAL_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-border text-foreground";
 const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+const FLASH_TEXT: &str = r#"<span class="text-text">"#;
+const LAMP_WRAP: &str = "inline-flex items-center gap-2 whitespace-nowrap";
+const LAMP_DOT: &str =
+    "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const LAMP_OFF: &str = "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent";
+const EMPTY_STATE: &str = "flex flex-col items-start gap-2 max-w-(--form-max) py-8 px-6 border border-dashed border-line rounded-panel";
+const ROW_ACTIONS: &str = "flex flex-wrap items-center gap-2";
 
 /// The reason at the top of form `form`: the title of the alert that
 /// carries the form's summary id.
@@ -601,11 +608,7 @@ fn has_summary(html: &str, form: &str, reason: &str) -> bool {
 /// The result line in the save bar of form `form`.
 fn bar_flash<'a>(html: &'a str, form: &str) -> Option<&'a str> {
     let form = element(html, "form", form)?;
-    between(
-        form.split_once(r#"<div class="save-bar""#)?.1,
-        r#"<span class="flash-text">"#,
-        "</span>",
-    )
+    between(form.split_once(r#"<div class="save-bar""#)?.1, FLASH_TEXT, "</span>")
 }
 
 /// The result line in the first status region after `marker`.
@@ -613,7 +616,7 @@ fn flash_after<'a>(html: &'a str, marker: &str) -> Option<&'a str> {
     let rest = html.split_once(marker)?.1;
     let region =
         between(rest, r#"<div class="flash-region" role="status">"#, "</div>")?;
-    between(region, r#"<span class="flash-text">"#, "</span>")
+    between(region, FLASH_TEXT, "</span>")
 }
 
 /// The result line at the top of the page.
@@ -674,9 +677,9 @@ async fn provider_pages_follow_the_connection(
     let html = app.page("/guild/7/youtube").await.unwrap();
     assert!(html.contains(&title("YouTube")), "{html}");
     let main = main_content(&html);
-    assert!(main.contains(r#"<div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-off" aria-hidden="true"></span><span class="lamp-text">Off</span></span></div>"#), "status text, no switch: {main}");
+    assert!(main.contains(&format!(r#"<div class="{ROW_ACTIONS}"><span class="{LAMP_WRAP}"><span class="{LAMP_OFF}" aria-hidden="true"></span><span class="lamp-text">Off</span></span></div>"#)), "status text, no switch: {main}");
     assert!(!main.contains(r#"role="switch""#), "{main}");
-    assert!(main.contains(&format!(r#"<p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="settings-actions"><a class="{}" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div>"#, support::btn("primary"))), "{main}");
+    assert!(main.contains(&format!(r#"<p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="{ROW_ACTIONS}"><a class="{}" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div>"#, support::btn("primary"))), "{main}");
     assert!(!main.contains("<form"), "{main}");
 
     let html = app.page("/guild/7/youtube?youtube=declined").await.unwrap();
@@ -762,7 +765,7 @@ async fn provider_pages_follow_the_connection(
         Some("YouTube settings saved.")
     );
     assert_eq!(selected(&html, "youtube-settings-channel-id"), Some("101"));
-    assert!(html.contains(r#"<span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text">On</span>"#), "{html}");
+    assert!(html.contains(&format!(r#"<span class="lamp-on {LAMP_DOT}" aria-hidden="true"></span><span class="lamp-text">On</span>"#)), "{html}");
 
     let html = app
         .submit(
@@ -1605,7 +1608,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
         main_content(&html).contains(r#"<div class="skeleton-list">"#),
         "the list streams in: {html}"
     );
-    assert!(html.contains(r#"<div class="empty-state"><h2 class="empty-title">No FAQ articles yet</h2>"#), "{html}");
+    assert!(html.contains(&format!(r#"<div class="{EMPTY_STATE}"><h2 class="m-0 text-[17px] font-semibold">No FAQ articles yet</h2>"#)), "{html}");
     assert!(
         canonical(&html).contains(&canonical(&format!(
             r#"<a href="/guild/7/support/faq/new" class="{}">New article</a>"#,
@@ -1665,7 +1668,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
     }
     assert!(
         main_content(&html)
-            .contains(r#"</nav><h2 class="subpage-title">FAQ articles</h2>"#),
+            .contains(r#"</nav><h2 class="m-0 mb-4 text-[17px] font-semibold tracking-[-0.01em] text-text">FAQ articles</h2>"#),
         "the sub-page names itself under the Support heading: {html}"
     );
 

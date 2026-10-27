@@ -557,6 +557,14 @@ fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
 
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+const FLASH_TEXT: &str = r#"<span class="text-text">"#;
+const FIELD_HELP: &str = "m-0 text-[13px] text-text-2";
+const LAMP_WRAP: &str = "inline-flex items-center gap-2 whitespace-nowrap";
+const LAMP_DOT: &str =
+    "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const LAMP_OFF: &str = "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent";
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const ROW_ACTIONS: &str = "flex flex-wrap items-center gap-2";
 
 /// The reason at the top of form `form`: the title of the alert that
 /// carries the form's summary id.
@@ -575,18 +583,14 @@ fn has_summary(html: &str, form: &str, reason: &str) -> bool {
 /// The result line in the save bar of form `form`.
 fn bar_flash<'a>(html: &'a str, form: &str) -> Option<&'a str> {
     let form = element(html, "form", form)?;
-    between(
-        form.split_once(r#"<div class="save-bar""#)?.1,
-        r#"<span class="flash-text">"#,
-        "</span>",
-    )
+    between(form.split_once(r#"<div class="save-bar""#)?.1, FLASH_TEXT, "</span>")
 }
 
 /// The result line at the top of the page.
 fn top_flash(html: &str) -> Option<&str> {
     let region =
         between(html, r#"<div class="flash-region" role="status">"#, "</div>")?;
-    between(region, r#"<span class="flash-text">"#, "</span>")
+    between(region, FLASH_TEXT, "</span>")
 }
 
 /// Element ids that appear more than once.
@@ -700,7 +704,7 @@ async fn every_page_renders_its_stored_settings(
         "{html}"
     );
     let main = main_content(&html);
-    assert!(main.contains(r#"<div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text">On</span></span></div>"#), "the lamp shows the setting, with no second control: {main}");
+    assert!(main.contains(&format!(r#"<div class="{ROW_ACTIONS}"><span class="{LAMP_WRAP}"><span class="lamp-on {LAMP_DOT}" aria-hidden="true"></span><span class="lamp-text">On</span></span></div>"#)), "the lamp shows the setting, with no second control: {main}");
     assert!(!main.contains(r#"role="switch""#), "{main}");
     assert_eq!(selected(main, "ai-settings-enabled"), Some("true"));
     assert_eq!(selected(main, "ai-settings-channel-id"), Some("101"));
@@ -711,7 +715,7 @@ async fn every_page_renders_its_stored_settings(
     assert!(html.contains(&title("Family")), "{html}");
     let main = main_content(&html);
     assert!(main.contains(r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p>"#), "{main}");
-    assert!(main.contains(r#"<span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span>"#), "{main}");
+    assert!(main.contains(&format!(r#"<span class="lamp-sync {LAMP_DOT}" aria-hidden="true"></span><span class="lamp-text">Not synced</span>"#)), "{main}");
     assert!(!main.contains(r#"role="switch""#), "no switch before a sync: {main}");
     assert_eq!(value(main, "family-settings-max-partners"), Some("1"));
     assert!(
@@ -720,7 +724,7 @@ async fn every_page_renders_its_stored_settings(
         ),
         "{main}"
     );
-    assert!(main.contains(r#"<p class="field-help" id="family-settings-max-partners-help">At least 1.</p>"#), "{main}");
+    assert!(main.contains(&format!(r#"<p class="{FIELD_HELP}" id="family-settings-max-partners-help">At least 1.</p>"#)), "{main}");
 
     let honeypot = settings.honeypot.get(7).await.unwrap();
     assert_eq!(honeypot.purge_seconds, 86_400);
@@ -762,7 +766,7 @@ async fn every_page_renders_its_stored_settings(
     let html = app.page("/guild/7/music").await.unwrap();
     assert!(html.contains(&title("Music")), "{html}");
     let main = main_content(&html);
-    assert!(main.contains(r#"<form class="settings-actions" method="post" action="/guild/7/music/module" data-pending=""><input type="hidden" name="guild" value="7"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Music module" name="enabled" value="false"><span class="switch-thumb" aria-hidden="true"></span></button></form>"#), "{main}");
+    assert!(main.contains(&format!(r#"<form class="{ROW_ACTIONS}" method="post" action="/guild/7/music/module" data-pending=""><input type="hidden" name="guild" value="7"><span class="{LAMP_WRAP}"><span class="lamp-on {LAMP_DOT}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Music module" name="enabled" value="false"><span class="switch-thumb" aria-hidden="true"></span></button></form>"#)), "{main}");
     assert_eq!(value(main, "music-settings-auto-disconnect-secs"), Some("120"));
     assert_eq!(selected(main, "music-settings-announce-now-playing"), Some("true"));
 
@@ -943,7 +947,7 @@ async fn saves_redirect_with_the_result_in_the_save_bar(
         bar_flash(&html, "temp-voice-settings"),
         Some("Temp voice settings saved.")
     );
-    assert_eq!(count(&html, "flash-text"), 1, "{html}");
+    assert_eq!(count(&html, "data-flash"), 1, "{html}");
     assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 0);
 
     app.discord.reply(
@@ -987,7 +991,7 @@ async fn saves_redirect_with_the_result_in_the_save_bar(
     ] {
         let html = app.page(path).await.unwrap();
         assert_eq!(
-            count(&html, "flash-text"),
+            count(&html, "data-flash"),
             0,
             "legacy flags are ignored: {path}"
         );
@@ -1201,7 +1205,9 @@ async fn the_header_switch_turns_a_command_module_on_and_off(
     assert_eq!(top_flash(&html), Some("Music turned off."));
     assert!(html.contains(r#"aria-checked="false" aria-label="Music module" name="enabled" value="true""#), "{html}");
     assert!(
-        html.contains(r#"<span class="lamp lamp-off" aria-hidden="true"></span>"#),
+        html.contains(&format!(
+            r#"<span class="{LAMP_OFF}" aria-hidden="true"></span>"#
+        )),
         "{html}"
     );
 
@@ -1281,7 +1287,7 @@ async fn pages_report_what_they_cannot_load(
 
     let html = app.page("/guild/8/music").await.unwrap();
     let main = main_content(&html);
-    assert!(canonical(main).contains(&canonical(&format!(r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">Couldn't load these settings</h2><p class="error-text">You need Manage Server in this server to change its settings.</p><div class="error-actions"><a href="/guild/8/music" class="{}">Try again</a><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary"), support::btn("secondary")))), "{main}");
+    assert!(canonical(main).contains(&canonical(&format!(r#"<section class="{ERROR_PANEL}" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">Couldn't load these settings</h2><p class="m-0 text-text-2">You need Manage Server in this server to change its settings.</p><div class="flex flex-wrap gap-2"><a href="/guild/8/music" class="{}">Try again</a><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary"), support::btn("secondary")))), "{main}");
     assert!(!main.contains("<form"), "{main}");
 
     let html = app
@@ -1306,11 +1312,11 @@ async fn pages_report_what_they_cannot_load(
     assert_eq!(app.discord.count("POST", "/guilds/8/channels"), 0);
 
     let html = app.page("/guild/abc/settings").await.unwrap();
-    assert!(html.contains(r#"<p class="error-text">That address doesn't name a Discord server.</p>"#), "{html}");
+    assert!(html.contains(r#"<p class="m-0 text-text-2">That address doesn't name a Discord server.</p>"#), "{html}");
 
     let locked = |id: &str, name: &str, list: &str| {
         canonical(&format!(
-            r#"<select class="{SELECT}" id="{id}" aria-describedby="{id}-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</span><input type="hidden" name="{name}" value=""><p class="field-help" id="{id}-help">Couldn't reach Discord, so the {list} list is unavailable. Saving keeps the current value.</p>"#
+            r#"<select class="{SELECT}" id="{id}" aria-describedby="{id}-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</span><input type="hidden" name="{name}" value=""><p class="{FIELD_HELP}" id="{id}-help">Couldn't reach Discord, so the {list} list is unavailable. Saving keeps the current value.</p>"#
         ))
     };
     let html = app.page("/guild/9/settings").await.unwrap();

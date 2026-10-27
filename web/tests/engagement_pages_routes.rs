@@ -675,7 +675,7 @@ fn row(
     messages: i64,
 ) -> String {
     format!(
-        r#"<tr class="{ROW}" role="row"><td class="{TD} num" role="cell" data-label="Rank">{rank}</td><th class="{TH}" scope="row" role="rowheader" data-label="Member">{avatar}<span class="lb-name">{name}</span></th><td class="{TD} num" role="cell" data-label="Level">{level}</td><td class="{TD} num" role="cell" data-label="XP">{xp}</td><td class="{TD} num" role="cell" data-label="Messages">{messages}</td></tr>"#
+        r#"<tr class="{ROW}" role="row"><td class="{TD} num" role="cell" data-label="Rank">{rank}</td><th class="{TH}" scope="row" role="rowheader" data-label="Member">{avatar}<span class="truncate font-semibold text-text">{name}</span></th><td class="{TD} num" role="cell" data-label="Level">{level}</td><td class="{TD} num" role="cell" data-label="XP">{xp}</td><td class="{TD} num" role="cell" data-label="Messages">{messages}</td></tr>"#
     )
 }
 
@@ -693,7 +693,13 @@ const PAGINATION: &str = "@container mx-auto flex w-full justify-center mt-5";
 const PAGINATION_LIST: &str =
     "flex flex-row flex-wrap items-center justify-center gap-1";
 const PAGE_LINK: &str = "inline-flex shrink-0 items-center justify-center border text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer no-underline border-input text-foreground hover:bg-foreground/5 active:bg-foreground/10 size-9 rounded-lg max-md:size-11";
-const PLACEHOLDER: &str = r#"<span class="lb-avatar placeholder"></span>"#;
+const PLACEHOLDER: &str = r#"<span class="w-[32px] h-[32px] rounded-(--radius-full) object-cover shrink-0 bg-line"></span>"#;
+const EMPTY_STATE: &str = "flex flex-col items-start gap-2 max-w-(--form-max) py-8 px-6 border border-dashed border-line rounded-panel";
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const IMAGE_GRID: &str =
+    "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4 mb-6";
+const FIELD_HELP: &str = "m-0 text-[13px] text-text-2";
+const FLASH_TEXT: &str = r#"<span class="text-text">"#;
 const ENTRY: &str = r#"data-label="Member" role="rowheader""#;
 const CHEVRON_LEFT: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m15 18-6-6 6-6"/></g></svg>"#;
 const CHEVRON_RIGHT: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m9 18 6-6-6-6"/></g></svg>"#;
@@ -706,7 +712,7 @@ fn board_head(caption: &str) -> String {
 
 fn avatar(id: u64, hash: &str) -> String {
     format!(
-        r#"<img class="lb-avatar" src="https://cdn.discordapp.com/avatars/{id}/{hash}.png" alt="">"#
+        r#"<img class="w-[32px] h-[32px] rounded-(--radius-full) object-cover shrink-0 bg-wash-2" src="https://cdn.discordapp.com/avatars/{id}/{hash}.png" alt="">"#
     )
 }
 
@@ -747,21 +753,21 @@ fn pager(
 
 fn empty_board(title: &str, text: &str) -> String {
     format!(
-        r#"<div class="empty-state"><h2 class="empty-title">{title}</h2><p class="empty-text">{text}</p></div>"#
+        r#"<div class="{EMPTY_STATE}"><h2 class="m-0 text-[17px] font-semibold">{title}</h2><p class="m-0 mb-2 text-text-2">{text}</p></div>"#
     )
 }
 
 fn past_the_end(first: &str) -> String {
     let primary = support::btn("primary");
     format!(
-        r#"<div class="empty-state"><h2 class="empty-title">No one on this page</h2><p class="empty-text">No more entries on this page.</p><a href="{first}" class="{primary}">Back to page 1</a></div>"#
+        r#"<div class="{EMPTY_STATE}"><h2 class="m-0 text-[17px] font-semibold">No one on this page</h2><p class="m-0 mb-2 text-text-2">No more entries on this page.</p><a href="{first}" class="{primary}">Back to page 1</a></div>"#
     )
 }
 
 /// The in-page error panel of a page that could not load its data.
 fn load_error(title: &str, message: &str) -> String {
     format!(
-        r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="error-text">{message}</p><div class="error-actions">"#
+        r#"<section class="{ERROR_PANEL}" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="m-0 text-text-2">{message}</p><div class="flex flex-wrap gap-2">"#
     )
 }
 
@@ -1101,14 +1107,14 @@ fn rr_row(
     let secondary = support::btn("secondary");
     let destructive = support::btn("destructive");
     format!(
-        r#"<tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Channel">{channel}</th><td class="{TD}" role="cell" data-label="Emoji">{emoji}</td><td class="{TD}" role="cell" data-label="Role">{role}</td><td class="{TD}" role="cell" data-label="Message"><a class="rr-link" href="{link}" aria-label="Open in Discord: {shown_emoji} message in {channel}" rel="external noreferrer" target="_blank">Open in Discord{EXTERNAL}</a></td><td class="{TD}" role="cell" data-label="Action"><form method="post" action="{RR_REMOVE}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove the {shown_emoji} reaction role for {role}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove the {shown_emoji} reaction role for {role}?</h2><p class="dialog-desc" id="tc-ID">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">Remove reaction role</button></div></div></dialog></div></form></td></tr>"#
+        r#"<tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Channel">{channel}</th><td class="{TD}" role="cell" data-label="Emoji">{emoji}</td><td class="{TD}" role="cell" data-label="Role">{role}</td><td class="{TD}" role="cell" data-label="Message"><a class="inline-flex items-center gap-1 min-h-(--target-min) text-[13px] text-text-2 hover:text-text" href="{link}" aria-label="Open in Discord: {shown_emoji} message in {channel}" rel="external noreferrer" target="_blank">Open in Discord{EXTERNAL}</a></td><td class="{TD}" role="cell" data-label="Action"><form method="post" action="{RR_REMOVE}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove the {shown_emoji} reaction role for {role}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove the {shown_emoji} reaction role for {role}?</h2><p class="dialog-desc" id="tc-ID">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">Remove reaction role</button></div></div></dialog></div></form></td></tr>"#
     )
 }
 
 /// The result line a section shows after a successful post.
 fn flashed(message: &str) -> String {
     format!(
-        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}<span class="flash-text">{message}</span></p></div>"#
+        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}{FLASH_TEXT}{message}</span></p></div>"#
     )
 }
 
@@ -1186,7 +1192,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     );
     assert!(
         canonical(&empty).contains(&canonical(&format!(
-            r#"<label class="field-label" for="add-reaction-role-message-id">Message ID</label><input class="{INPUT}" id="add-reaction-role-message-id" type="text" name="message_id" value="" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-describedby="add-reaction-role-message-id-help"><p class="field-help" id="add-reaction-role-message-id-help">Optional. Leave blank to post a new panel message.</p>"#
+            r#"<label class="field-label" for="add-reaction-role-message-id">Message ID</label><input class="{INPUT}" id="add-reaction-role-message-id" type="text" name="message_id" value="" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-describedby="add-reaction-role-message-id-help"><p class="{FIELD_HELP}" id="add-reaction-role-message-id-help">Optional. Leave blank to post a new panel message.</p>"#
         ))),
         "{empty}"
     );
@@ -1203,9 +1209,9 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         "{empty}"
     );
     assert!(
-        empty.contains(
-            r#"<p class="field-help" id="add-reaction-role-role-id-help">Zayden's role must be above the roles it assigns. In Discord, drag it above them under Server Settings &gt; Roles.</p>"#
-        ),
+        empty.contains(&format!(
+            r#"<p class="{FIELD_HELP}" id="add-reaction-role-role-id-help">Zayden's role must be above the roles it assigns. In Discord, drag it above them under Server Settings &gt; Roles.</p>"#
+        )),
         "{empty}"
     );
     assert!(
@@ -1310,7 +1316,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         "{}",
         saved.html
     );
-    assert_eq!(count(&saved.html, "flash-text"), 1, "{}", saved.html);
+    assert_eq!(count(&saved.html, "data-flash"), 1, "{}", saved.html);
     assert!(
         canonical(&saved.html).contains(&canonical(&rr_table())),
         "{}",
@@ -1319,7 +1325,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     assert!(
         canonical(&saved.html).contains(&canonical(&rr_row(
             "#rules",
-            r#"<span class="rr-emoji">✅</span>"#,
+            r#"<span class="text-[20px] leading-none">✅</span>"#,
             "@Member",
             "https://discord.com/channels/7/20/555",
             "\u{2705}",
@@ -1329,7 +1335,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         saved.html
     );
     let again = app.page("/guild/7/reaction-roles").await.unwrap();
-    assert!(!again.contains("flash-text"), "{again}");
+    assert!(!again.contains("data-flash"), "{again}");
 
     let duplicate = add("555", "31", "\u{2705}").await;
     assert_eq!(duplicate.status, StatusCode::UNPROCESSABLE_ENTITY);
@@ -1345,7 +1351,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     );
     assert!(
         canonical(&duplicate.html).contains(&canonical(&format!(
-            r#"<input class="{INPUT}" id="add-reaction-role-emoji" type="text" name="emoji" value="✅" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help add-reaction-role-emoji-error" aria-invalid="true"><p class="field-help" id="add-reaction-role-emoji-help">"#
+            r#"<input class="{INPUT}" id="add-reaction-role-emoji" type="text" name="emoji" value="✅" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help add-reaction-role-emoji-error" aria-invalid="true"><p class="{FIELD_HELP}" id="add-reaction-role-emoji-help">"#
         ))),
         "{}",
         duplicate.html
@@ -1369,7 +1375,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     let custom = app.follow(&created).await.unwrap();
     assert!(
         canonical(&custom.html).contains(&canonical(&format!(
-            r#"<td class="{TD}" role="cell" data-label="Emoji"><span class="rr-emoji-frame" role="img" aria-label=":a:" title=":a:"><object class="rr-emoji-img" data="https://cdn.discordapp.com/emojis/5.png?size=32" type="image/png" aria-hidden="true"><span class="rr-emoji-name">:a:</span></object></span></td><td class="{TD}" role="cell" data-label="Role">@Mod</td>"#
+            r#"<td class="{TD}" role="cell" data-label="Emoji"><span class="inline-grid place-items-center min-w-[24px] min-h-[24px] align-middle" role="img" aria-label=":a:" title=":a:"><object class="h-[24px]" data="https://cdn.discordapp.com/emojis/5.png?size=32" type="image/png" aria-hidden="true"><span class="inline-block py-0 px-2 border border-dashed border-line rounded-control text-[12px] leading-[22px] whitespace-nowrap text-text-2">:a:</span></object></span></td><td class="{TD}" role="cell" data-label="Role">@Mod</td>"#
         ))),
         "{}",
         custom.html
@@ -1442,7 +1448,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
             .await
             .unwrap();
         assert_eq!(reply.status, StatusCode::OK, "{query}");
-        assert!(!reply.html.contains("flash-text"), "{query}");
+        assert!(!reply.html.contains("data-flash"), "{query}");
     }
 
     let invalid = remove("x", "555", "\u{2705}").await;
@@ -1611,12 +1617,12 @@ const CHANNEL_SELECT_OPTIONS: &str = "<option value=\"\" selected=\"\">(not set)
 const LEGEND_LIST: &str = r#"<ul class="placeholder-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li></ul>"#;
 fn see_plans() -> String {
     format!(
-        r#"<p class="plan-note"><span class="{BADGE_OUTLINE}">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a href="/upgrade">See plans</a></p>"#
+        r#"<p class="flex flex-wrap items-center gap-2 m-0 text-[13px] text-text-2"><span class="{BADGE_OUTLINE}">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a class="inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h)" href="/upgrade">See plans</a></p>"#
     )
 }
 const GOOD_WORKS_LEAD: &str = "<h2 class=\"label\" id=\"good-channels-title\">Where /good works</h2><p class=\"page-lead\">With nothing listed, <code>/good</code> works in every channel. Add one or more and Discord hides the command everywhere else - it never even shows up in the picker. Adding a category covers every channel inside it.</p><p class=\"page-lead\">This writes the same command permissions as Discord's own Server Settings \u{2192} Integrations panel, so changes made either way show up in both.</p>";
 const NO_IMAGES: &str = r#"<p class="page-lead">No images yet - the command replies with just the message until you add one.</p>"#;
-const NOT_SYNCED_HEADER: &str = r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></div><div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div></div>"#;
+const NOT_SYNCED_HEADER: &str = r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></div><div class="flex flex-wrap items-center gap-2"><span class="inline-flex items-center gap-2 whitespace-nowrap"><span class="lamp-sync inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div></div>"#;
 
 /// The markup of the `tag` element whose `id` is `id`, through its end tag.
 fn element<'a>(html: &'a str, tag: &str, id: &str) -> Option<&'a str> {
@@ -1649,7 +1655,7 @@ fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
 fn bar_flash<'a>(html: &'a str, section: &str) -> Option<&'a str> {
     let section = element(html, "section", section)?;
     let (_, bar) = section.split_once(r#"<div class="save-bar""#)?;
-    let (_, rest) = bar.split_once(r#"<span class="flash-text">"#)?;
+    let (_, rest) = bar.split_once(FLASH_TEXT)?;
     rest.split_once("</span>").map(|(text, _)| text)
 }
 
@@ -1658,7 +1664,7 @@ fn section_flash<'a>(html: &'a str, section: &str) -> Option<&'a str> {
     let section = element(html, "section", section)?;
     let (_, region) =
         section.split_once(r#"<div class="flash-region" role="status">"#)?;
-    let (_, rest) = region.split_once(r#"<span class="flash-text">"#)?;
+    let (_, rest) = region.split_once(FLASH_TEXT)?;
     rest.split_once("</span>").map(|(text, _)| text)
 }
 
@@ -1690,7 +1696,7 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     );
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<label class="field-label" for="greeting-messages-morning-message">Good morning message</label><input class="{INPUT}" id="greeting-messages-morning-message" type="text" name="morning_message" value="" autocomplete="off" aria-describedby="greeting-messages-morning-message-help"><p class="field-help" id="greeting-messages-morning-message-help">Up to 1500 characters. Leave blank to post just the image.</p>"#
+            r#"<label class="field-label" for="greeting-messages-morning-message">Good morning message</label><input class="{INPUT}" id="greeting-messages-morning-message" type="text" name="morning_message" value="" autocomplete="off" aria-describedby="greeting-messages-morning-message-help"><p class="{FIELD_HELP}" id="greeting-messages-morning-message-help">Up to 1500 characters. Leave blank to post just the image.</p>"#
         ))),
         "{html}"
     );
@@ -1716,18 +1722,21 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     );
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<input class="{INPUT}" id="greeting-cooldowns-user-cooldown" type="number" name="user_cooldown" value="15" min="15" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-user-cooldown-help"><p class="field-help" id="greeting-cooldowns-user-cooldown-help">In seconds: at least 15 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
+            r#"<input class="{INPUT}" id="greeting-cooldowns-user-cooldown" type="number" name="user_cooldown" value="15" min="15" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-user-cooldown-help"><p class="{FIELD_HELP}" id="greeting-cooldowns-user-cooldown-help">In seconds: at least 15 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
         ))),
         "{html}"
     );
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<input class="{INPUT}" id="greeting-cooldowns-guild-cooldown" type="number" name="guild_cooldown" value="3" min="3" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-guild-cooldown-help"><p class="field-help" id="greeting-cooldowns-guild-cooldown-help">In seconds: at least 3 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
+            r#"<input class="{INPUT}" id="greeting-cooldowns-guild-cooldown" type="number" name="guild_cooldown" value="3" min="3" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-guild-cooldown-help"><p class="{FIELD_HELP}" id="greeting-cooldowns-guild-cooldown-help">In seconds: at least 3 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
         ))),
         "{html}"
     );
     assert!(
-        html.contains(&format!(r#"{}<div class="save-bar""#, see_plans())),
+        canonical(&html).contains(&canonical(&format!(
+            r#"{}<div class="save-bar" data-save-bar="">"#,
+            see_plans()
+        ))),
         "{html}"
     );
     for kind in ["morning", "night"] {
@@ -1741,14 +1750,14 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     }
     assert_eq!(count(&html, NO_IMAGES), 2, "{html}");
     assert_eq!(count(&html, r#"role="alert""#), 0, "{html}");
-    assert_eq!(count(&html, "flash-text"), 0, "{html}");
+    assert_eq!(count(&html, "data-flash"), 0, "{html}");
 
     assert_eq!(app.app.entitlements.guild_tier(7).await, Tier::Free);
 
     for query in ["channel_added=1", "channel_removed=1", "image_added=1", "saved=1"]
     {
         let page = app.page(&format!("/guild/7/greetings?{query}")).await.unwrap();
-        assert_eq!(count(&page, "flash-text"), 0, "{query}");
+        assert_eq!(count(&page, "data-flash"), 0, "{query}");
     }
 
     app.mock_free_guild(12);
@@ -1855,7 +1864,7 @@ async fn submit(
 fn image_card(url: &str, id: &str, host: &str, noun: &str) -> String {
     let ghost = support::btn("ghost");
     format!(
-        r#"<li class="greet-card"><div class="greet-thumb" role="img" aria-label="Image from {host}"><span class="greet-thumb-host" aria-hidden="true">{host}</span><img class="greet-thumb-img" src="{url}" alt="" aria-hidden="true" loading="lazy" data-host="{host}"></div><a class="greet-url" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="greet-remove" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove {noun} image {url}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove this {noun} image from {host}?</h2><p class="dialog-desc" id="tc-ID">{url}</p>"#,
+        r#"<li class="greet-card"><div class="relative grid place-items-center h-[9rem] overflow-hidden rounded-panel bg-surface-2" role="img" aria-label="Image from {host}"><span class="py-0 px-3 text-[12px] text-center text-text-2 wrap-anywhere" aria-hidden="true">{host}</span><img class="greet-thumb-img" src="{url}" alt="" aria-hidden="true" loading="lazy" data-host="{host}"></div><a class="block truncate leading-(--target-min) max-md:leading-(--row-h) text-[12px] text-text-2 hover:text-text" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="self-start" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove {noun} image {url}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove this {noun} image from {host}?</h2><p class="dialog-desc" id="tc-ID">{url}</p>"#,
         action("remove-image")
     )
 }
@@ -1887,7 +1896,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
         bar_flash(&page.html, "greeting-messages"),
         Some("Greeting messages saved.")
     );
-    assert_eq!(count(&page.html, "flash-text"), 1, "{}", page.html);
+    assert_eq!(count(&page.html, "data-flash"), 1, "{}", page.html);
     assert_eq!(
         value(&page.html, "greeting-messages-morning-message"),
         Some("Good morning {user}!")
@@ -1943,7 +1952,11 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     );
     assert_eq!(value(&page.html, "greeting-cooldowns-user-cooldown"), Some("30"));
     assert_eq!(value(&page.html, "greeting-cooldowns-guild-cooldown"), Some("10"));
-    assert!(page.html.contains(&see_plans()), "{}", page.html);
+    assert!(
+        canonical(&page.html).contains(&canonical(&see_plans())),
+        "{}",
+        page.html
+    );
 
     let below = submit(&app, "save-cooldowns", vec![
         ("user_cooldown", "5"),
@@ -2004,7 +2017,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
             .to_owned();
     assert!(
         added.html.contains(&format!(
-            r#"<ul class="greet-grid" aria-labelledby="morning-images-title">{}"#,
+            r#"<ul class="{IMAGE_GRID}" aria-labelledby="morning-images-title">{}"#,
             image_card(first, &id, "example.com", "good morning")
         )),
         "{}",
@@ -2016,7 +2029,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
             .contains(r#"Good morning images <span class="mono">1 of 50</span>"#)
     );
     assert_eq!(count(&added.html, NO_IMAGES), 1, "{}", added.html);
-    assert_eq!(count(&added.html, r#"class="greet-grid""#), 1, "{}", added.html);
+    assert_eq!(count(&added.html, IMAGE_GRID), 1, "{}", added.html);
 
     let duplicate =
         submit(&app, "add-image", vec![("kind", "morning"), ("url", first)])
@@ -2193,7 +2206,7 @@ async fn the_greetings_header_switch_turns_the_module_on_and_off(
     let html = app.page(GR).await.unwrap();
     assert!(
         html.contains(&format!(
-            r#"<form class="settings-actions" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Greetings module" name="enabled" value="false">"#,
+            r#"<form class="flex flex-wrap items-center gap-2" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><span class="inline-flex items-center gap-2 whitespace-nowrap"><span class="lamp-on inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Greetings module" name="enabled" value="false">"#,
             action("module")
         )),
         "{html}"
@@ -2210,7 +2223,7 @@ async fn the_greetings_header_switch_turns_the_module_on_and_off(
     let page = app.follow(&off).await.unwrap();
     assert!(
         page.html.contains(&format!(
-            r#"</div><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}<span class="flash-text">Greetings turned off.</span></p></div><section class="settings-section" id="greeting-messages""#
+            r#"</div><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}{FLASH_TEXT}Greetings turned off.</span></p></div><section class="settings-section" id="greeting-messages""#
         )),
         "{}",
         page.html
@@ -2551,14 +2564,14 @@ async fn an_unreachable_database_leaves_each_page_with_its_load_error() {
         let reply = app.get(path, Some("session=uncached-token")).await.unwrap();
         assert_eq!(reply.status, StatusCode::OK, "{path}");
         let panel = format!(
-            r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="error-text">Something went wrong: "#
+            r#"<section class="{ERROR_PANEL}" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="m-0 text-text-2">Something went wrong: "#
         );
         assert!(reply.html.contains(&panel), "{path}: {}", reply.html);
         let primary = support::btn("primary");
         let secondary = support::btn("secondary");
         assert!(
             canonical(&reply.html).contains(&canonical(&format!(
-                r#"<div class="error-actions"><a href="{path}" class="{primary}">Try again</a><a href="/guilds" class="{secondary}">Back to servers</a></div></section>"#
+                r#"<div class="flex flex-wrap gap-2"><a href="{path}" class="{primary}">Try again</a><a href="/guilds" class="{secondary}">Back to servers</a></div></section>"#
             ))),
             "{path}: {}",
             reply.html

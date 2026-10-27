@@ -37,6 +37,33 @@
   --radius-xl: var(--radius-panel);
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
+  --radius-control: var(--radius-control);
+  --radius-panel: var(--radius-panel);
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-line: var(--line);
+  --color-rule: var(--rule);
+  --color-lamp: var(--lamp);
+  --color-lamp-hover: var(--lamp-hover);
+  --color-lamp-edge: var(--lamp-edge);
+  --color-lamp-track: var(--lamp-track);
+  --color-on-lamp: var(--on-lamp);
+  --color-accent: var(--accent);
+  --color-focus: var(--focus);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-caution: var(--caution);
+  --color-lamp-wash: var(--lamp-wash);
+  --color-danger-wash: var(--danger-wash);
+  --color-caution-wash: var(--caution-wash);
+  --color-wash-1: var(--wash-1);
+  --color-wash-2: var(--wash-2);
+  --color-wash-3: var(--wash-3);
+  --color-scrim: var(--scrim);
 }
 
 @import "./style/partials/tokens.css";
@@ -51,10 +78,7 @@
 @import "./style/partials/pages.css";
 @import "./style/partials/settings.css";
 @import "./style/partials/upgrade.css";
-@import "./style/partials/account.css";
 @import "./style/partials/segmented.css";
-@import "./style/partials/leaderboard.css";
-@import "./style/partials/reaction-roles.css";
 @import "./style/partials/greetings.css";
 @import "./style/partials/chips.css";
 @import "./style/partials/operator.css";

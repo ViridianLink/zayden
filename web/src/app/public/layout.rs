@@ -43,7 +43,7 @@ pub async fn public_layout(
     let location = uri(cx).path();
 
     Ok(view! {
-        <div class="public">
+        <div class="flex flex-col min-h-screen">
             public_nav(session: session, location: location)
             <main id="main" class="public-main" tabindex="-1">(child)</main>
             footer(session: session)
@@ -58,13 +58,17 @@ pub async fn public_nav(
     #[default("/")] location: &str,
 ) -> Result<impl View> {
     Ok(view! {
-        <header class="public-header">
-            <div class="public-header-inner">
+        <header
+            class="sticky top-0 z-100 flex items-center justify-center h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule"
+        >
+            <div
+                class="w-full max-w-(--content-max) flex items-center justify-between gap-4"
+            >
                 <a class="brand" (link_attrs(cx, "/", prefetch_mode(cx)))>
                     brand_mark()
-                    <span class="brand-name">"Zayden"</span>
+                    <span class="max-md:hidden">"Zayden"</span>
                 </a>
-                <nav class="public-nav-links" aria-label="Main">
+                <nav class="flex items-center gap-2 max-md:hidden" aria-label="Main">
                     public_links(session: session, location: location)
                 </nav>
                 <button
@@ -152,26 +156,56 @@ async fn public_links(
 #[component]
 async fn footer(cx: &Cx, session: SessionSlot) -> Result<impl View> {
     Ok(view! {
-        <footer class="footer">
-            <div class="footer-inner">
+        <footer
+            class="border-t border-solid border-t-rule py-6 px-4 text-text-2 text-[13px]"
+        >
+            <div
+                class="w-full max-w-(--content-max) flex flex-wrap items-center justify-between gap-4"
+            >
                 <span>"© 2026 Zayden. Not affiliated with Discord."</span>
-                <nav class="footer-links" aria-label="Footer">
-                    <a href="/invite" rel="external">"Invite"</a>
-                    <a (link_attrs(cx, "/upgrade", prefetch_mode(cx)))>"Pricing"</a>
+                <nav class="flex flex-wrap gap-y-1 gap-x-4" aria-label="Footer">
+                    <a
+                        href="/invite"
+                        rel="external"
+                        class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                    >
+                        "Invite"
+                    </a>
+                    <a
+                        class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                        (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
+                    >
+                        "Pricing"
+                    </a>
                     match session {
                         SessionSlot::SignedIn => {
-                            <a (link_attrs(cx, "/guilds", prefetch_mode(cx)))>
+                            <a
+                                class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                                (link_attrs(cx, "/guilds", prefetch_mode(cx)))
+                            >
                                 "Dashboard"
                             </a>
                         }
                         SessionSlot::SignedOut | SessionSlot::Unavailable => {
-                            <a href="/auth/discord" rel="external">"Sign in"</a>
+                            <a
+                                href="/auth/discord"
+                                rel="external"
+                                class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                            >
+                                "Sign in"
+                            </a>
                         }
                     }
-                    <a (link_attrs(cx, "/privacy", prefetch_mode(cx)))>
+                    <a
+                        class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                        (link_attrs(cx, "/privacy", prefetch_mode(cx)))
+                    >
                         "Privacy Policy"
                     </a>
-                    <a (link_attrs(cx, "/terms", prefetch_mode(cx)))>
+                    <a
+                        class="inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]"
+                        (link_attrs(cx, "/terms", prefetch_mode(cx)))
+                    >
                         "Terms of Service"
                     </a>
                 </nav>

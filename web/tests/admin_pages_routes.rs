@@ -329,6 +329,10 @@ fn header() -> String {
         support::btn("primary")
     )
 }
+const ERROR_PANEL: &str = "flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1";
+const ERROR_TEXT: &str = "m-0 text-text-2";
+const ERROR_ACTIONS: &str = "flex flex-wrap gap-2";
+const COUNT: &str = "m-0 mb-4 text-[12.5px] text-text-3";
 const NO_FLASH: &str = r#"<div class="flash-region" role="status"></div>"#;
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const SKELETONS: &str = r#"<div class="skeleton-list"><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div></div>"#;
@@ -353,7 +357,7 @@ fn table_head() -> String {
 fn forbidden(who: &str) -> String {
     let primary = support::btn("primary");
     format!(
-        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's {who}.</p><div class="error-actions"><a href="/guilds" class="{primary}">Back to servers</a></div></section></div></main>"#
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="{ERROR_PANEL}"><h1 class="error-title">You don't have access to this page</h1><p class="{ERROR_TEXT}">This page is for Zayden's {who}.</p><div class="{ERROR_ACTIONS}"><a href="/guilds" class="{primary}">Back to servers</a></div></section></div></main>"#
     )
 }
 
@@ -395,7 +399,7 @@ async fn the_server_list_sends_visitors_to_sign_in_and_refuses_users_without_the
             canonical(&html).contains(&canonical(&forbidden("operators"))),
             "{cookie}: {html}"
         );
-        assert!(!html.contains("operator-tools"), "{html}");
+        assert!(!html.contains("server-filter"), "{html}");
         assert!(
             html.contains("<title>All bot servers - Zayden Dashboard</title>"),
             "{html}"
@@ -445,7 +449,7 @@ async fn the_loadout_list_shows_a_filterable_table_and_refuses_without_the_role(
     let total = stored.len();
     assert!(
         canonical(&html).contains(&canonical(&format!(
-            r#"<p class="operator-count" role="status">{total} of {total} loadouts</p>{}{rows}</tbody></table></div>"#,
+            r#"<p class="{COUNT}" role="status">{total} of {total} loadouts</p>{}{rows}</tbody></table></div>"#,
             table_head()
         ))),
         "{html}"
@@ -464,7 +468,7 @@ async fn the_loadout_list_shows_a_filterable_table_and_refuses_without_the_role(
     assert!(canonical(&html).contains(&canonical(&row(hunter, "Pages Shatter", [
         "Hunter", "Arc", "PvE", "Oscar"
     ]))));
-    assert!(!html.contains("flash-text"), "{html}");
+    assert!(!html.contains("data-flash"), "{html}");
     assert_eq!(html.matches(r#"class="loadout-name""#).count(), stored.len());
     assert!(
         canonical(&html).contains(&canonical(
@@ -581,7 +585,7 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
         "{html}"
     );
     assert!(
-        html.contains(r#"<span class="flash-text">Loadout deleted.</span>"#),
+        html.contains(r#"<span class="text-text">Loadout deleted.</span>"#),
         "{html}"
     );
     assert_eq!(html.matches(r#"class="loadout-name""#).count(), before - 1);

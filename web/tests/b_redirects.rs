@@ -195,7 +195,7 @@ async fn post(
 }
 
 fn flash_count(html: &str) -> usize {
-    html.matches(r#"<span class="flash-text">"#).count()
+    html.matches(r#"data-flash="""#).count()
 }
 
 #[tokio::test]

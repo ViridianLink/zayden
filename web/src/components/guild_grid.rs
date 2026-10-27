@@ -63,7 +63,7 @@ impl GuildCard {
 #[component]
 pub async fn guild_grid(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
     Ok(view! {
-        <div class="guild-grid">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
             #[key(guild.id.as_str())]
             for guild in guilds {
                 <a
@@ -71,14 +71,20 @@ pub async fn guild_grid(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
                     (link_attrs(cx, guild.href(), PrefetchMode::Intent))
                 >
                     match guild.icon_url() {
-                        Some(url) => <img src=(url) alt="" class="guild-icon">,
-                        None => <span class="guild-icon placeholder">
+                        Some(url) => <img
+                            src=(url)
+                            alt=""
+                            class="h-[48px] w-[48px] shrink-0 rounded-control object-cover"
+                        >,
+                        None => <span
+                            class="grid h-[48px] w-[48px] shrink-0 place-items-center rounded-control border border-solid border-line bg-surface-2 object-cover text-[18px] font-semibold text-text"
+                        >
                             (guild.initial())
                         </span>,
                     }
-                    <div class="guild-card-body">
-                        <div class="guild-name">(guild.name.as_str())</div>
-                        <div class="guild-card-hint">"Manage \u{2192}"</div>
+                    <div class="min-w-0">
+                        <div class="truncate font-semibold">(guild.name.as_str())</div>
+                        <div class="text-[12.5px] text-text-3">"Manage \u{2192}"</div>
                     </div>
                 </a>
             }

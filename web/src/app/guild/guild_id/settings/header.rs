@@ -80,7 +80,7 @@ pub(super) async fn feature_header(
             </div>
             match module {
                 Some(ModuleState::Switch(on)) => <form
-                    class="settings-actions"
+                    class="flex flex-wrap items-center gap-2"
                     method="post"
                     action=(action.as_str())
                     data-pending=""
@@ -99,10 +99,14 @@ pub(super) async fn feature_header(
                         <span class="switch-thumb" aria-hidden="true"></span>
                     </button>
                 </form>,
-                Some(ModuleState::Status(on)) => <div class="settings-actions">
+                Some(ModuleState::Status(on)) => <div
+                    class="flex flex-wrap items-center gap-2"
+                >
                     lamp(state: lamp_state(on))
                 </div>,
-                Some(ModuleState::NotSynced) => <div class="settings-actions">
+                Some(ModuleState::NotSynced) => <div
+                    class="flex flex-wrap items-center gap-2"
+                >
                     lamp(state: LampState::NotSynced)
                 </div>,
                 None => "",

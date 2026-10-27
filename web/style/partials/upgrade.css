@@ -1,20 +1,5 @@
 /* Upgrade (Pro) page */
 
-.upgrade-page {
-    width: 100%;
-    margin: 0 auto;
-    padding: var(--space-9) var(--space-5);
-}
-
-.pro-features {
-    list-style: none;
-    margin: 0 0 var(--space-6);
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--space-4);
-}
-
 .pro-feature {
     display: flex;
     flex-direction: column;
@@ -38,13 +23,6 @@
     font-size: 13.5px;
 }
 
-.upgrade-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-bottom: var(--space-6);
-}
-
 .plan-ladder {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -64,70 +42,4 @@
 
 .plan-card.plan-ultra {
     border-color: var(--caution);
-}
-
-.plan-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.plan-price {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.plan-price small {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-2);
-}
-
-.plan-specs {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    flex: 1;
-}
-
-.plan-specs li {
-    font-size: 13.5px;
-    color: var(--text-2);
-}
-
-.plan-specs strong {
-    color: var(--text);
-    font-weight: 600;
-}
-
-.plan-current,
-.plan-included {
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    padding: var(--space-2) 0;
-    border-radius: var(--radius-control);
-}
-
-.plan-current {
-    background-color: var(--lamp-wash);
-    color: var(--accent);
-}
-
-.plan-included {
-    background-color: var(--wash-3);
-    color: var(--text-2);
-}
-
-.kofi-link-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    align-items: center;
-    margin-top: var(--space-3);
 }

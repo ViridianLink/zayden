@@ -97,7 +97,7 @@ async fn upgrade_page(
     #[default] failure: Option<KofiFailure>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="page upgrade-page">
+        <div class="page w-full mx-auto my-0 py-16 px-6">
             <div class="page-header">
                 <div>
                     <h1>"Plans"</h1>
@@ -128,7 +128,9 @@ async fn upgrade_page(
 #[component]
 async fn pro_features() -> Result<impl View> {
     Ok(view! {
-        <ul class="pro-features">
+        <ul
+            class="list-none m-0 mb-8 p-0 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4"
+        >
             <li class="pro-feature">
                 icon(name: Icon::Music)
                 <strong>"Music 24/7"</strong>
@@ -193,7 +195,7 @@ async fn kofi_form(
                     label: "Ko-fi email",
                     help: Some(EMAIL_HELP),
                     error: field_error,
-                    <div class="kofi-link-form">
+                    <div class="flex flex-wrap items-center gap-2 mt-3">
                         input(
                             attrs: attributes! {
                                 class="flex-1 [&]:min-w-[220px]"
@@ -245,7 +247,7 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                 #[key(plan.css_suffix())]
                 for plan in Tier::PAID_LADDER {
                     <div class=(format!("plan-card plan-{}", plan.css_suffix()))>
-                        <div class="plan-head">
+                        <div class="flex items-baseline justify-between gap-3">
                             <span
                                 class=(class!(
                                     badge_variants(BadgeVariant::Secondary),
@@ -254,29 +256,37 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                             >
                                 (plan.label())
                             </span>
-                            <span class="plan-price">
+                            <span class="text-[22px] font-bold text-text">
                                 (plan.price())
-                                <small>"/mo"</small>
+                                <small class="text-[13px] font-medium text-text-2">
+                                    "/mo"
+                                </small>
                             </span>
                         </div>
-                        <ul class="plan-specs">
-                            <li>
-                                <strong>
+                        <ul class="list-none m-0 p-0 flex flex-col gap-2 flex-1">
+                            <li class="text-[13.5px] text-text-2">
+                                <strong class="font-semibold text-text">
                                     (plan.upload_limit_mb())
                                     " MB"
                                 </strong>
                                 " Palworld save uploads"
                             </li>
-                            <li>
-                                <strong>(plan.upload_cooldown())</strong>
+                            <li class="text-[13.5px] text-text-2">
+                                <strong class="font-semibold text-text">
+                                    (plan.upload_cooldown())
+                                </strong>
                                 " upload cooldown"
                             </li>
                         </ul>
                         match current.cmp(&plan) {
-                            Ordering::Equal => <span class="plan-current">
+                            Ordering::Equal => <span
+                                class="py-2 px-0 rounded-control text-[13px] font-semibold text-center bg-lamp-wash text-accent"
+                            >
                                 "Your plan"
                             </span>,
-                            Ordering::Greater => <span class="plan-included">
+                            Ordering::Greater => <span
+                                class="py-2 px-0 rounded-control text-[13px] font-semibold text-center bg-wash-3 text-text-2"
+                            >
                                 "Included"
                             </span>,
                             Ordering::Less => {
@@ -303,7 +313,7 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                     </div>
                 }
             </div>
-            <div class="upgrade-actions">
+            <div class="flex flex-wrap gap-3 mb-8">
                 <p class="page-lead">
                     "Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord."
                 </p>

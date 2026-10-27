@@ -220,7 +220,10 @@ pub(super) async fn deadlock_section(
     prefs: Option<&DeadlockPrefs>,
 ) -> Result<impl View> {
     Ok(view! {
-        <section class="account-deadlock" aria-labelledby="account-deadlock-title">
+        <section
+            class="flex flex-col gap-3 mt-10"
+            aria-labelledby="account-deadlock-title"
+        >
             <h2 class="label" id="account-deadlock-title">"Deadlock"</h2>
             <p class="page-lead">
                 "Summaries need a linked Steam account and appear once deadlock-api has recorded the match. Friending a deadlock-api bot keeps your match history current."
@@ -237,12 +240,12 @@ pub(super) async fn deadlock_section(
                 }
                 Some(prefs) => {
                     <form
-                        class="card account-form"
+                        class="card flex flex-wrap items-center justify-between gap-4"
                         method="post"
                         action=(DM_ACTION)
                         data-pending=""
                     >
-                        <label class="account-check">
+                        <label class="flex items-center gap-2 text-text">
                             <input
                                 type="checkbox"
                                 name=(DM_FIELD)
@@ -250,7 +253,7 @@ pub(super) async fn deadlock_section(
                             >
                             <span>"DM me a summary after each match"</span>
                         </label>
-                        <label class="account-check">
+                        <label class="flex items-center gap-2 text-text">
                             <input
                                 type="checkbox"
                                 name=(BRIEFING_FIELD)
@@ -273,21 +276,21 @@ pub(super) async fn deadlock_section(
                     </form>
                     <h3 class="label">"Servers"</h3>
                     if prefs.servers.is_empty() {
-                        <p class="account-meta">
+                        <p class="m-0 text-[13.5px] text-text-2">
                             "None of your servers use Zayden's Deadlock module."
                         </p>
                     } else {
                         <form
-                            class="card account-form"
+                            class="card flex flex-wrap items-center justify-between gap-4"
                             method="post"
                             action=(SERVERS_ACTION)
                             data-pending=""
                         >
-                            <ul class="account-checks">
+                            <ul class="list-none m-0 p-0 flex flex-col gap-2">
                                 #[key(server.id)]
                                 for server in &prefs.servers {
                                     <li>
-                                        <label class="account-check">
+                                        <label class="flex items-center gap-2 text-text">
                                             <input
                                                 type="checkbox"
                                                 name=(format!("{SHARE_PREFIX}{}", server.id))
@@ -295,7 +298,7 @@ pub(super) async fn deadlock_section(
                                             >
                                             <span>(server.name.as_str())</span>
                                         </label>
-                                        <label class="account-check">
+                                        <label class="flex items-center gap-2 text-text">
                                             <input
                                                 type="checkbox"
                                                 name=(format!("{SQUAD_PREFIX}{}", server.id))

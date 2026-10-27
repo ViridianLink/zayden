@@ -20,9 +20,11 @@ pub async fn empty_state(
     #[default] external: bool,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="empty-state">
-            <h2 class="empty-title">(title)</h2>
-            <p class="empty-text">(text)</p>
+        <div
+            class="flex flex-col items-start gap-2 max-w-(--form-max) py-8 px-6 border border-dashed border-line rounded-panel"
+        >
+            <h2 class="m-0 text-[17px] font-semibold">(title)</h2>
+            <p class="m-0 mb-2 text-text-2">(text)</p>
             if let (Some(action), Some(href)) = (action, href) {
                 let link = if external {
                     attributes! { href=(href) rel="external" }

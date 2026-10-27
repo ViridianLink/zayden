@@ -200,7 +200,11 @@ async fn frame(
             feature_header(guild_id: guild_id, page: page, state: state)
             if let Page::Support(pane) = page {
                 support::subnav(guild_id: guild_id, current: pane)
-                <h2 class="subpage-title">(pane.label())</h2>
+                <h2
+                    class="m-0 mb-4 text-[17px] font-semibold tracking-[-0.01em] text-text"
+                >
+                    (pane.label())
+                </h2>
             }
             flash(notice: state.top_notice())
             (child)
@@ -263,12 +267,16 @@ async fn load_error(
         if let Some(failure) = failure {
             form_summary(form: "page", message: failure)
         }
-        <section class="error-panel" role="alert" aria-labelledby="load-error-title">
+        <section
+            class="flex flex-col gap-3 max-w-(--form-max) p-6 border border-solid border-danger rounded-panel bg-surface-1"
+            role="alert"
+            aria-labelledby="load-error-title"
+        >
             <h2 class="error-title" id="load-error-title">
                 "Couldn't load these settings"
             </h2>
-            <p class="error-text">(message)</p>
-            <div class="error-actions">
+            <p class="m-0 text-text-2">(message)</p>
+            <div class="flex flex-wrap gap-2">
                 #[key(index)]
                 for (index, action) in actions.iter().enumerate() {
                     let variant = if index == 0 {

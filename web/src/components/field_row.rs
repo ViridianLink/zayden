@@ -47,7 +47,9 @@ pub async fn field_row(
             <label class="field-label" for=(id)>(label)</label>
             (child)
             if let Some(help) = help {
-                <p class="field-help" id=(format!("{id}-help"))>(help)</p>
+                <p class="m-0 text-[13px] text-text-2" id=(format!("{id}-help"))>
+                    (help)
+                </p>
             }
             if let Some(error) = error {
                 <p class="field-error" id=(format!("{id}-error"))>(error)</p>

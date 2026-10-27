@@ -27,6 +27,15 @@ mod support;
 use canonical::canonical;
 
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const PUBLIC: &str = "flex flex-col min-h-screen";
+const HEADER: &str = "sticky top-0 z-100 flex items-center justify-center h-(--topbar-h) py-0 px-4 bg-bg border-b border-solid border-b-rule";
+const BRAND_MARK: &str = "flex-none w-[28px] h-[28px] rounded-(--radius-full)";
+const FOOTER: &str =
+    "border-t border-solid border-t-rule py-6 px-4 text-text-2 text-[13px]";
+const FOOTER_INNER: &str =
+    "w-full max-w-(--content-max) flex flex-wrap items-center justify-between gap-4";
+const FOOTER_LINKS: &str = "flex flex-wrap gap-y-1 gap-x-4";
+const FOOTER_LINK: &str = "inline-flex items-center min-h-(--target-min) text-text-2 hover:text-text max-md:min-h-[44px]";
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -256,10 +265,14 @@ async fn landing_has_the_public_chrome_and_hero() {
     assert!(html.starts_with(
         "<!DOCTYPE html><html lang=\"en\" class=\"dark\" data-bot=\"zayden\">"
     ));
-    assert!(html.contains(r#"<div class="public"><header class="public-header">"#));
-    assert!(canonical(&html).contains(&canonical(
-        r#"<a href="/" class="brand" data-topcoat-link="never"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
-    )));
+    assert!(
+        html.contains(&format!(
+            r#"<div class="{PUBLIC}"><header class="{HEADER}">"#
+        ))
+    );
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<a href="/" class="brand" data-topcoat-link="never"><img class="{BRAND_MARK}" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="max-md:hidden">Zayden</span></a>"#
+    ))));
     assert_eq!(
         vec!["The Discord bot that grows with your server"],
         texts(&html, "h1"),
@@ -274,7 +287,7 @@ async fn landing_has_the_public_chrome_and_hero() {
             r#"<main id="main" class="public-main" tabindex="-1"><div class="landing">"#
         )
     );
-    assert_eq!(1, count(&html, "<footer class=\"footer\">"));
+    assert_eq!(1, count(&html, &format!("<footer class=\"{FOOTER}\">")));
 }
 
 #[tokio::test]
@@ -416,18 +429,25 @@ async fn landing_sections_and_call_to_action_copy() {
 #[tokio::test]
 async fn footer_lists_the_five_links() {
     let html = page_html("/privacy").await.unwrap();
-    let footer = between(&html, "<footer class=\"footer\">", "</footer>").unwrap();
+    let footer =
+        between(&html, &format!("<footer class=\"{FOOTER}\">"), "</footer>")
+            .unwrap();
 
     assert_eq!(
-        canonical(concat!(
-            r#"<div class="footer-inner"><span>© 2026 Zayden. Not affiliated with Discord.</span>"#,
-            r#"<nav class="footer-links" aria-label="Footer">"#,
-            r#"<a href="/invite" rel="external">Invite</a>"#,
-            r#"<a href="/upgrade" data-topcoat-link="never">Pricing</a>"#,
-            r#"<a href="/auth/discord" rel="external">Sign in</a>"#,
-            r#"<a href="/privacy" data-topcoat-link="never">Privacy Policy</a>"#,
-            r#"<a href="/terms" data-topcoat-link="never">Terms of Service</a>"#,
-            "</nav></div>",
+        canonical(&format!(
+            concat!(
+                r#"<div class="{inner}"><span>© 2026 Zayden. Not affiliated with Discord.</span>"#,
+                r#"<nav class="{links}" aria-label="Footer">"#,
+                r#"<a href="/invite" rel="external" class="{link}">Invite</a>"#,
+                r#"<a href="/upgrade" class="{link}" data-topcoat-link="never">Pricing</a>"#,
+                r#"<a href="/auth/discord" rel="external" class="{link}">Sign in</a>"#,
+                r#"<a href="/privacy" class="{link}" data-topcoat-link="never">Privacy Policy</a>"#,
+                r#"<a href="/terms" class="{link}" data-topcoat-link="never">Terms of Service</a>"#,
+                "</nav></div>",
+            ),
+            inner = FOOTER_INNER,
+            links = FOOTER_LINKS,
+            link = FOOTER_LINK,
         )),
         canonical(footer),
     );
@@ -490,22 +510,23 @@ async fn login_renders_the_card_in_a_main_landmark() {
     let html = page_html("/login").await.unwrap();
     assert!(html.contains("<title>Sign In - Zayden Dashboard</title>"));
 
-    assert!(html.contains(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="public"><header class="public-header">"##
-    ));
+    assert!(html.contains(&format!(
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="{PUBLIC}"><header class="{HEADER}">"##
+    )));
     assert!(html.contains(&format!(
         concat!(
             r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page"><div class="hero-glow"></div><div class="login-card">"#,
-            r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
+            r#"<span class="brand"><img class="{mark}" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
             "<h1>Welcome back</h1>",
             "<p>Connect your Discord account to manage your server settings.</p>",
             r#"<a href="/auth/discord" rel="external" class="{} w-full">Sign in with Discord</a></div></div></main>"#,
         ),
-        support::btn("primary-lg")
+        support::btn("primary-lg"),
+        mark = BRAND_MARK
     )));
     assert_eq!(1, count(&html, "<main"));
-    assert_eq!(1, count(&html, "<header class=\"public-header\">"));
-    assert_eq!(1, count(&html, "<footer class=\"footer\">"));
+    assert_eq!(1, count(&html, &format!("<header class=\"{HEADER}\">")));
+    assert_eq!(1, count(&html, &format!("<footer class=\"{FOOTER}\">")));
     assert!(!html.contains(r#"role="alert""#));
 }
 
@@ -874,8 +895,16 @@ async fn legal_pages_share_the_public_chrome() {
     for path in ["/privacy", "/terms"] {
         let html = page_html(path).await.unwrap();
 
-        assert_eq!(1, count(&html, "<header class=\"public-header\">"), "{path}");
-        assert_eq!(1, count(&html, "<footer class=\"footer\">"), "{path}");
+        assert_eq!(
+            1,
+            count(&html, &format!("<header class=\"{HEADER}\">")),
+            "{path}"
+        );
+        assert_eq!(
+            1,
+            count(&html, &format!("<footer class=\"{FOOTER}\">")),
+            "{path}"
+        );
         assert_eq!(1, count(&html, "<main"), "{path}");
         assert_eq!(1, texts(&html, "h1").len(), "{path}");
     }

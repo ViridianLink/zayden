@@ -109,9 +109,16 @@ fn strip_between(html: &str, marker: &str, skip: impl Fn(&str) -> &str) -> Strin
 
 const HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>All bot servers</h1><p class="page-lead">Every server Zayden is in. Operator access ignores your own permissions in them.</p></div></div>"#;
 const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+const TOOLS: &str = "flex flex-wrap items-center gap-3 mb-6";
+const EMPTY: &str = "rounded-panel border border-dashed border-border px-4 py-12 text-center text-text-2";
+const COUNT: &str = "m-0 mb-4 text-[12.5px] text-text-3";
+const GUILD_ICON: &str = "h-[48px] w-[48px] shrink-0 rounded-control object-cover";
+const GUILD_PLACEHOLDER: &str = "grid h-[48px] w-[48px] shrink-0 place-items-center rounded-control border border-solid border-line bg-surface-2 object-cover text-[18px] font-semibold text-text";
+const GUILD_NAME: &str = "truncate font-semibold";
+
 fn tools() -> String {
     format!(
-        r#"<div class="operator-tools"><div class="field-row"><label class="field-label" for="server-filter">Filter by name</label><input class="{INPUT} grow basis-64" id="server-filter" type="search" autocomplete="off" value=""></div><div class="field-row operator-jump"><label class="field-label" for="server-jump">Go to server ID</label><input class="{INPUT} [&amp;]:w-52 font-mono" id="server-jump" type="text" inputmode="numeric" autocomplete="off" value=""><button type="button" class="{secondary}" disabled="">Go</button><a class="{secondary}" href="" hidden="">Go</a></div></div>"#,
+        r#"<div class="{TOOLS}"><div class="field-row"><label class="field-label" for="server-filter">Filter by name</label><input class="{INPUT} grow basis-64" id="server-filter" type="search" autocomplete="off" value=""></div><div class="field-row operator-jump"><label class="field-label" for="server-jump">Go to server ID</label><input class="{INPUT} [&amp;]:w-52 font-mono" id="server-jump" type="text" inputmode="numeric" autocomplete="off" value=""><button type="button" class="{secondary}" disabled="">Go</button><a class="{secondary}" href="" hidden="">Go</a></div></div>"#,
         secondary = support::btn("secondary")
     )
 }
@@ -144,18 +151,18 @@ async fn the_list_has_labelled_tools_an_announced_count_and_a_table_row_per_serv
     assert_eq!(
         canonical(&html),
         canonical(&format!(
-            "{HEADER}{tools}{}{table_head}{}{}{}",
-            concat!(
-                r#"<div role="status"><p class="empty" hidden="">No server matches that name.</p>"#,
-                r#"<p class="operator-count">2 of 2 servers</p></div><div>"#,
-            ),
+            r#"{HEADER}{tools}<div role="status"><p class="{EMPTY}" hidden="">No server matches that name.</p><p class="{COUNT}">2 of 2 servers</p></div><div>{table_head}{}{}{}"#,
             server_row(
                 "7",
-                r#"<a href="/guild/7"><span class="guild-icon placeholder" aria-hidden="true">Z</span><span class="guild-name">Zayden's Server</span></a>"#,
+                &format!(
+                    r#"<a href="/guild/7"><span class="{GUILD_PLACEHOLDER}" aria-hidden="true">Z</span><span class="{GUILD_NAME}">Zayden's Server</span></a>"#
+                ),
             ),
             server_row(
                 "9",
-                r#"<a href="/guild/9"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon"><span class="guild-name">-Mark-'s</span></a>"#,
+                &format!(
+                    r#"<a href="/guild/9"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="{GUILD_ICON}"><span class="{GUILD_NAME}">-Mark-'s</span></a>"#
+                ),
             ),
             "</tbody></table></div></div></div>",
             tools = tools(),
@@ -177,7 +184,10 @@ async fn the_filter_and_the_go_link_are_bound_to_what_is_typed() {
         2
     );
     assert!(html.contains("<div data-topcoat-bind:hidden="), "{html}");
-    for marker in [r#"<p class="empty""#, r#"<p class="operator-count""#] {
+    for marker in
+        [format!(r#"<p class="{EMPTY}""#), format!(r#"<p class="{COUNT}""#)]
+    {
+        let marker = marker.as_str();
         let tag = html.split(marker).nth(1).unwrap_or_default();
         assert!(
             tag.split('>')
@@ -196,11 +206,7 @@ async fn no_servers_reads_as_no_match() {
     assert_eq!(
         canonical(&html),
         canonical(&format!(
-            "{HEADER}{tools}{}{table_head}{}",
-            concat!(
-                r#"<div role="status"><p class="empty">No server matches that name.</p>"#,
-                r#"<p class="operator-count" hidden="">0 of 0 servers</p></div><div hidden="">"#,
-            ),
+            r#"{HEADER}{tools}<div role="status"><p class="{EMPTY}">No server matches that name.</p><p class="{COUNT}" hidden="">0 of 0 servers</p></div><div hidden="">{table_head}{}"#,
             "</tbody></table></div></div></div>",
             tools = tools(),
             table_head = table_head(),

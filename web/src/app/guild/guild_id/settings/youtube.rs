@@ -229,7 +229,7 @@ async fn panel(
                         outcome: "Not disconnected"
                     )
                 }
-                <div class="settings-actions">
+                <div class="flex flex-wrap items-center gap-2">
                     <a
                         class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         href=(connect_href.as_str())
@@ -310,7 +310,7 @@ async fn panel(
                 <p class="page-lead">
                     "No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards."
                 </p>
-                <div class="settings-actions">
+                <div class="flex flex-wrap items-center gap-2">
                     <a
                         class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                         href=(connect_href.as_str())

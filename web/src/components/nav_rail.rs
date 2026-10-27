@@ -17,7 +17,7 @@ pub async fn nav_rail(
     Ok(view! {
         <div class="rail">
             nav_links(prefix: "rail", access: access, guild_id: guild_id)
-            <div class="nav-spacer"></div>
+            <div class="flex-1"></div>
             legal_links()
         </div>
     }

@@ -129,7 +129,10 @@ async fn image_list(
                 "No images yet - the command replies with just the message until you add one."
             </p>
         } else {
-            <ul class="greet-grid" aria-labelledby=(heading_id.as_str())>
+            <ul
+                class="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4 mb-6"
+                aria-labelledby=(heading_id.as_str())
+            >
                 #[key(image.id.as_str())]
                 for image in images {
                     image_card(guild_id: guild_id, noun: noun, image: image)
@@ -160,11 +163,16 @@ async fn image_card(
     Ok(view! {
         <li class="greet-card">
             <div
-                class="greet-thumb"
+                class="relative grid place-items-center h-[9rem] overflow-hidden rounded-panel bg-surface-2"
                 role="img"
                 aria-label=(format!("Image from {host}"))
             >
-                <span class="greet-thumb-host" aria-hidden="true">(host.as_str())</span>
+                <span
+                    class="py-0 px-3 text-[12px] text-center text-text-2 wrap-anywhere"
+                    aria-hidden="true"
+                >
+                    (host.as_str())
+                </span>
                 <img
                     class="greet-thumb-img"
                     src=(image.url.as_str())
@@ -175,7 +183,7 @@ async fn image_card(
                 >
             </div>
             <a
-                class="greet-url"
+                class="block truncate leading-(--target-min) max-md:leading-(--row-h) text-[12px] text-text-2 hover:text-text"
                 href=(image.url.as_str())
                 rel="external noreferrer"
                 target="_blank"
@@ -184,7 +192,7 @@ async fn image_card(
                 (image.url.as_str())
             </a>
             <form
-                class="greet-remove"
+                class="self-start"
                 method="post"
                 action=(form_action(guild_id, PAGE, GreetingAction::RemoveImage))
                 data-pending=""

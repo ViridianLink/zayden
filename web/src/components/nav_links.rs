@@ -60,7 +60,7 @@ pub async fn nav_links(
     let settings = guild_id.map(|guild_id| GENERAL.href(guild_id));
 
     Ok(view! {
-        <nav class="nav" aria-label="Dashboard">
+        <nav class="flex flex-col gap-1" aria-label="Dashboard">
             if on_operator_page {
                 <div
                     class=(class!(badge_variants(BadgeVariant::Outline), "operator-badge"))
@@ -74,7 +74,7 @@ pub async fn nav_links(
                 overview.as_deref(),
                 settings.as_deref(),
             ) {
-                <ul class="nav-list">
+                <ul class="flex flex-col gap-1 m-0 p-0 list-none">
                     nav_item(
                         href: overview,
                         label: OVERVIEW,
@@ -99,7 +99,7 @@ pub async fn nav_links(
                     )
                 }
             } else {
-                <ul class="nav-list">
+                <ul class="flex flex-col gap-1 m-0 p-0 list-none">
                     nav_item(
                         href: "/guilds",
                         label: ALL_SERVERS,
@@ -108,7 +108,7 @@ pub async fn nav_links(
                     )
                 </ul>
             }
-            <ul class="nav-list nav-group">
+            <ul class="flex flex-col gap-1 m-0 mt-4 p-0 list-none">
                 nav_item(
                     href: "/upgrade",
                     label: PLANS,
@@ -117,9 +117,17 @@ pub async fn nav_links(
                 )
             </ul>
             if operator || admin {
-                <div class="nav-group">
-                    <p class="nav-heading" id=(format!("{prefix}-admin"))>"Admin"</p>
-                    <ul class="nav-list" aria-labelledby=(format!("{prefix}-admin"))>
+                <div class="flex flex-col gap-1 mt-4">
+                    <p
+                        class="m-0 py-1 px-3 font-mono text-[12px] font-medium tracking-[0.06em] uppercase text-text-3"
+                        id=(format!("{prefix}-admin"))
+                    >
+                        "Admin"
+                    </p>
+                    <ul
+                        class="flex flex-col gap-1 m-0 p-0 list-none"
+                        aria-labelledby=(format!("{prefix}-admin"))
+                    >
                         if operator {
                             nav_item(
                                 href: "/admin/servers",
@@ -164,9 +172,17 @@ async fn nav_group(
     );
 
     Ok(view! {
-        <div class="nav-group">
-            <p class="nav-heading" id=(heading.as_str())>(label)</p>
-            <ul class="nav-list" aria-labelledby=(heading.as_str())>
+        <div class="flex flex-col gap-1 mt-4">
+            <p
+                class="m-0 py-1 px-3 font-mono text-[12px] font-medium tracking-[0.06em] uppercase text-text-3"
+                id=(heading.as_str())
+            >
+                (label)
+            </p>
+            <ul
+                class="flex flex-col gap-1 m-0 p-0 list-none"
+                aria-labelledby=(heading.as_str())
+            >
                 #[key(entry.label)]
                 for entry in entries {
                     let href = entry.href(guild_id);

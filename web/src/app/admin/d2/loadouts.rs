@@ -208,7 +208,7 @@ async fn loadout_rows(
     });
 
     Ok(view! {
-        <p class="operator-count" role="status">
+        <p class="m-0 mb-4 text-[12.5px] text-text-3" role="status">
             $(shown)
             " of "
             (total)

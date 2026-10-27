@@ -130,6 +130,14 @@ const CHEVRON_DOWN: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width=
 const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
 const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
 const SELECT_OPEN: &str = r#"<span class="relative block has-[:disabled]:opacity-50 [&amp;>select]:[appearance:base-select] [&amp;:has(select:open)>svg]:rotate-180" style="--select-checkmark: url(&quot;data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><g fill=%22none%22 stroke=%22currentColor%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22><path d=%22M20 6 9 17l-5-5%22/></g></svg>&quot;)">"#;
+const FIELD_HELP: &str = "m-0 text-[13px] text-text-2";
+const GUILD_GRID: &str =
+    "grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4";
+const GUILD_ICON: &str = "h-[48px] w-[48px] shrink-0 rounded-control object-cover";
+const GUILD_PLACEHOLDER: &str = "grid h-[48px] w-[48px] shrink-0 place-items-center rounded-control border border-solid border-line bg-surface-2 object-cover text-[18px] font-semibold text-text";
+const GUILD_BODY: &str = "min-w-0";
+const GUILD_NAME: &str = "truncate font-semibold";
+const GUILD_HINT: &str = "text-[12.5px] text-text-3";
 const SVG_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">"#;
 const X: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>"#;
 
@@ -453,15 +461,23 @@ async fn guild_grid_links_every_guild_to_its_overview() {
 
     assert_eq!(
         canonical(&html),
-        canonical(concat!(
-            r#"<div class="guild-grid">"#,
-            r#"<a href="/guild/1" class="guild-card"><img src="https://cdn.discordapp.com/icons/1/abc.png?size=64" alt="" class="guild-icon">"#,
-            r#"<div class="guild-card-body"><div class="guild-name">Alpha</div><div class="guild-card-hint">Manage →</div></div></a>"#,
-            r#"<a href="/guild/2" class="guild-card"><span class="guild-icon placeholder">b</span>"#,
-            r#"<div class="guild-card-body"><div class="guild-name">beta &lt;b&gt;</div><div class="guild-card-hint">Manage →</div></div></a>"#,
-            r##"<a href="/guild/3" class="guild-card"><span class="guild-icon placeholder">#</span>"##,
-            r#"<div class="guild-card-body"><div class="guild-name"></div><div class="guild-card-hint">Manage →</div></div></a>"#,
-            r#"</div>"#,
+        canonical(&format!(
+            concat!(
+                r#"<div class="{grid}">"#,
+                r#"<a href="/guild/1" class="guild-card"><img src="https://cdn.discordapp.com/icons/1/abc.png?size=64" alt="" class="{icon}">"#,
+                r#"<div class="{body}"><div class="{name}">Alpha</div><div class="{hint}">Manage →</div></div></a>"#,
+                r#"<a href="/guild/2" class="guild-card"><span class="{placeholder}">b</span>"#,
+                r#"<div class="{body}"><div class="{name}">beta &lt;b&gt;</div><div class="{hint}">Manage →</div></div></a>"#,
+                r##"<a href="/guild/3" class="guild-card"><span class="{placeholder}">#</span>"##,
+                r#"<div class="{body}"><div class="{name}"></div><div class="{hint}">Manage →</div></div></a>"#,
+                r#"</div>"#,
+            ),
+            grid = GUILD_GRID,
+            icon = GUILD_ICON,
+            placeholder = GUILD_PLACEHOLDER,
+            body = GUILD_BODY,
+            name = GUILD_NAME,
+            hint = GUILD_HINT,
         ))
     );
 }
@@ -578,9 +594,8 @@ async fn select_row_keeps_an_unknown_stored_id_and_carries_help_and_error() {
     assert!(canonical(&html).contains(
         r#"aria-describedby="logs-log-channel-help logs-log-channel-error" aria-invalid="true""#
     ));
-    assert!(html.ends_with(concat!(
-        r#"<p class="field-help" id="logs-log-channel-help">Where reports go.</p>"#,
-        r#"<p class="field-error" id="logs-log-channel-error">Pick a text channel.</p></div>"#,
+    assert!(html.ends_with(&format!(
+        r#"<p class="{FIELD_HELP}" id="logs-log-channel-help">Where reports go.</p><p class="field-error" id="logs-log-channel-error">Pick a text channel.</p></div>"#
     )));
 }
 
@@ -598,11 +613,12 @@ async fn locked_select_posts_the_stored_value_through_a_hidden_input() {
                 r#"<select class="{select}" id="logs-log-channel" aria-describedby="logs-log-channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
                 r#"{chevron}</span>"#,
                 r#"<input type="hidden" name="log_channel" value="99">"#,
-                r#"<p class="field-help" id="logs-log-channel-help">Discord is down</p></div>"#,
+                r#"<p class="{help}" id="logs-log-channel-help">Discord is down</p></div>"#,
             ),
             open = SELECT_OPEN,
             select = SELECT,
-            chevron = CHEVRON_DOWN
+            chevron = CHEVRON_DOWN,
+            help = FIELD_HELP
         ))
     );
 }
@@ -802,9 +818,9 @@ async fn text_row_bounds_a_ranged_number_and_describes_it() {
     assert!(canonical(&html).contains(&canonical(&format!(
         r#"<input class="{INPUT}" id="music-auto-disconnect" type="number" name="auto_disconnect" value="60" min="0" max="600" step="1" autocomplete="off" aria-describedby="music-auto-disconnect-help">"#
     ))));
-    assert!(html.contains(
-        r#"<p class="field-help" id="music-auto-disconnect-help">Seconds.</p></div>"#
-    ));
+    assert!(html.contains(&format!(
+        r#"<p class="{FIELD_HELP}" id="music-auto-disconnect-help">Seconds.</p></div>"#
+    )));
 }
 
 #[test]

@@ -19,7 +19,7 @@ pub async fn flash_message(notice: &Flash) -> Result<impl View> {
     Ok(view! {
         <p class=(class) data-flash="">
             icon(name: mark)
-            <span class="flash-text">(notice.message.as_str())</span>
+            <span class="text-text">(notice.message.as_str())</span>
         </p>
     })
 }

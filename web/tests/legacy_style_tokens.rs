@@ -318,7 +318,7 @@ fn the_content_column_uses_its_token() {
 fn the_scan_still_reaches_every_partial() {
     let partials = files("style/partials", "css");
     assert!(
-        partials.len() >= 20,
+        partials.len() >= 18,
         "only {} .css files scanned under style/partials",
         partials.len()
     );

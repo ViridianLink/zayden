@@ -11,5 +11,13 @@ pub const LOGO: Asset = asset!("../../assets/logo.png");
 
 #[component]
 pub async fn brand_mark() -> Result<impl View> {
-    Ok(view! { <img class="brand-mark" src=(LOGO) alt="" width="28" height="28"> })
+    Ok(view! {
+        <img
+            class="flex-none w-[28px] h-[28px] rounded-(--radius-full)"
+            src=(LOGO)
+            alt=""
+            width="28"
+            height="28"
+        >
+    })
 }

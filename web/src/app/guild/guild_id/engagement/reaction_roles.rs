@@ -368,28 +368,34 @@ async fn mapping_row(
                 label: "Emoji",
                 match custom_emoji_id(&mapping.emoji) {
                     Some(id) => <span
-                        class="rr-emoji-frame"
+                        class="inline-grid place-items-center min-w-[24px] min-h-[24px] align-middle"
                         role="img"
                         aria-label=(emoji_name.as_str())
                         title=(emoji_name.as_str())
                     >
                         <object
-                            class="rr-emoji-img"
+                            class="h-[24px]"
                             data=(emoji_image_url(id))
                             type="image/png"
                             aria-hidden="true"
                         >
-                            <span class="rr-emoji-name">(emoji_name.as_str())</span>
+                            <span
+                                class="inline-block py-0 px-2 border border-dashed border-line rounded-control text-[12px] leading-[22px] whitespace-nowrap text-text-2"
+                            >
+                                (emoji_name.as_str())
+                            </span>
                         </object>
                     </span>,
-                    None => <span class="rr-emoji">(mapping.emoji.as_str())</span>,
+                    None => <span class="text-[20px] leading-none">
+                        (mapping.emoji.as_str())
+                    </span>,
                 }
             )
             data_cell(label: "Role", (role.as_str()))
             data_cell(
                 label: "Message",
                 <a
-                    class="rr-link"
+                    class="inline-flex items-center gap-1 min-h-(--target-min) text-[13px] text-text-2 hover:text-text"
                     href=(link)
                     aria-label=(link_label.as_str())
                     rel="external noreferrer"

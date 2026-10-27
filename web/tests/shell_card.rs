@@ -16,6 +16,20 @@ use canonical::canonical;
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const LAMP_STATUS: &str = "inline-flex items-center gap-2 whitespace-nowrap";
+const LAMP_ON: &str = "lamp-on inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const LAMP_OFF: &str = "inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full) border-2 border-solid border-line bg-transparent";
+const LAMP_SYNC: &str = "lamp-sync inline-block w-[10px] h-[10px] shrink-0 box-border rounded-(--radius-full)";
+const RACK_ROW: &str = "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 min-h-(--row-h) py-3 px-4 border-t border-solid border-t-rule first:[border-top:0] max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-y-2 max-md:min-h-[48px]";
+const RACK_MAIN: &str = "min-w-0";
+const RACK_NAME: &str = "m-0 text-[15px] font-semibold";
+const RACK_NAME_LINK: &str = "inline-flex items-center min-h-(--target-min) max-md:min-h-(--row-h) text-text no-underline decoration-current hover:underline";
+const RACK_DESC: &str = "m-0 text-[13px] text-text-2";
+const RACK_STATE: &str = "min-w-[7rem] max-md:col-[1] max-md:row-[2]";
+const RACK_CONTROL: &str = "flex items-center justify-end min-w-[48px] max-md:col-[2] max-md:row-[1/span_2]";
+const RACK_LINK: &str =
+    "inline-flex items-center gap-1 min-h-(--target-min) text-text font-medium";
+const RACK_NOTE: &str = "col-span-full m-0 mt-2 text-[13px] text-caution";
 const CHEVRON_RIGHT: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>"#;
 
 fn module(
@@ -88,18 +102,18 @@ async fn render(path: &str) -> TestResult<String> {
 
 fn switch_form(module_id: &str, label: &str, on: bool) -> String {
     let (lamp, text, checked, wanted) = if on {
-        ("on", "On", "true", "false")
+        (LAMP_ON, "On", "true", "false")
     } else {
-        ("off", "Off", "false", "true")
+        (LAMP_OFF, "Off", "false", "true")
     };
     format!(
-        r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="rack-control"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
+        r#"<form class="contents" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="{RACK_STATE}"><span class="{LAMP_STATUS}"><span class="{lamp}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="{RACK_CONTROL}"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
     )
 }
 
 fn status(lamp: &str, text: &str, href: &str) -> String {
     format!(
-        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="{href}" class="rack-link" data-topcoat-link="intent">Manage{CHEVRON_RIGHT}</a></div>"#
+        r#"<div class="{RACK_STATE}"><span class="{LAMP_STATUS}"><span class="{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="{RACK_CONTROL}"><a href="{href}" class="{RACK_LINK}" data-topcoat-link="intent">Manage{CHEVRON_RIGHT}</a></div>"#
     )
 }
 
@@ -109,10 +123,8 @@ async fn a_module_without_state_shows_the_not_synced_note_and_no_switch() {
 
     assert_eq!(
         canonical(&html),
-        canonical(concat!(
-            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music" data-topcoat-link="intent">Music</a></h3><p class="rack-desc">Music description</p></div>"#,
-            r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div><div class="rack-control"></div>"#,
-            r#"<p class="rack-note">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></li>"#,
+        canonical(&format!(
+            r#"<li class="{RACK_ROW}"><div class="{RACK_MAIN}"><h3 class="{RACK_NAME}"><a href="/guild/7/music" class="{RACK_NAME_LINK}" data-topcoat-link="intent">Music</a></h3><p class="{RACK_DESC}">Music description</p></div><div class="{RACK_STATE}"><span class="{LAMP_STATUS}"><span class="{LAMP_SYNC}" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div><div class="{RACK_CONTROL}"></div><p class="{RACK_NOTE}">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></li>"#
         ))
     );
 }
@@ -124,7 +136,7 @@ async fn a_command_module_that_is_off_offers_a_switch_that_turns_it_on() {
     assert_eq!(
         html,
         format!(
-            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name">Gambling &amp; Economy</h3><p class="rack-desc">Gambling &amp; Economy description</p></div>{}</li>"#,
+            r#"<li class="{RACK_ROW}"><div class="{RACK_MAIN}"><h3 class="{RACK_NAME}">Gambling &amp; Economy</h3><p class="{RACK_DESC}">Gambling &amp; Economy description</p></div>{}</li>"#,
             switch_form("gambling", "Gambling &amp; Economy", false)
         )
     );
@@ -137,7 +149,7 @@ async fn a_command_module_that_is_on_offers_a_switch_that_turns_it_off() {
     assert_eq!(
         canonical(&html),
         canonical(&format!(
-            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music" data-topcoat-link="intent">Music</a></h3><p class="rack-desc">Music description</p></div>{}</li>"#,
+            r#"<li class="{RACK_ROW}"><div class="{RACK_MAIN}"><h3 class="{RACK_NAME}"><a href="/guild/7/music" class="{RACK_NAME_LINK}" data-topcoat-link="intent">Music</a></h3><p class="{RACK_DESC}">Music description</p></div>{}</li>"#,
             switch_form("music", "Music", true)
         ))
     );
@@ -148,7 +160,7 @@ async fn modules_switched_elsewhere_show_their_state_and_a_link_instead_of_a_swi
 {
     let ai = render("/card/settings").await.unwrap();
     assert!(
-        canonical(&ai).contains(&canonical(&status("off", "Off", "/guild/7/ai"))),
+        canonical(&ai).contains(&canonical(&status(LAMP_OFF, "Off", "/guild/7/ai"))),
         "{ai}"
     );
     assert!(!ai.contains("<form"), "{ai}");
@@ -157,7 +169,7 @@ async fn modules_switched_elsewhere_show_their_state_and_a_link_instead_of_a_swi
     let patreon = render("/card/derived").await.unwrap();
     assert!(
         canonical(&patreon).contains(&canonical(&status(
-            "on",
+            LAMP_ON,
             "On",
             "/guild/7/patreon"
         ))),
@@ -173,7 +185,7 @@ async fn a_failed_switch_shows_its_reason_on_the_row_and_keeps_the_stored_state(
 
     assert!(
         canonical(&html).ends_with(&canonical(&format!(
-            r#"{}<div class="{ERROR_ALERT} rack-error" role="alert"><p class="col-start-2 font-medium tracking-tight">Not changed: nope</p></div></li>"#,
+            r#"{}<div class="{ERROR_ALERT} col-span-full m-0 mt-2" role="alert"><p class="col-start-2 font-medium tracking-tight">Not changed: nope</p></div></li>"#,
             switch_form("music", "Music", false)
         ))),
         "{html}"
