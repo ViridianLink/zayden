@@ -21,10 +21,24 @@ const ICON_OPEN =
 const ICON = {
     plus: ICON_OPEN + '<path d="M5 12h14"/><path d="M12 5v14"/></svg>',
     x: ICON_OPEN + '<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    chevronDown: ICON_OPEN + '<path d="m6 9 6 6 6-6"/></svg>',
     grip:
         ICON_OPEN +
         '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
 };
+const BUTTON = Object.freeze({
+    primary:
+        "inline-flex shrink-0 items-center justify-center border text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer no-underline border-transparent bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 active:bg-primary/80 h-9 gap-2 rounded-lg px-4 max-md:h-11",
+    secondary:
+        "inline-flex shrink-0 items-center justify-center border text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer no-underline border-transparent bg-foreground/5 text-foreground shadow-xs hover:bg-foreground/10 active:bg-foreground/15 h-9 gap-2 rounded-lg px-4 max-md:h-11",
+    ghost:
+        "inline-flex shrink-0 items-center justify-center border text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer no-underline border-transparent text-foreground hover:bg-foreground/5 active:bg-foreground/10 h-9 gap-2 rounded-lg px-4 max-md:h-11",
+});
+const CONTROL = Object.freeze({
+    input: "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+    textarea:
+        "field-sizing-content min-h-16 max-md:min-h-20 w-full rounded-lg border border-input bg-popover px-3 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+});
 
 const FIELDS = {
     super: { usage: "super", noun: "super", emoji: true },
@@ -599,7 +613,9 @@ function start(data) {
         "</label>" +
         '<input id="' +
         esc(id) +
-        '" class="input"' +
+        '" class="' +
+        CONTROL.input +
+        '"' +
         (ariaLabel ? ' aria-label="' + esc(ariaLabel) + '"' : "") +
         ' type="' +
         kind +
@@ -963,7 +979,9 @@ function start(data) {
                     l.fragments + i,
                     {},
                 ) +
-                '</div><button type="button" class="btn btn-ghost aspect-remove" aria-label="Remove aspect ' +
+                '</div><button type="button" class="' +
+                BUTTON.ghost +
+                ' aspect-remove" aria-label="Remove aspect ' +
                 (i + 1) +
                 '"' +
                 on({
@@ -976,7 +994,9 @@ function start(data) {
         });
         if (s.aspects.length < MAX.aspects) {
             html +=
-                '<button type="button" class="btn btn-secondary"' +
+                '<button type="button" class="' +
+                BUTTON.secondary +
+                '"' +
                 on({
                     click: () => {
                         s.aspects.push({ aspect: "", fragments: [] });
@@ -1070,7 +1090,9 @@ function start(data) {
                 round: true,
                 weapon: () => row.name,
             }) +
-            '<button type="button" class="btn btn-ghost gear-remove" aria-label="' +
+            '<button type="button" class="' +
+            BUTTON.ghost +
+            ' gear-remove" aria-label="' +
             esc("Remove " + row.name) +
             '"' +
             on({
@@ -1190,7 +1212,9 @@ function start(data) {
             esc(named ? name : "Choose artifact") +
             "</button>" +
             (named
-                ? '<button type="button" class="btn btn-ghost"' +
+                ? '<button type="button" class="' +
+                  BUTTON.ghost +
+                  '"' +
                   on({
                       click: () => {
                           s.artifact_name = "";
@@ -1316,14 +1340,20 @@ function start(data) {
             ) +
             '</div><div class="setting-field"><label for="loadout-tag">Tags (up to 3)</label><div class="chip-list">' +
             chips +
-            '</div><div class="chip-add"><input class="input" id="loadout-tag"' +
+            '</div><div class="chip-add"><input class="' +
+            CONTROL.input +
+            '" id="loadout-tag"' +
             (ui.tagDraft === "" ? "" : ' value="' + esc(ui.tagDraft) + '"') +
             ">" +
-            '<button type="button" class="btn btn-secondary"' +
+            '<button type="button" class="' +
+            BUTTON.secondary +
+            '"' +
             (s.tags.length >= MAX.tags ? ' disabled=""' : "") +
             on({ click: addTag }) +
             ">Add</button></div></div>" +
-            '<div class="setting-field"><label for="loadout-how">How it works</label><textarea id="loadout-how" class="input" rows="8">\n' +
+            '<div class="setting-field"><label for="loadout-how">How it works</label><textarea id="loadout-how" class="' +
+            CONTROL.textarea +
+            '" rows="8">\n' +
             esc(s.how_it_works) +
             "</textarea></div></section>"
         );
@@ -1367,7 +1397,9 @@ function start(data) {
                     ? "Restored your unsaved changes from this tab."
                     : "Unsaved changes") +
                 "</span>" +
-                '<button type="button" class="btn btn-ghost"' +
+                '<button type="button" class="' +
+                BUTTON.ghost +
+                '"' +
                 on({ click: discard }) +
                 ">Discard changes</button></div>";
         }
@@ -1398,7 +1430,9 @@ function start(data) {
             esc(ui.announce) +
             "</p>";
         html +=
-            '<div class="form-actions"><button type="submit" class="btn btn-primary"' +
+            '<div class="form-actions"><button type="submit" class="' +
+            BUTTON.primary +
+            '"' +
             (ui.pending ? ' disabled=""' : "") +
             on({}) +
             ">" +
@@ -1438,7 +1472,9 @@ function start(data) {
         picker.flat = groups.flatMap((g) => g.items);
         const total = picker.flat.length;
         html +=
-            '<div class="picker-search"><input class="input" type="search" role="combobox" aria-expanded="true" aria-controls="picker-results"' +
+            '<div class="picker-search"><input class="' +
+            CONTROL.input +
+            '" type="search" role="combobox" aria-expanded="true" aria-controls="picker-results"' +
             ' aria-activedescendant="picker-option-' +
             picker.active +
             '" aria-label="' +
@@ -1525,7 +1561,9 @@ function start(data) {
         label +
         '</label><input id="' +
         id +
-        '" class="input" value="' +
+        '" class="' +
+        CONTROL.input +
+        '" value="' +
         esc(value) +
         '"></div>';
 
@@ -1534,7 +1572,9 @@ function start(data) {
         id +
         '">Icon link</label><input id="' +
         id +
-        '" class="input" type="url" inputmode="url" placeholder="https://www.bungie.net/common/destiny2_content/icons/…" value="' +
+        '" class="' +
+        CONTROL.input +
+        '" type="url" inputmode="url" placeholder="https://www.bungie.net/common/destiny2_content/icons/…" value="' +
         esc(value) +
         '"><p class="field-hint">An https link to the item\'s icon, e.g. from light.gg or DIM.</p></div>';
 
@@ -1543,9 +1583,9 @@ function start(data) {
         id +
         '">' +
         label +
-        '</label><select id="' +
+        '</label><span class="relative block has-[:disabled]:opacity-50 [&>select]:[appearance:base-select] [&:has(select:open)>svg]:rotate-180"><select id="' +
         id +
-        '" class="input">' +
+        '" class="h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&::picker(select)]:[appearance:base-select] [&::picker(select)]:mt-1 [&::picker(select)]:rounded-lg [&::picker(select)]:border [&::picker(select)]:border-border [&::picker(select)]:bg-popover [&::picker(select)]:p-1 [&::picker(select)]:text-popover-foreground [&::picker(select)]:shadow-sm [&::picker-icon]:hidden [&_optgroup>legend]:px-2 [&_optgroup>legend]:py-1.5 [&_optgroup>legend]:text-xs [&_optgroup>legend]:font-medium [&_optgroup>legend]:text-muted-foreground [&_optgroup>legend]:cursor-default [&_optgroup>legend]:select-none [&_option]:flex [&_option]:items-center [&_option]:gap-2 [&_option]:rounded-md [&_option]:px-2 [&_option]:py-1.5 [&_option]:text-sm [&_option]:outline-none [&_option:hover]:bg-foreground/5 [&_option:focus]:bg-foreground/5 [&_option:checked]:font-medium [&_option::checkmark]:order-1 [&_option::checkmark]:ml-auto [&_option::checkmark]:size-4 [&_option::checkmark]:shrink-0 [&_option::checkmark]:content-[\'\'] [&_option::checkmark]:bg-muted-foreground [&_option::checkmark]:[mask-size:100%_100%] [&_option::checkmark]:[mask-image:var(--select-checkmark)]">' +
         options
             .map(
                 (o) =>
@@ -1558,10 +1598,17 @@ function start(data) {
                     "</option>",
             )
             .join("") +
-        "</select></div>";
+        "</select>" +
+        ICON.chevronDown.replace(
+            'class="icon"',
+            'class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground transition-transform"',
+        ) +
+        "</span></div>";
 
     const action = (label, blocked, done) =>
-        '<div class="picker-actions"><button type="button" class="btn btn-primary"' +
+        '<div class="picker-actions"><button type="button" class="' +
+        BUTTON.primary +
+        '"' +
         (blocked ? ' disabled=""' : "") +
         on({ click: done }) +
         ">" +
@@ -1587,7 +1634,9 @@ function start(data) {
     function createHtml() {
         const c = picker.create;
         let html =
-            '<div class="picker-create-form"><button type="button" class="btn btn-ghost picker-back"' +
+            '<div class="picker-create-form"><button type="button" class="' +
+            BUTTON.ghost +
+            ' picker-back"' +
             on({
                 click: () => {
                     picker.create = null;
@@ -1600,7 +1649,9 @@ function start(data) {
             const blocked =
                 c.pending || problem !== null || emojiSource(c) === null;
             html +=
-                '<div class="setting-field"><label for="new-emoji-name">Emoji name</label><input id="new-emoji-name" class="input" autocomplete="off"' +
+                '<div class="setting-field"><label for="new-emoji-name">Emoji name</label><input id="new-emoji-name" class="' +
+                CONTROL.input +
+                '" autocomplete="off"' +
                 ' spellcheck="false" aria-describedby="new-emoji-name-hint" aria-invalid="' +
                 (problem !== null) +
                 '" value="' +
@@ -1637,8 +1688,12 @@ function start(data) {
                 }) +
                 '>Upload file</button></div><div class="setting-field">' +
                 (c.fromFile
-                    ? '<label for="new-emoji-file">Image file</label><input id="new-emoji-file" class="input" type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-describedby="new-emoji-image-hint">'
-                    : '<label for="new-emoji-url">Image link</label><input id="new-emoji-url" class="input" type="url" inputmode="url" placeholder="https://…" aria-describedby="new-emoji-image-hint" value="' +
+                    ? '<label for="new-emoji-file">Image file</label><input id="new-emoji-file" class="' +
+                      CONTROL.input +
+                      '" type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-describedby="new-emoji-image-hint">'
+                    : '<label for="new-emoji-url">Image link</label><input id="new-emoji-url" class="' +
+                      CONTROL.input +
+                      '" type="url" inputmode="url" placeholder="https://…" aria-describedby="new-emoji-image-hint" value="' +
                       esc(c.url) +
                       '">') +
                 '<p id="new-emoji-image-hint" class="field-hint">PNG, JPEG, GIF or WebP, up to 256 KiB. Square images look best.</p></div>' +

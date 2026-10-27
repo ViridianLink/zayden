@@ -5,6 +5,7 @@ use topcoat::view::{View, ViewExt, component, view};
 use url::Url;
 
 use super::{GreetingAction, IMAGES, PAGE, REMOVE_IMAGE, add_image_form};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::field_row::{form_summary, text_row};
 use crate::components::flash::flash;
@@ -115,7 +116,7 @@ async fn image_list(
             <div class="form-actions">
                 <button
                     type="submit"
-                    class="btn btn-secondary"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                     data-pending-label="Adding\u{2026}"
                 >
                     icon(name: Icon::Plus)
@@ -153,7 +154,6 @@ async fn image_card(
     image: &GreetingImageInfo,
 ) -> Result<impl View> {
     let host = host_of(&image.url);
-    let confirm_id = format!("image-{}-remove", image.id);
     let confirm_title = format!("Remove this {noun} image from {host}?");
     let trigger_label = format!("Remove {noun} image {}", image.url);
 
@@ -192,7 +192,6 @@ async fn image_card(
                 <input type="hidden" name="guild" value=(guild_id)>
                 <input type="hidden" name="id" value=(image.id.as_str())>
                 confirm_dialog(
-                    id: &confirm_id,
                     trigger: "Remove",
                     title: &confirm_title,
                     description: Some(image.url.as_str()),

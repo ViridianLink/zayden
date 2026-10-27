@@ -3,12 +3,15 @@ use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::error::see_other;
 use topcoat::router::{StatusCode, page, path_param};
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 use zayden_app::modules;
 
 use super::card::module_card;
 use super::guild_layout::GuildId;
 use crate::auth::AuthError;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::error_panel::{ErrorAction, error_panel};
 use crate::components::flash::flash;
 use crate::components::module_row::module_group;
@@ -218,6 +221,7 @@ async fn server_name(cx: &Cx, guild_id: &str) -> Option<String> {
 
 #[component]
 async fn overview(
+    cx: &Cx,
     guild_id: &str,
     loaded: Loaded,
     #[default] notice: Option<&Flash>,
@@ -237,7 +241,17 @@ async fn overview(
                             <h1>"Overview"</h1>
                             <p class="page-lead">(LEAD)</p>
                         </div>
-                        <a href=(nav::GENERAL.href(guild_id)) class="btn btn-secondary">
+                        <a
+                            class=(button_variants(
+                                ButtonVariant::Secondary,
+                                ButtonSize::Md,
+                            ))
+                            (link_attrs(
+                                cx,
+                                nav::GENERAL.href(guild_id),
+                                prefetch_mode(cx),
+                            ))
+                        >
                             "Server settings"
                         </a>
                     </div>
@@ -290,7 +304,11 @@ async fn rack(
 
     Ok(view! {
         if let Some(message) = unattached {
-            <p class="error" role="alert">(message)</p>
+            alert(
+                variant: AlertVariant::Destructive,
+                attrs: attributes! { class="error" role="alert" },
+                alert_title((message))
+            )
         }
         #[key(group.slug)]
         for (group, rows) in &groups {

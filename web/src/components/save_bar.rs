@@ -6,6 +6,7 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
+use super::button::{ButtonSize, ButtonVariant, button_variants};
 use super::flash::flash_message;
 use crate::flash::Flash;
 
@@ -24,12 +25,17 @@ pub async fn save_bar(
                     flash_message(notice: notice)
                 }
             </div>
-            <button type="button" class="btn btn-ghost" data-discard="" hidden="">
+            <button
+                type="button"
+                class=(button_variants(ButtonVariant::Ghost, ButtonSize::Md))
+                data-discard=""
+                hidden=""
+            >
                 "Discard"
             </button>
             <button
                 type="submit"
-                class="btn btn-primary"
+                class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                 data-pending-label="Saving\u{2026}"
             >
                 (label)

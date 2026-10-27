@@ -14,6 +14,11 @@ use web::components::brand::LOGO;
 use web::document::{NOT_FOUND_TITLE, PAGE_TITLES, PENDING_SUBMIT, STYLESHEET};
 use web::router;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 const STYLESHEET_FILE: &str = "tailwind-0123456789abcdef.css";
 const STYLESHEET_BODY: &str = ".login-page{display:grid}";
 const RUNTIME_FILE: &str = "topcoat-0123456789abcdef.js";
@@ -109,11 +114,10 @@ async fn unknown_path_is_404_with_not_found_card() {
     ));
     assert!(html.contains("<h1>404</h1>"));
     assert!(html.contains("<p>We couldn't find that page.</p>"));
-    assert!(
-        html.contains(
-            "<a href=\"/\" class=\"btn btn-primary btn-lg\">Back home</a>"
-        )
-    );
+    assert!(canonical(&html).contains(&canonical(&format!(
+        "<a href=\"/\" class=\"{} w-full\" data-topcoat-link=\"never\">Back home</a>",
+        support::btn("primary-lg")
+    ))));
     assert!(
         html.contains("Back home</a></div></div></main><footer class=\"footer\">")
     );

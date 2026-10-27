@@ -4,6 +4,8 @@
 )]
 
 use topcoat::Result;
+use topcoat::context::Cx;
+use topcoat::runtime::{PrefetchMode, link_attrs};
 use topcoat::view::{View, component, view};
 use twilight_model::user::CurrentUserGuild;
 
@@ -59,12 +61,15 @@ impl GuildCard {
 }
 
 #[component]
-pub async fn guild_grid(guilds: &[GuildCard]) -> Result<impl View> {
+pub async fn guild_grid(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
     Ok(view! {
         <div class="guild-grid">
             #[key(guild.id.as_str())]
             for guild in guilds {
-                <a href=(guild.href()) class="guild-card">
+                <a
+                    class="guild-card"
+                    (link_attrs(cx, guild.href(), PrefetchMode::Intent))
+                >
                     match guild.icon_url() {
                         Some(url) => <img src=(url) alt="" class="guild-icon">,
                         None => <span class="guild-icon placeholder">

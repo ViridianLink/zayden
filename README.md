@@ -54,7 +54,7 @@ command weaker than CI is how drift starts.
 
 ## Web dashboard (`web/`)
 
-`web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.10 app: every page
+`web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.11 app: every page
 renders on the server, and `web/src/router.rs` registers every layout, page and
 route in one `router()` function that the binary and the `tests/` harness share.
 It reads the `[dashboard]` keys of `bot/config.toml` and the `DASHBOARD_*`
@@ -63,7 +63,7 @@ environment variables.
 It needs the Topcoat CLI, pinned to the same version as the crate:
 
 ```bash
-cargo install topcoat-cli@0.10.0 --locked
+cargo install topcoat-cli@0.11.0 --locked
 ```
 
 Run it from the workspace root against a throwaway database:

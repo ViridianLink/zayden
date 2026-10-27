@@ -9,8 +9,13 @@ use topcoat::view::{View, view};
 use web::guild::dto::ModuleView;
 use web::shell::module_card;
 
+mod canonical;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const CHEVRON_RIGHT: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>"#;
 
 fn module(
@@ -94,7 +99,7 @@ fn switch_form(module_id: &str, label: &str, on: bool) -> String {
 
 fn status(lamp: &str, text: &str, href: &str) -> String {
     format!(
-        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="{href}" class="rack-link">Manage{CHEVRON_RIGHT}</a></div>"#
+        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="{href}" class="rack-link" data-topcoat-link="intent">Manage{CHEVRON_RIGHT}</a></div>"#
     )
 }
 
@@ -103,12 +108,12 @@ async fn a_module_without_state_shows_the_not_synced_note_and_no_switch() {
     let html = render("/card/unknown").await.unwrap();
 
     assert_eq!(
-        html,
-        concat!(
-            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music">Music</a></h3><p class="rack-desc">Music description</p></div>"#,
+        canonical(&html),
+        canonical(concat!(
+            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music" data-topcoat-link="intent">Music</a></h3><p class="rack-desc">Music description</p></div>"#,
             r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div><div class="rack-control"></div>"#,
             r#"<p class="rack-note">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></li>"#,
-        )
+        ))
     );
 }
 
@@ -130,11 +135,11 @@ async fn a_command_module_that_is_on_offers_a_switch_that_turns_it_off() {
     let html = render("/card/on").await.unwrap();
 
     assert_eq!(
-        html,
-        format!(
-            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music">Music</a></h3><p class="rack-desc">Music description</p></div>{}</li>"#,
+        canonical(&html),
+        canonical(&format!(
+            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music" data-topcoat-link="intent">Music</a></h3><p class="rack-desc">Music description</p></div>{}</li>"#,
             switch_form("music", "Music", true)
-        )
+        ))
     );
 }
 
@@ -142,12 +147,22 @@ async fn a_command_module_that_is_on_offers_a_switch_that_turns_it_off() {
 async fn modules_switched_elsewhere_show_their_state_and_a_link_instead_of_a_switch()
 {
     let ai = render("/card/settings").await.unwrap();
-    assert!(ai.contains(&status("off", "Off", "/guild/7/ai")), "{ai}");
+    assert!(
+        canonical(&ai).contains(&canonical(&status("off", "Off", "/guild/7/ai"))),
+        "{ai}"
+    );
     assert!(!ai.contains("<form"), "{ai}");
     assert!(!ai.contains(r#"role="switch""#), "{ai}");
 
     let patreon = render("/card/derived").await.unwrap();
-    assert!(patreon.contains(&status("on", "On", "/guild/7/patreon")), "{patreon}");
+    assert!(
+        canonical(&patreon).contains(&canonical(&status(
+            "on",
+            "On",
+            "/guild/7/patreon"
+        ))),
+        "{patreon}"
+    );
     assert!(!patreon.contains("<form"), "{patreon}");
     assert!(!patreon.contains("derived"), "{patreon}");
 }
@@ -157,10 +172,10 @@ async fn a_failed_switch_shows_its_reason_on_the_row_and_keeps_the_stored_state(
     let html = render("/card/failed").await.unwrap();
 
     assert!(
-        html.ends_with(&format!(
-            r#"{}<p class="rack-error" role="alert">Not changed: nope</p></li>"#,
+        canonical(&html).ends_with(&canonical(&format!(
+            r#"{}<div class="{ERROR_ALERT} rack-error" role="alert"><p class="col-start-2 font-medium tracking-tight">Not changed: nope</p></div></li>"#,
             switch_form("music", "Music", false)
-        )),
+        ))),
         "{html}"
     );
 }

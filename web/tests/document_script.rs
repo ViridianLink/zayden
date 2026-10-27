@@ -107,10 +107,20 @@ fn listener(event: &str) -> Option<&'static str> {
         .and_then(|rest| rest.split("\n});").next())
 }
 
+/// The capture-phase click listener: it must run before the runtime's own
+/// click handler so a declined prompt also stops runtime navigation.
+fn leave_guard() -> Option<&'static str> {
+    SCRIPT_SOURCE
+        .split("document.addEventListener(\n  \"click\",")
+        .nth(1)
+        .and_then(|rest| rest.split("\n  true,\n);").next())
+}
+
 #[test]
 fn leaving_with_another_dirty_form_asks_before_the_page_goes_busy() {
     assert_eq!(SCRIPT_SOURCE.matches("addEventListener(\"submit\"").count(), 1);
     assert_eq!(SCRIPT_SOURCE.matches("addEventListener(\"click\"").count(), 1);
+    assert_eq!(SCRIPT_SOURCE.matches("addEventListener(\n  \"click\",").count(), 1);
     assert!(
         SCRIPT_SOURCE.contains("form !== except && form !== sent && isDirty(form)")
     );
@@ -121,7 +131,7 @@ fn leaving_with_another_dirty_form_asks_before_the_page_goes_busy() {
     assert!(asked < submit.find("startProgress()").unwrap());
     assert!(asked < submit.find("setAttribute(\"aria-busy\", \"true\")").unwrap());
 
-    let click = listener("click").unwrap();
+    let click = leave_guard().unwrap();
     let asked = click.find("confirmLeave(null)").unwrap();
     assert!(asked < click.find("startProgress()").unwrap());
     assert!(asked < click.find("hidePopover()").unwrap());
@@ -138,7 +148,9 @@ fn a_cancelled_navigation_releases_its_approval_and_progress() {
     assert!(release.contains("stopProgress()"));
     assert!(listener("submit").unwrap().contains("release();"));
     assert!(
-        listener("click").unwrap().contains("event.defaultPrevented && release()")
+        leave_guard()
+            .unwrap()
+            .contains("event.defaultPrevented && !runtime && release()")
     );
     let unload = SCRIPT_SOURCE
         .split("addEventListener(\"beforeunload\"")
@@ -147,6 +159,26 @@ fn a_cancelled_navigation_releases_its_approval_and_progress() {
         .unwrap();
     assert!(unload.contains("leaveApproved = false"));
     assert!(unload.contains("dirtyBesides(null)"));
+}
+
+#[test]
+fn runtime_navigation_releases_and_settles_the_new_page() {
+    let observer = SCRIPT_SOURCE
+        .split("new MutationObserver(")
+        .nth(1)
+        .and_then(|rest| rest.split("\n})").next())
+        .unwrap();
+    assert!(observer.contains("location.href === shownUrl"));
+    let released = observer.find("release();").unwrap();
+    assert!(released < observer.find("settle();").unwrap());
+
+    let settle = SCRIPT_SOURCE
+        .split("function settle()")
+        .nth(1)
+        .and_then(|rest| rest.split("\n}").next())
+        .unwrap();
+    assert!(settle.contains("refreshDirty(form)"));
+    assert!(settle.contains("announceFlash()"));
 }
 
 #[test]

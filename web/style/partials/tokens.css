@@ -111,6 +111,6 @@
     --sidebar-accent-foreground: var(--text);
     --sidebar-border: var(--rule);
     --sidebar-ring: var(--focus);
-    --shadow-xs: none;
-    --shadow-sm: none;
+    --shadow-xs: 0 0 #0000;
+    --shadow-sm: 0 0 #0000;
 }

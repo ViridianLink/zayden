@@ -33,5 +33,7 @@ pub mod separator;
 pub mod server_plate;
 pub mod shape_skeleton;
 pub mod skeleton;
+pub mod table;
+pub mod tabs;
 pub mod textarea;
 pub mod ui_icons;

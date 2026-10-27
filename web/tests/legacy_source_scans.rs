@@ -122,7 +122,7 @@ fn the_pager_escapes_an_empty_page() {
     let view = squeezed(&read("src/engagement/leaderboard_view.rs"));
 
     assert!(page.contains("if board.shows_pager(page.has_next) {"));
-    assert!(page.contains("class=\"pager\""));
+    assert!(page.contains("pagination("));
     assert!(view.contains("self.page > 1 || has_next"));
     assert!(!page.contains("entries.is_empty() =>"));
 }

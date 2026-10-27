@@ -41,7 +41,24 @@ use web::components::server_plate::{FILTER_THRESHOLD, PANEL_ID, server_plate};
 use web::flash::{Flash, FlashKind, MAX_MESSAGE_CHARS};
 use web::guild::dto::GuildInfo;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
+
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const BADGE_OUTLINE: &str = "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-foreground";
+const TABLE: &str = "w-full caption-bottom border-collapse border-border text-sm [:not(:first-child)>&amp;]:border-t [:not(:last-child)>&amp;]:border-b data-table";
+const CAPTION: &str = "mt-4 text-sm text-muted-foreground visually-hidden";
+const THEAD: &str = "bg-foreground/5 [&amp;_tr]:border-b";
+const TBODY: &str = "[&amp;_tr:last-child]:border-0";
+const ROW: &str = "border-b border-border transition-colors hover:bg-foreground/5";
+const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
+const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
 
 async fn render(builder: RouterBuilder, path: &str) -> TestResult<String> {
     let router = builder.runtime().build();
@@ -115,9 +132,9 @@ async fn a_module_switch_is_a_named_role_switch_posting_the_opposite_state() {
     assert!(html.starts_with(
         r#"<section class="rack-group" aria-labelledby="rack-voice---games"><h2 class="rack-heading label" id="rack-voice---games">Voice &amp; games</h2><ul class="rack"><li class="rack-row">"#
     ), "{html}");
-    assert!(html.contains(
-        r#"<h3 class="rack-name"><a href="/guild/7/settings/music">Music</a></h3>"#
-    ), "{html}");
+    assert!(canonical(&html).contains(&canonical(
+        r#"<h3 class="rack-name"><a href="/guild/7/settings/music" data-topcoat-link="intent">Music</a></h3>"#
+    )), "{html}");
     assert!(html.contains(
         r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="music">"#
     ), "{html}");
@@ -158,13 +175,15 @@ async fn status_and_unsynced_rows_have_no_switch() {
     assert_eq!(count(&html, "role=\"switch\""), 0, "{html}");
     assert_eq!(count(&html, "<form"), 0, "{html}");
     assert!(
-        html.contains(
-            r#"<a href="/guild/7/settings/patreon" class="rack-link">Manage"#
-        ),
+        canonical(&html).contains(&canonical(
+            r#"<a href="/guild/7/settings/patreon" class="rack-link" data-topcoat-link="intent">Manage"#
+        )),
         "{html}"
     );
     assert!(
-        html.contains(r#"<p class="rack-error" role="alert">Couldn't save.</p>"#),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<div class="{ERROR_ALERT} rack-error" role="alert"><p class="col-start-2 font-medium tracking-tight">Couldn't save.</p></div>"#
+        ))),
         "{html}"
     );
     assert!(html.contains(r#"<h3 class="rack-name">LFG</h3>"#), "{html}");
@@ -192,9 +211,11 @@ async fn the_save_bar_announces_its_state_and_hides_discard_until_dirty() {
     assert!(html.starts_with(
         r#"<div class="save-bar" data-save-bar=""><div class="save-bar-status" role="status"><span class="save-bar-dirty" data-dirty-status="" hidden="">Unsaved changes</span><p class="flash flash-success" data-flash="">"#
     ), "{html}");
-    assert!(html.contains(
-        r#"<button type="button" class="btn btn-ghost" data-discard="" hidden="">Discard</button><button type="submit" class="btn btn-primary" data-pending-label="Saving…">Save changes</button></div>"#
-    ), "{html}");
+    assert!(html.contains(&format!(
+        r#"<button type="button" class="{}" data-discard="" hidden="">Discard</button><button type="submit" class="{}" data-pending-label="Saving…">Save changes</button></div>"#,
+        support::btn("ghost"),
+        support::btn("primary")
+    )), "{html}");
 }
 
 #[page("/flash")]
@@ -325,14 +346,10 @@ async fn the_data_table_keeps_table_roles_and_cell_labels_for_reflow() {
     let html = render(Router::builder().page(table_page), "/table").await.unwrap();
 
     assert_eq!(
-        html,
-        concat!(
-            r#"<div class="data-table-wrap"><table class="data-table" role="table">"#,
-            r#"<caption class="visually-hidden">Reaction roles</caption>"#,
-            r#"<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Role</th><th scope="col" role="columnheader">Members</th></tr></thead>"#,
-            r#"<tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader" data-label="Role">@Mod</th>"#,
-            r#"<td role="cell" data-label="Members" class="num">12</td></tr></tbody></table></div>"#,
-        )
+        canonical(&html),
+        canonical(&format!(
+            r#"<div class="w-full overflow-x-auto" data-slot="table"><table class="{TABLE}" role="table"><caption class="{CAPTION}">Reaction roles</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Role</th><th class="{TH}" scope="col" role="columnheader">Members</th></tr></thead><tbody class="{TBODY}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Role">@Mod</th><td class="{TD} num" role="cell" data-label="Members">12</td></tr></tbody></table></div>"#
+        ))
     );
 }
 
@@ -365,16 +382,20 @@ async fn empty_and_error_states_lead_with_one_primary_action() {
         .await
         .unwrap();
 
-    assert!(html.starts_with(
-        r#"<div class="empty-state"><h2 class="empty-title">No servers yet</h2><p class="empty-text">Add Zayden to a server you manage.</p><a href="/invite" rel="external" class="btn btn-primary">Add Zayden</a></div>"#
-    ), "{html}");
+    let canonical_html = canonical(&html);
+    assert!(canonical_html.starts_with(&canonical(&format!(
+        r#"<div class="empty-state"><h2 class="empty-title">No servers yet</h2><p class="empty-text">Add Zayden to a server you manage.</p><a href="/invite" rel="external" class="{}">Add Zayden</a></div>"#,
+        support::btn("primary")
+    ))), "{html}");
     assert!(html.contains(
         r#"<section class="error-panel" role="alert"><h1 class="error-title">Zayden isn't in this server yet</h1><p class="error-text">Add it, then come back.</p>"#
     ), "{html}");
-    assert!(html.contains(
-        r#"<a href="/invite?guild=7" rel="external" class="btn btn-primary">Add Zayden to Guild 7</a><a href="/guilds" class="btn btn-secondary">Back to servers</a>"#
-    ), "{html}");
-    assert_eq!(count(&html, "btn-primary"), 2, "{html}");
+    assert!(canonical_html.contains(&canonical(&format!(
+        r#"<a href="/invite?guild=7" rel="external" class="{}">Add Zayden to Guild 7</a><a href="/guilds" data-topcoat-link="intent" class="{}">Back to servers</a>"#,
+        support::btn("primary"),
+        support::btn("secondary")
+    ))), "{html}");
+    assert_eq!(count(&html, &support::btn("primary")), 2, "{html}");
 }
 
 #[page("/plan")]
@@ -390,11 +411,10 @@ async fn a_plan_note_names_the_tier_in_text_and_links_the_plans_once() {
     let html = render(Router::builder().page(plan_page), "/plan").await.unwrap();
 
     assert_eq!(
-        html,
-        concat!(
-            r#"<p class="plan-note"><span class="plan-tag">Pro</span><span>Cooldowns below 60 seconds need Pro.</span><a href="/upgrade">See plans</a></p>"#,
-            r#"<span class="plan-tag">Pro</span>"#,
-        )
+        canonical(&html),
+        canonical(&format!(
+            r#"<p class="plan-note"><span class="{BADGE_OUTLINE}">Pro</span><span>Cooldowns below 60 seconds need Pro.</span><a href="/upgrade" data-topcoat-link="intent">See plans</a></p><span class="{BADGE_OUTLINE}">Pro</span>"#
+        ))
     );
 }
 
@@ -436,8 +456,10 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
     );
     assert_eq!(
         count(
-            &html,
-            r#"<a href="/guild/7/music" class="nav-link" aria-current="page"><span>Music</span></a>"#
+            &canonical(&html),
+            &canonical(
+                r#"<a href="/guild/7/music" class="nav-link" aria-current="page" data-topcoat-link="intent"><span>Music</span></a>"#
+            )
         ),
         2,
         "{html}"
@@ -448,7 +470,11 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
             r#"<p class="nav-heading" id="{prefix}-voice---games">Voice &amp; games</p><ul class="nav-list" aria-labelledby="{prefix}-voice---games">"#
         )), "{prefix}: {html}");
     }
-    assert_eq!(count(&html, r#"<div class="operator-badge">"#), 1, "{html}");
+    assert_eq!(
+        count(&html, &format!(r#"<div class="{BADGE_OUTLINE} operator-badge">"#)),
+        1,
+        "{html}"
+    );
     assert_eq!(count(&html, r#"id="rail-admin""#), 1, "{html}");
     assert_eq!(count(&html, r#"id="sheet-admin""#), 0, "{html}");
     assert!(html.contains(&format!(
@@ -493,22 +519,22 @@ async fn the_server_plate_opens_a_filterable_menu_keeping_the_page() {
         r#"<button type="button" class="topbar-button plate" popovertarget="{PANEL_ID}" aria-controls="{PANEL_ID}" aria-expanded="false" aria-label="Switch server, current: Guild 2">"#
     )), "{html}");
     assert!(html.contains(r#"data-filter="" data-filter-noun="servers""#), "{html}");
-    assert!(html.contains(
-        r#"<label class="visually-hidden" for="server-filter">Filter servers</label><input id="server-filter" type="search""#
-    ), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<label class="visually-hidden" for="server-filter">Filter servers</label><input class="{INPUT}" id="server-filter" type="search" autofocus="" autocomplete="off" data-filter-input="" placeholder="Filter servers">"#
+    ))), "{html}");
     assert!(
         html.contains(
             r#"<p class="menu-count" role="status" data-filter-count=""></p>"#
         ),
         "{html}"
     );
-    assert!(html.contains(
-        r#"<a href="/guild/2/support" class="menu-item" aria-current="page" data-filter-item="">"#
-    ), "{html}");
+    assert!(canonical(&html).contains(&canonical(
+        r#"<a href="/guild/2/support" class="menu-item" aria-current="page" data-filter-item="" data-topcoat-link="intent">"#
+    )), "{html}");
     assert!(
-        html.contains(
-            r#"<a href="/guild/9/support" class="menu-item" data-filter-item="">"#
-        ),
+        canonical(&html).contains(&canonical(
+            r#"<a href="/guild/9/support" class="menu-item" data-filter-item="" data-topcoat-link="intent">"#
+        )),
         "{html}"
     );
     assert_eq!(count(&html, "data-filter-item"), FILTER_THRESHOLD + 1, "{html}");

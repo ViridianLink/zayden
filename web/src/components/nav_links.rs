@@ -6,8 +6,10 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::request::uri;
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::runtime::{PrefetchMode, link_attrs};
+use topcoat::view::{View, ViewExt, class, component, view};
 
+use super::badge::{BadgeVariant, badge_variants};
 use super::icons::{Icon, icon};
 use crate::admin::{guild_operator_access, is_admin, is_operator};
 use crate::nav::{GENERAL, GROUPS, ModuleNav, path_segment};
@@ -60,7 +62,9 @@ pub async fn nav_links(
     Ok(view! {
         <nav class="nav" aria-label="Dashboard">
             if on_operator_page {
-                <div class="operator-badge">
+                <div
+                    class=(class!(badge_variants(BadgeVariant::Outline), "operator-badge"))
+                >
                     icon(name: Icon::Shield)
                     <span>"Operator access"</span>
                 </div>
@@ -179,6 +183,7 @@ async fn nav_group(
 
 #[component]
 async fn nav_item(
+    cx: &Cx,
     href: &str,
     label: &str,
     #[default] icon_name: Option<Icon>,
@@ -186,7 +191,11 @@ async fn nav_item(
 ) -> Result<impl View> {
     Ok(view! {
         <li>
-            <a href=(href) class="nav-link" aria-current=(aria_current)>
+            <a
+                class="nav-link"
+                aria-current=(aria_current)
+                (link_attrs(cx, href, PrefetchMode::Intent))
+            >
                 if let Some(name) = icon_name {
                     icon(name: name)
                 }

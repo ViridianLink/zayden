@@ -12,6 +12,7 @@ use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use twilight_model::util::ImageHash;
 use web::auth::{ChannelInfo, ForumTagInfo, RoleInfo};
+use web::components::button::ButtonVariant;
 use web::components::confirm::confirm_button;
 use web::components::confirm_dialog::confirm_dialog;
 use web::components::field_row::{Range, select_row, text_row, toggle_row};
@@ -27,6 +28,11 @@ use web::components::pickers::{
     role_options,
 };
 use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
+
+mod canonical;
+mod support;
+
+use canonical::canonical;
 
 /// Every icon's path markup, in `Icon::ALL` order.
 const ICON_PATHS: [(Icon, &str); 26] = [
@@ -120,7 +126,10 @@ const ICON_PATHS: [(Icon, &str); 26] = [
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
-const CHEVRON_DOWN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>"#;
+const CHEVRON_DOWN: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground transition-transform"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m6 9 6 6 6-6"/></g></svg>"#;
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
+const SELECT_OPEN: &str = r#"<span class="relative block has-[:disabled]:opacity-50 [&amp;>select]:[appearance:base-select] [&amp;:has(select:open)>svg]:rotate-180" style="--select-checkmark: url(&quot;data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><g fill=%22none%22 stroke=%22currentColor%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22><path d=%22M20 6 9 17l-5-5%22/></g></svg>&quot;)">"#;
 const SVG_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">"#;
 const X: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>"#;
 
@@ -134,7 +143,7 @@ async fn render_raw(builder: RouterBuilder, path: &str) -> TestResult<String> {
 /// Rendered HTML with comments and runtime binding attributes removed and
 /// boolean attributes written bare.
 async fn render(builder: RouterBuilder, path: &str) -> TestResult<String> {
-    Ok(normalize(&render_raw(builder, path).await?))
+    Ok(opaque_ids(&normalize(&render_raw(builder, path).await?)))
 }
 
 const BOOLEAN_ATTRIBUTES: [&str; 6] =
@@ -182,7 +191,6 @@ fn options() -> Vec<SelectOption> {
 async fn confirm_default() -> ViewResult<impl View> {
     Ok(view! {
         confirm_button(
-            id: "faq-1-delete",
             label: "Delete",
             prompt: "Delete this article?",
             confirm: "Delete article"
@@ -194,11 +202,10 @@ async fn confirm_default() -> ViewResult<impl View> {
 async fn confirm_ghost() -> ViewResult<impl View> {
     Ok(view! {
         confirm_button(
-            id: "rr-0-remove",
             label: "Remove",
             prompt: "Remove this mapping?",
             confirm: "Remove mapping",
-            class: "btn btn-ghost"
+            variant: ButtonVariant::Ghost
         )
     })
 }
@@ -211,15 +218,19 @@ async fn confirm_button_opens_a_modal_dialog_named_and_described_by_its_text() {
 
     assert_eq!(
         html,
-        concat!(
-            r#"<div class="confirm" data-confirm="">"#,
-            r#"<button type="submit" class="btn btn-danger" data-confirm-trigger="">Delete</button>"#,
-            r#"<dialog class="dialog" aria-labelledby="faq-1-delete-title" aria-describedby="faq-1-delete-desc" data-confirm-dialog="">"#,
-            r#"<div class="dialog-panel"><h2 class="dialog-title" id="faq-1-delete-title">Delete article?</h2>"#,
-            r#"<p class="dialog-desc" id="faq-1-delete-desc">Delete this article?</p><div class="dialog-actions">"#,
-            r#"<button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button>"#,
-            r#"<button type="submit" class="btn btn-danger">Delete article</button>"#,
-            r#"</div></div></dialog></div>"#,
+        format!(
+            concat!(
+                r#"<div class="confirm" data-confirm="">"#,
+                r#"<button type="submit" class="{destructive}" data-confirm-trigger="">Delete</button>"#,
+                r#"<dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog="">"#,
+                r#"<div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Delete article?</h2>"#,
+                r#"<p class="dialog-desc" id="tc-ID">Delete this article?</p><div class="dialog-actions">"#,
+                r#"<button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button>"#,
+                r#"<button type="submit" class="{destructive} max-md:flex-1">Delete article</button>"#,
+                r#"</div></div></dialog></div>"#,
+            ),
+            destructive = support::btn("destructive"),
+            secondary = support::btn("secondary"),
         )
     );
 }
@@ -230,12 +241,14 @@ async fn confirm_button_class_styles_only_the_trigger() {
         .await
         .unwrap();
 
-    assert!(html.contains(
-        r#"<button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button>"#
-    ));
-    assert!(html.contains(
-        r#"<button type="submit" class="btn btn-danger">Remove mapping</button>"#
-    ));
+    assert!(html.contains(&format!(
+        r#"<button type="submit" class="{}" data-confirm-trigger="">Remove</button>"#,
+        support::btn("ghost")
+    )));
+    assert!(html.contains(&format!(
+        r#"<button type="submit" class="{} max-md:flex-1">Remove mapping</button>"#,
+        support::btn("destructive")
+    )));
     assert!(!html.contains(" open"), "the dialog renders closed");
 }
 
@@ -243,7 +256,6 @@ async fn confirm_button_class_styles_only_the_trigger() {
 async fn confirm_named() -> ViewResult<impl View> {
     Ok(view! {
         confirm_button(
-            id: "rr-1-remove",
             label: "Remove",
             prompt: "Reactions already on the message stay.",
             confirm: "Remove role",
@@ -259,18 +271,19 @@ async fn confirm_button_names_the_object_in_the_dialog_title() {
         .unwrap();
 
     assert!(html.contains(
-        r#"<dialog class="dialog" aria-labelledby="rr-1-remove-title" aria-describedby="rr-1-remove-desc" data-confirm-dialog="">"#
+        r#"<dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog="">"#
     ), "{html}");
     assert!(
         html.contains(
-            r#"<h2 class="dialog-title" id="rr-1-remove-title">Remove role @Helpers?</h2>"#
+            r#"<h2 class="dialog-title" id="tc-ID">Remove role @Helpers?</h2>"#
         ),
         "{html}"
     );
     assert!(
-        html.contains(
-            r#"<button type="submit" class="btn btn-danger">Remove role</button>"#
-        ),
+        html.contains(&format!(
+            r#"<button type="submit" class="{} max-md:flex-1">Remove role</button>"#,
+            support::btn("destructive")
+        )),
         "{html}"
     );
 }
@@ -279,7 +292,6 @@ async fn confirm_button_names_the_object_in_the_dialog_title() {
 async fn confirm_dialog_form() -> ViewResult<impl View> {
     Ok(view! {
         confirm_dialog(
-            id: "remove-7-confirm",
             trigger: "Remove",
             title: "Remove role @Helpers?",
             confirm: "Remove role",
@@ -296,14 +308,16 @@ async fn confirm_dialog_names_its_form_on_both_submits_and_omits_an_absent_descr
             .await
             .unwrap();
 
+    assert!(html.contains(&format!(
+        r#"<button type="submit" class="{}" form="remove-7" data-confirm-trigger="">Remove</button>"#,
+        support::btn("ghost")
+    )));
+    assert!(html.contains(&format!(
+        r#"<button type="submit" class="{} max-md:flex-1" form="remove-7">Remove role</button>"#,
+        support::btn("destructive")
+    )));
     assert!(html.contains(
-        r#"<button type="submit" class="btn btn-ghost" form="remove-7" data-confirm-trigger="">Remove</button>"#
-    ));
-    assert!(html.contains(
-        r#"<button type="submit" class="btn btn-danger" form="remove-7">Remove role</button>"#
-    ));
-    assert!(html.contains(
-        r#"<dialog class="dialog" aria-labelledby="remove-7-confirm-title" data-confirm-dialog="">"#
+        r#"<dialog class="dialog" aria-labelledby="tc-ID" data-confirm-dialog="">"#
     ), "{html}");
     assert!(!html.contains("dialog-desc"));
     assert!(!html.contains("aria-describedby"));
@@ -438,8 +452,8 @@ async fn guild_grid_links_every_guild_to_its_overview() {
         .unwrap();
 
     assert_eq!(
-        html,
-        concat!(
+        canonical(&html),
+        canonical(concat!(
             r#"<div class="guild-grid">"#,
             r#"<a href="/guild/1" class="guild-card"><img src="https://cdn.discordapp.com/icons/1/abc.png?size=64" alt="" class="guild-icon">"#,
             r#"<div class="guild-card-body"><div class="guild-name">Alpha</div><div class="guild-card-hint">Manage →</div></div></a>"#,
@@ -448,7 +462,7 @@ async fn guild_grid_links_every_guild_to_its_overview() {
             r##"<a href="/guild/3" class="guild-card"><span class="guild-icon placeholder">#</span>"##,
             r#"<div class="guild-card-body"><div class="guild-name"></div><div class="guild-card-hint">Manage →</div></div></a>"#,
             r#"</div>"#,
-        )
+        ))
     );
 }
 
@@ -525,16 +539,18 @@ async fn select_row_marks_the_stored_option() {
         render(Router::builder().page(select_known), "/select/known").await.unwrap();
 
     assert_eq!(
-        html,
-        format!(
+        canonical(&html),
+        canonical(&format!(
             concat!(
-                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label><div class="select">"#,
-                r#"<select class="input" id="logs-log-channel" name="log_channel"><option value="">(not set)</option>"#,
+                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label>{open}"#,
+                r#"<select class="{select}" id="logs-log-channel" name="log_channel"><option value="">(not set)</option>"#,
                 r##"<option value="10"># general</option><option value="20" selected># rules</option></select>"##,
-                r#"<span class="select-chevron">{}</span></div></div>"#,
+                r#"{chevron}</span></div>"#,
             ),
-            CHEVRON_DOWN
-        )
+            open = SELECT_OPEN,
+            select = SELECT,
+            chevron = CHEVRON_DOWN
+        ))
     );
 }
 
@@ -559,7 +575,7 @@ async fn select_row_keeps_an_unknown_stored_id_and_carries_help_and_error() {
     )));
     assert_eq!(html.matches(" selected").count(), 1);
     assert!(html.starts_with(r#"<div class="field-row" data-invalid="">"#));
-    assert!(html.contains(
+    assert!(canonical(&html).contains(
         r#"aria-describedby="logs-log-channel-help logs-log-channel-error" aria-invalid="true""#
     ));
     assert!(html.ends_with(concat!(
@@ -575,17 +591,19 @@ async fn locked_select_posts_the_stored_value_through_a_hidden_input() {
         .unwrap();
 
     assert_eq!(
-        html,
-        format!(
+        canonical(&html),
+        canonical(&format!(
             concat!(
-                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label><div class="select">"#,
-                r#"<select class="input" id="logs-log-channel" aria-describedby="logs-log-channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
-                r#"<span class="select-chevron">{}</span></div>"#,
+                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label>{open}"#,
+                r#"<select class="{select}" id="logs-log-channel" aria-describedby="logs-log-channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
+                r#"{chevron}</span>"#,
                 r#"<input type="hidden" name="log_channel" value="99">"#,
                 r#"<p class="field-help" id="logs-log-channel-help">Discord is down</p></div>"#,
             ),
-            CHEVRON_DOWN
-        )
+            open = SELECT_OPEN,
+            select = SELECT,
+            chevron = CHEVRON_DOWN
+        ))
     );
 }
 
@@ -705,16 +723,18 @@ async fn toggle_row_is_a_true_false_select() {
         render(Router::builder().page(toggle_on), "/toggle/on").await.unwrap();
 
     assert_eq!(
-        html,
-        format!(
+        canonical(&html),
+        canonical(&format!(
             concat!(
-                r#"<div class="field-row"><label class="field-label" for="ai-enabled">Enabled</label><div class="select">"#,
-                r#"<select class="input" id="ai-enabled" name="enabled"><option value="true" selected>On</option>"#,
+                r#"<div class="field-row"><label class="field-label" for="ai-enabled">Enabled</label>{open}"#,
+                r#"<select class="{select}" id="ai-enabled" name="enabled"><option value="true" selected>On</option>"#,
                 r#"<option value="false">Off</option></select>"#,
-                r#"<span class="select-chevron">{}</span></div></div>"#,
+                r#"{chevron}</span></div>"#,
             ),
-            CHEVRON_DOWN
-        )
+            open = SELECT_OPEN,
+            select = SELECT,
+            chevron = CHEVRON_DOWN
+        ))
     );
 }
 
@@ -762,12 +782,15 @@ async fn text_row_marks_numeric_input() {
         render(Router::builder().page(text_numeric), "/text/numeric").await.unwrap();
 
     assert_eq!(
-        html,
-        concat!(
-            r#"<div class="field-row"><label class="field-label" for="rr-message-id">Message ID</label>"#,
-            r#"<input class="input" id="rr-message-id" type="text" name="message_id" value="123" inputmode="numeric" pattern="[0-9]*" autocomplete="off">"#,
-            r#"</div>"#,
-        )
+        canonical(&html),
+        canonical(&format!(
+            concat!(
+                r#"<div class="field-row"><label class="field-label" for="rr-message-id">Message ID</label>"#,
+                r#"<input class="{input}" id="rr-message-id" type="text" name="message_id" value="123" inputmode="numeric" pattern="[0-9]*" autocomplete="off">"#,
+                r#"</div>"#,
+            ),
+            input = INPUT
+        ))
     );
 }
 
@@ -776,9 +799,9 @@ async fn text_row_bounds_a_ranged_number_and_describes_it() {
     let html =
         render(Router::builder().page(text_ranged), "/text/ranged").await.unwrap();
 
-    assert!(html.contains(
-        r#"<input class="input" id="music-auto-disconnect" type="number" name="auto_disconnect" value="60" min="0" max="600" step="1" autocomplete="off" aria-describedby="music-auto-disconnect-help">"#
-    ));
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<input class="{INPUT}" id="music-auto-disconnect" type="number" name="auto_disconnect" value="60" min="0" max="600" step="1" autocomplete="off" aria-describedby="music-auto-disconnect-help">"#
+    ))));
     assert!(html.contains(
         r#"<p class="field-help" id="music-auto-disconnect-help">Seconds.</p></div>"#
     ));
@@ -844,4 +867,17 @@ fn discord_user_guilds_convert_into_guild_cards() {
             "https://cdn.discordapp.com/icons/42/1234567890abcdef1234567890abcdef.png?size=64"
         )
     );
+}
+
+/// Replaces `element_id` values, which hash the render site, with `tc-ID`.
+fn opaque_ids(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some((head, tail)) = rest.split_once("\"tc-") {
+        out.push_str(head);
+        out.push_str("\"tc-ID\"");
+        rest = tail.split_once('"').map_or("", |(_, after)| after);
+    }
+    out.push_str(rest);
+    out
 }

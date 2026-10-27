@@ -5,6 +5,7 @@ use topcoat::view::{View, ViewExt, component, view};
 use super::fields::roles as role_choices;
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, ROLE_ORDER_NOTE};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::field_row::{form_summary, select_row};
@@ -127,7 +128,10 @@ pub(super) async fn ping_roles_section(
                     <div class="form-actions">
                         <button
                             type="submit"
-                            class="btn btn-secondary"
+                            class=(button_variants(
+                                ButtonVariant::Secondary,
+                                ButtonSize::Md,
+                            ))
                             data-pending-label="Adding\u{2026}"
                         >
                             "Add role"
@@ -150,7 +154,6 @@ pub(super) async fn ping_roles_section(
                     columns: &["Role", "Action"],
                     #[key(row.id.as_str())]
                     for row in &rows {
-                        let confirm_id = format!("ping-role-{}-remove", row.id);
                         let confirm_title = format!("Stop pinging {}?", row.name);
                         let trigger_label = format!("Remove ping role {}", row.name);
                         data_row(
@@ -169,7 +172,6 @@ pub(super) async fn ping_roles_section(
                                         value=(row.id.as_str())
                                     >
                                     confirm_dialog(
-                                        id: &confirm_id,
                                         trigger: "Remove",
                                         title: &confirm_title,
                                         description: Some(

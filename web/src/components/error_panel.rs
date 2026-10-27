@@ -4,7 +4,11 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{View, component, view};
+use topcoat::context::Cx;
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{View, attributes, component, view};
+
+use super::button::{ButtonSize, ButtonVariant, button_variants};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ErrorAction {
@@ -28,6 +32,7 @@ impl ErrorAction {
 
 #[component]
 pub async fn error_panel(
+    cx: &Cx,
     title: &str,
     message: &str,
     actions: &[ErrorAction],
@@ -42,13 +47,17 @@ pub async fn error_panel(
             <div class="error-actions">
                 #[key(index)]
                 for (index, action) in actions.iter().enumerate() {
-                    let class = if index == 0 {
-                        "btn btn-primary"
+                    let variant = if index == 0 {
+                        ButtonVariant::Primary
                     } else {
-                        "btn btn-secondary"
+                        ButtonVariant::Secondary
                     };
-                    let rel = action.external.then_some("external");
-                    <a href=(action.href.as_str()) rel=(rel) class=(class)>
+                    let link = if action.external {
+                        attributes! { href=(action.href.as_str()) rel="external" }
+                    } else {
+                        link_attrs(cx, action.href.as_str(), prefetch_mode(cx))
+                    };
+                    <a class=(button_variants(variant, ButtonSize::Md)) (link)>
                         (action.label.as_str())
                     </a>
                 }

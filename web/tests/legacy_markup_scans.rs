@@ -9,6 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
+const BUILT_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
 const SERVER_PREFIXES: [&str; 7] = [
     "/auth/",
@@ -159,12 +160,30 @@ fn defined_classes() -> BTreeSet<String> {
     defined
 }
 
+fn escape(class: &str) -> String {
+    class.chars().fold(String::new(), |mut out, c| {
+        if !(c.is_ascii_alphanumeric() || matches!(c, '-' | '_')) {
+            out.push('\\');
+        }
+        out.push(c);
+        out
+    })
+}
+
+fn is_built(class: &str) -> bool {
+    let needle = format!(".{}", escape(class));
+
+    BUILT_CSS
+        .split(needle.as_str())
+        .skip(1)
+        .any(|rest| rest.chars().next().is_none_or(|c| !(is_name(c) || c == '\\')))
+}
+
 #[test]
 fn every_class_in_the_markup_has_a_rule_in_the_stylesheet() {
-    let defined = defined_classes();
     let orphans: Vec<_> = used_classes()
         .into_iter()
-        .filter(|(class, _)| !defined.contains(class))
+        .filter(|(class, _)| !is_built(class))
         .map(|(class, file)| format!("{class} ({file})"))
         .collect();
 
@@ -310,10 +329,11 @@ fn every_submit_button_has_a_disabled_rule() {
             }
 
             checked += 1;
-            let styled = literal_classes(&tag)
-                .into_iter()
-                .chain(default_classes(&source, &tag))
-                .any(|class| css.contains(&format!(".{class}:disabled")));
+            let styled = tag.contains("button_variants(")
+                || literal_classes(&tag)
+                    .into_iter()
+                    .chain(default_classes(&source, &tag))
+                    .any(|class| css.contains(&format!(".{class}:disabled")));
             if !styled {
                 offenders.push(format!("{file}: {tag}"));
             }

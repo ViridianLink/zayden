@@ -3,6 +3,7 @@ const GUARD_SELECTOR = "form[data-dirty-guard]";
 const PROGRESS_DELAY = 150;
 const ANNOUNCE_DELAY = 500;
 const LEAVE_PROMPT = "You have unsaved changes. Leave without saving them?";
+const RUNTIME_LINK = "[data-topcoat-link]";
 
 const originals = new WeakMap();
 const pendingTexts = new WeakMap();
@@ -255,12 +256,6 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const opener = target.closest("[data-dialog-open]");
-  if (opener) {
-    openDialog(event, document.getElementById(opener.dataset.dialogOpen));
-    return;
-  }
-
   const closer = target.closest("[data-dialog-close]");
   if (closer) {
     closer.closest("dialog")?.close();
@@ -271,24 +266,35 @@ document.addEventListener("click", (event) => {
     target.close();
     return;
   }
-
-  const link = target.closest("a[href]");
-  if (!link) return;
-  if (leavesBy(link, event)) {
-    if (!confirmLeave(null)) {
-      event.preventDefault();
-      return;
-    }
-    startProgress();
-    setTimeout(() => event.defaultPrevented && release(), 0);
-  }
-  const panel = link.closest("[popover]");
-  if (panel && typeof panel.hidePopover === "function") {
-    try {
-      panel.hidePopover();
-    } catch {}
-  }
 });
+
+// Capture runs before the runtime's own click handler, so a declined prompt
+// stops runtime navigation too.
+document.addEventListener(
+  "click",
+  (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const link = target.closest("a[href]");
+    if (!link) return;
+    if (leavesBy(link, event)) {
+      if (!confirmLeave(null)) {
+        event.preventDefault();
+        return;
+      }
+      const runtime = link.matches(RUNTIME_LINK);
+      if (!runtime || link.href !== location.href) startProgress();
+      setTimeout(() => event.defaultPrevented && !runtime && release(), 0);
+    }
+    const panel = link.closest("[popover]");
+    if (panel && typeof panel.hidePopover === "function") {
+      try {
+        panel.hidePopover();
+      } catch {}
+    }
+  },
+  true,
+);
 
 document.addEventListener(
   "toggle",
@@ -332,9 +338,25 @@ function applyFilter(input) {
   }
 }
 
-for (const form of all(GUARD_SELECTOR)) refreshDirty(form);
-
 // A live region does not announce what it holds at load; a fresh copy does.
-setTimeout(() => {
-  for (const note of all("[role=status] > [data-flash]")) note.replaceWith(note.cloneNode(true));
-}, ANNOUNCE_DELAY);
+function announceFlash() {
+  setTimeout(() => {
+    for (const note of all("[role=status] > [data-flash]")) note.replaceWith(note.cloneNode(true));
+  }, ANNOUNCE_DELAY);
+}
+
+function settle() {
+  for (const form of all(GUARD_SELECTOR)) refreshDirty(form);
+  announceFlash();
+}
+
+// Runtime navigation updates the URL, then morphs the document in place.
+let shownUrl = location.href;
+new MutationObserver(() => {
+  if (location.href === shownUrl) return;
+  shownUrl = location.href;
+  release();
+  settle();
+}).observe(document.documentElement, { childList: true, subtree: true });
+
+settle();

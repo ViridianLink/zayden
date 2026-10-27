@@ -50,8 +50,16 @@ use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
+const SELECT_OPEN: &str = r#"<span class="relative block has-[:disabled]:opacity-50 [&amp;>select]:[appearance:base-select] [&amp;:has(select:open)>svg]:rotate-180" style=""#;
 const ADMIN: &str = "session=admin-token";
 const MEMBER: &str = "session=member-token";
 const OPERATOR: &str = "session=operator-token";
@@ -604,7 +612,7 @@ impl Harness {
 
 async fn body_text(response: Response) -> TestResult<String> {
     let bytes = response.into_body().collect().await?.to_bytes();
-    Ok(normalize(&String::from_utf8(bytes.to_vec())?))
+    Ok(opaque_ids(&normalize(&String::from_utf8(bytes.to_vec())?)))
 }
 
 /// Drops comments and runtime binding attributes, which the browser does not
@@ -663,16 +671,32 @@ fn row(
     messages: i64,
 ) -> String {
     format!(
-        r#"<tr role="row"><td role="cell" data-label="Rank" class="num">{rank}</td><th scope="row" role="rowheader" data-label="Member">{avatar}<span class="lb-name">{name}</span></th><td role="cell" data-label="Level" class="num">{level}</td><td role="cell" data-label="XP" class="num">{xp}</td><td role="cell" data-label="Messages" class="num">{messages}</td></tr>"#
+        r#"<tr class="{ROW}" role="row"><td class="{TD} num" role="cell" data-label="Rank">{rank}</td><th class="{TH}" scope="row" role="rowheader" data-label="Member">{avatar}<span class="lb-name">{name}</span></th><td class="{TD} num" role="cell" data-label="Level">{level}</td><td class="{TD} num" role="cell" data-label="XP">{xp}</td><td class="{TD} num" role="cell" data-label="Messages">{messages}</td></tr>"#
     )
 }
 
+const TABLE: &str = "w-full caption-bottom border-collapse border-border text-sm [:not(:first-child)>&amp;]:border-t [:not(:last-child)>&amp;]:border-b data-table";
+const CAPTION: &str = "mt-4 text-sm text-muted-foreground visually-hidden";
+const THEAD: &str = "bg-foreground/5 [&amp;_tr]:border-b";
+const TBODY: &str = "[&amp;_tr:last-child]:border-0";
+const ROW: &str = "border-b border-border transition-colors hover:bg-foreground/5";
+const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
+const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
+const TABS_LIST: &str =
+    "inline-flex w-fit items-center gap-1 rounded-lg border border-border p-1";
+const TRIGGER: &str = "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background text-muted-foreground hover:bg-foreground/5 hover:text-foreground aria-[current=page]:bg-foreground/10 aria-[current=page]:text-foreground aria-[current=page]:hover:bg-foreground/10";
+const PAGINATION: &str = "@container mx-auto flex w-full justify-center mt-5";
+const PAGINATION_LIST: &str =
+    "flex flex-row flex-wrap items-center justify-center gap-1";
+const PAGE_LINK: &str = "inline-flex shrink-0 items-center justify-center border text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer no-underline border-input text-foreground hover:bg-foreground/5 active:bg-foreground/10 size-9 rounded-lg max-md:size-11";
 const PLACEHOLDER: &str = r#"<span class="lb-avatar placeholder"></span>"#;
-const ENTRY: &str = r#"role="rowheader" data-label="Member""#;
+const ENTRY: &str = r#"data-label="Member" role="rowheader""#;
+const CHEVRON_LEFT: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m15 18-6-6 6-6"/></g></svg>"#;
+const CHEVRON_RIGHT: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m9 18 6-6-6-6"/></g></svg>"#;
 
 fn board_head(caption: &str) -> String {
     format!(
-        r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">{caption}</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Rank</th><th scope="col" role="columnheader">Member</th><th scope="col" role="columnheader">Level</th><th scope="col" role="columnheader">XP</th><th scope="col" role="columnheader">Messages</th></tr></thead><tbody role="rowgroup">"#
+        r#"<div class="w-full overflow-x-auto" data-slot="table"><table class="{TABLE}" role="table"><caption class="{CAPTION}">{caption}</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Rank</th><th class="{TH}" scope="col" role="columnheader">Member</th><th class="{TH}" scope="col" role="columnheader">Level</th><th class="{TH}" scope="col" role="columnheader">XP</th><th class="{TH}" scope="col" role="columnheader">Messages</th></tr></thead><tbody class="{TBODY}" role="rowgroup">"#
     )
 }
 
@@ -684,35 +708,36 @@ fn avatar(id: u64, hash: &str) -> String {
 
 fn scope(guild: u64, global: bool) -> String {
     let (server, world) = if global {
-        (r#"class="seg""#, r#"class="seg active""#)
-    } else {
-        (r#"class="seg active""#, r#"class="seg""#)
-    };
-    let (server_current, world_current) = if global {
         ("", r#" aria-current="page""#)
     } else {
         (r#" aria-current="page""#, "")
     };
     format!(
-        r#"<nav class="segmented" aria-label="Leaderboard"><a {server} href="/guild/{guild}/levels"{server_current}>This server</a><a {world} href="/guild/{guild}/levels?scope=global"{world_current}>Global</a></nav>"#
+        r#"<nav aria-label="Leaderboard"><div class="{TABS_LIST}"><a{server} class="{TRIGGER}" href="/guild/{guild}/levels">This server</a><a{world} class="{TRIGGER}" href="/guild/{guild}/levels?scope=global">Global</a></div></nav>"#
     )
 }
 
-fn previous_link(href: &str) -> String {
-    format!(r#"<a class="btn btn-secondary" href="{href}">Previous</a>"#)
-}
-
-fn next_link(href: &str) -> String {
-    format!(r#"<a class="btn btn-secondary" href="{href}">Next</a>"#)
-}
-
-const PREVIOUS_OFF: &str = r#"<button type="button" class="btn btn-secondary" disabled="">Previous</button>"#;
-const NEXT_OFF: &str =
-    r#"<button type="button" class="btn btn-secondary" disabled="">Next</button>"#;
-
-fn pager(previous: &str, page: u32, next: &str) -> String {
+/// The pagination for page `page` at `here`, with a previous and next link
+/// only where those pages exist.
+fn pager(
+    previous: Option<&str>,
+    page: u32,
+    here: &str,
+    next: Option<&str>,
+) -> String {
+    let ghost = support::btn("ghost");
+    let previous = previous.map_or_else(String::new, |href| {
+        format!(
+            r#"<li><a class="{ghost}" href="{href}">{CHEVRON_LEFT}<span class="sr-only @xs:not-sr-only">Previous</span></a></li>"#
+        )
+    });
+    let next = next.map_or_else(String::new, |href| {
+        format!(
+            r#"<li><a class="{ghost}" href="{href}"><span class="sr-only @xs:not-sr-only">Next</span>{CHEVRON_RIGHT}</a></li>"#
+        )
+    });
     format!(
-        r#"<nav class="pager" aria-label="Leaderboard pages">{previous}<span class="pager-page">Page {page}</span>{next}</nav>"#
+        r#"<nav aria-label="pagination" class="{PAGINATION}"><ul class="{PAGINATION_LIST}">{previous}<li><a aria-current="page" class="{PAGE_LINK}" href="{here}">{page}</a></li>{next}</ul></nav>"#
     )
 }
 
@@ -723,8 +748,9 @@ fn empty_board(title: &str, text: &str) -> String {
 }
 
 fn past_the_end(first: &str) -> String {
+    let primary = support::btn("primary");
     format!(
-        r#"<div class="empty-state"><h2 class="empty-title">No one on this page</h2><p class="empty-text">No more entries on this page.</p><a href="{first}" class="btn btn-primary">Back to page 1</a></div>"#
+        r#"<div class="empty-state"><h2 class="empty-title">No one on this page</h2><p class="empty-text">No more entries on this page.</p><a href="{first}" class="{primary}">Back to page 1</a></div>"#
     )
 }
 
@@ -754,7 +780,7 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
         ),
         "{empty}"
     );
-    assert!(empty.contains(&scope(11, false)), "{empty}");
+    assert!(canonical(&empty).contains(&canonical(&scope(11, false))), "{empty}");
     assert!(
         empty.contains(&empty_board(
             "No one on the board yet",
@@ -763,9 +789,9 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
         "{empty}"
     );
     assert!(!empty.contains("data-table"), "{empty}");
-    assert!(!empty.contains(r#"class="pager""#), "{empty}");
+    assert!(!empty.contains(r#"aria-label="pagination""#), "{empty}");
     let empty = app.page("/guild/11/levels?scope=global").await.unwrap();
-    assert!(empty.contains(&scope(11, true)), "{empty}");
+    assert!(canonical(&empty).contains(&canonical(&scope(11, true))), "{empty}");
     assert!(
         empty.contains(&empty_board(
             "No one on the board yet",
@@ -820,32 +846,66 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
 
     let first = app.page("/guild/7/levels").await.unwrap();
     assert!(first.contains(&title(LEVELS_TITLE)), "{first}");
-    assert!(first.contains(&scope(7, false)), "{first}");
+    let canonical_first = canonical(&first);
+    assert!(canonical_first.contains(&canonical(&scope(7, false))), "{first}");
     assert!(
-        first.contains(&board_head("This server leaderboard, page 1")),
+        canonical_first
+            .contains(&canonical(&board_head("This server leaderboard, page 1"))),
         "{first}"
     );
-    assert_eq!(count(&first, ENTRY), 10, "{first}");
+    assert_eq!(count(&canonical_first, ENTRY), 10, "{first}");
     assert!(
-        first.contains(&row(1, &avatar(1000, AVATAR), "Alice A", 20, 100, 50)),
+        canonical_first.contains(&canonical(&row(
+            1,
+            &avatar(1000, AVATAR),
+            "Alice A",
+            20,
+            100,
+            50
+        ))),
         "{first}"
     );
-    assert!(first.contains(&row(2, PLACEHOLDER, "bob", 19, 99, 51)), "{first}");
     assert!(
-        first.contains(&row(3, PLACEHOLDER, "User 1002", 18, 98, 52)),
+        canonical_first.contains(&canonical(&row(
+            2,
+            PLACEHOLDER,
+            "bob",
+            19,
+            99,
+            51
+        ))),
         "{first}"
     );
     assert!(
-        first.contains(&row(10, PLACEHOLDER, "User 1009", 11, 91, 59)),
+        canonical_first.contains(&canonical(&row(
+            3,
+            PLACEHOLDER,
+            "User 1002",
+            18,
+            98,
+            52
+        ))),
+        "{first}"
+    );
+    assert!(
+        canonical_first.contains(&canonical(&row(
+            10,
+            PLACEHOLDER,
+            "User 1009",
+            11,
+            91,
+            59
+        ))),
         "{first}"
     );
     assert!(!first.contains("User 1010"), "{first}");
     assert!(
-        first.contains(&pager(
-            PREVIOUS_OFF,
+        canonical_first.contains(&canonical(&pager(
+            None,
             1,
-            &next_link("/guild/7/levels?page=2")
-        )),
+            "/guild/7/levels",
+            Some("/guild/7/levels?page=2")
+        ))),
         "{first}"
     );
     assert_eq!(app.discord.count("GET", "/users/"), 10);
@@ -857,80 +917,128 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
 
     let escaped =
         app.get("/guild/7%3Fscope=global/levels", Some(ADMIN)).await.unwrap();
+    let canonical_escaped = canonical(&escaped.html);
     assert!(
-        escaped.html.contains(
-            r#"<a class="seg active" href="/guild/7%3Fscope%3Dglobal/levels" aria-current="page">"#
-        ),
+        canonical_escaped.contains(&canonical(&format!(
+            r#"<a aria-current="page" class="{TRIGGER}" href="/guild/7%3Fscope%3Dglobal/levels">"#
+        ))),
         "{}",
         escaped.html
     );
     assert!(
-        escaped
-            .html
-            .contains(r#"href="/guild/7%3Fscope%3Dglobal/levels?scope=global">"#),
+        canonical_escaped.contains(&canonical(&format!(
+            r#"<a class="{TRIGGER}" href="/guild/7%3Fscope%3Dglobal/levels?scope=global">"#
+        ))),
         "{}",
         escaped.html
     );
 
     let second = app.page("/guild/7/levels?page=2").await.unwrap();
-    assert_eq!(count(&second, ENTRY), 2, "{second}");
+    let canonical_second = canonical(&second);
+    assert_eq!(count(&canonical_second, ENTRY), 2, "{second}");
     assert!(
-        second.contains(&board_head("This server leaderboard, page 2")),
+        canonical_second
+            .contains(&canonical(&board_head("This server leaderboard, page 2"))),
         "{second}"
     );
     assert!(
-        second.contains(&row(11, PLACEHOLDER, "User 1010", 10, 90, 60)),
+        canonical_second.contains(&canonical(&row(
+            11,
+            PLACEHOLDER,
+            "User 1010",
+            10,
+            90,
+            60
+        ))),
         "{second}"
     );
     assert!(
-        second.contains(&row(12, PLACEHOLDER, "User 1011", 9, 89, 61)),
+        canonical_second.contains(&canonical(&row(
+            12,
+            PLACEHOLDER,
+            "User 1011",
+            9,
+            89,
+            61
+        ))),
         "{second}"
     );
     assert!(
-        second.contains(&pager(&previous_link("/guild/7/levels"), 2, NEXT_OFF)),
+        canonical_second.contains(&canonical(&pager(
+            Some("/guild/7/levels"),
+            2,
+            "/guild/7/levels?page=2",
+            None
+        ))),
         "{second}"
     );
 
     let past = app.page("/guild/7/levels?page=3").await.unwrap();
-    assert!(past.contains(&past_the_end("/guild/7/levels")), "{past}");
+    assert!(
+        canonical(&past).contains(&canonical(&past_the_end("/guild/7/levels"))),
+        "{past}"
+    );
     assert!(!past.contains("data-table"), "{past}");
     assert!(
-        past.contains(&pager(&previous_link("/guild/7/levels?page=2"), 3, NEXT_OFF)),
+        canonical(&past).contains(&canonical(&pager(
+            Some("/guild/7/levels?page=2"),
+            3,
+            "/guild/7/levels?page=3",
+            None
+        ))),
         "{past}"
     );
 
     let world = app.page("/guild/7/levels?scope=global").await.unwrap();
-    assert!(world.contains(&scope(7, true)), "{world}");
+    let canonical_world = canonical(&world);
+    assert!(canonical_world.contains(&canonical(&scope(7, true))), "{world}");
     assert!(
-        world.contains(&row(1, &avatar(1000, AVATAR), "Alice A", 40, 30, 8)),
+        canonical_world.contains(&canonical(&row(
+            1,
+            &avatar(1000, AVATAR),
+            "Alice A",
+            40,
+            30,
+            8
+        ))),
         "{world}"
     );
-    assert!(world.contains(&row(2, PLACEHOLDER, "bob", 40, 10, 7)), "{world}");
-    assert_eq!(count(&world, ENTRY), 2, "{world}");
-    assert!(world.contains(&board_head("Global leaderboard, page 1")), "{world}");
-    assert!(!world.contains(r#"class="pager""#), "{world}");
+    assert!(
+        canonical_world.contains(&canonical(&row(2, PLACEHOLDER, "bob", 40, 10, 7))),
+        "{world}"
+    );
+    assert_eq!(count(&canonical_world, ENTRY), 2, "{world}");
+    assert!(
+        canonical_world
+            .contains(&canonical(&board_head("Global leaderboard, page 1"))),
+        "{world}"
+    );
+    assert!(!world.contains(r#"aria-label="pagination""#), "{world}");
 
     let lenient = app.page("/guild/7/levels?scope=weird&page=-4").await.unwrap();
-    assert!(lenient.contains(&scope(7, false)), "{lenient}");
-    assert!(lenient.contains(&row(
+    let canonical_lenient = canonical(&lenient);
+    assert!(canonical_lenient.contains(&canonical(&scope(7, false))), "{lenient}");
+    assert!(canonical_lenient.contains(&canonical(&row(
         1,
         &avatar(1000, AVATAR),
         "Alice A",
         20,
         100,
         50
-    )));
+    ))));
     let paged = app.page("/guild/7/levels?scope=global&page=2").await.unwrap();
     assert!(
-        paged.contains(&past_the_end("/guild/7/levels?scope=global")),
+        canonical(&paged)
+            .contains(&canonical(&past_the_end("/guild/7/levels?scope=global"))),
         "{paged}"
     );
     assert!(
-        paged.contains(&pager(
-            &previous_link("/guild/7/levels?scope=global"),
+        canonical(&paged).contains(&canonical(&pager(
+            Some("/guild/7/levels?scope=global"),
             2,
-            NEXT_OFF
-        )),
+            "/guild/7/levels?scope=global&amp;page=2",
+            None
+        ))),
         "{paged}"
     );
 
@@ -977,7 +1085,6 @@ const CHECK: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke=
 const EMPTY_FLASH: &str = r#"<div class="flash-region" role="status"></div>"#;
 
 fn rr_row(
-    index: usize,
     channel: &str,
     emoji: &str,
     role: &str,
@@ -986,8 +1093,11 @@ fn rr_row(
     fields: [&str; 3],
 ) -> String {
     let [channel_id, message_id, emoji_value] = fields;
+    let ghost = support::btn("ghost");
+    let secondary = support::btn("secondary");
+    let destructive = support::btn("destructive");
     format!(
-        r#"<tr role="row"><th scope="row" role="rowheader" data-label="Channel">{channel}</th><td role="cell" data-label="Emoji">{emoji}</td><td role="cell" data-label="Role">{role}</td><td role="cell" data-label="Message"><a class="rr-link" href="{link}" aria-label="Open in Discord: {shown_emoji} message in {channel}" rel="external noreferrer" target="_blank">Open in Discord{EXTERNAL}</a></td><td role="cell" data-label="Action"><form method="post" action="{RR_REMOVE}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" aria-label="Remove the {shown_emoji} reaction role for {role}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="rr-{index}-remove-title" aria-describedby="rr-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="rr-{index}-remove-title">Remove the {shown_emoji} reaction role for {role}?</h2><p class="dialog-desc" id="rr-{index}-remove-desc">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove reaction role</button></div></div></dialog></div></form></td></tr>"#
+        r#"<tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Channel">{channel}</th><td class="{TD}" role="cell" data-label="Emoji">{emoji}</td><td class="{TD}" role="cell" data-label="Role">{role}</td><td class="{TD}" role="cell" data-label="Message"><a class="rr-link" href="{link}" aria-label="Open in Discord: {shown_emoji} message in {channel}" rel="external noreferrer" target="_blank">Open in Discord{EXTERNAL}</a></td><td class="{TD}" role="cell" data-label="Action"><form method="post" action="{RR_REMOVE}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove the {shown_emoji} reaction role for {role}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove the {shown_emoji} reaction role for {role}?</h2><p class="dialog-desc" id="tc-ID">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">Remove reaction role</button></div></div></dialog></div></form></td></tr>"#
     )
 }
 
@@ -998,17 +1108,46 @@ fn flashed(message: &str) -> String {
     )
 }
 
-/// The reason at the top of form `form`.
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const NEUTRAL_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-border text-foreground";
+const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+const BADGE_OUTLINE: &str = "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-foreground";
+
+/// The reason at the top of form `form`, in canonical attribute order.
 fn summary(form: &str, outcome: &str, message: &str) -> String {
-    format!(
-        r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{outcome}: {message}</div>"#
-    )
+    canonical(&format!(
+        r#"<div class="{ERROR_ALERT} error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}{outcome}: {message}</p></div>"#
+    ))
+}
+
+/// The start of `summary` up to its reason, in canonical attribute order.
+fn summary_start(form: &str, outcome: &str) -> String {
+    canonical(&format!(
+        r#"<div class="{ERROR_ALERT} error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}{outcome}: "#
+    ))
 }
 
 const RR_ADD: &str = "/guild/7/reaction-roles/add";
 const RR_REMOVE: &str = "/guild/7/reaction-roles/remove";
-const RR_TABLE: &str = r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">Reaction roles</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th><th scope="col" role="columnheader">Emoji</th><th scope="col" role="columnheader">Role</th><th scope="col" role="columnheader">Message</th><th scope="col" role="columnheader">Action</th></tr></thead><tbody role="rowgroup">"#;
-const RR_ENTRY: &str = r#"role="rowheader" data-label="Channel""#;
+const RR_ENTRY: &str = r#"data-label="Channel" role="rowheader""#;
+
+fn channel_head() -> String {
+    format!(
+        r#"<thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Channel</th></tr></thead>"#
+    )
+}
+
+fn channel_name_row(label: &str) -> String {
+    format!(
+        r#"<tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Channel">{label}</th></tr>"#
+    )
+}
+
+fn rr_table() -> String {
+    format!(
+        r#"<div class="w-full overflow-x-auto" data-slot="table"><table class="{TABLE}" role="table"><caption class="{CAPTION}">Reaction roles</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Channel</th><th class="{TH}" scope="col" role="columnheader">Emoji</th><th class="{TH}" scope="col" role="columnheader">Role</th><th class="{TH}" scope="col" role="columnheader">Message</th><th class="{TH}" scope="col" role="columnheader">Action</th></tr></thead><tbody class="{TBODY}" role="rowgroup">"#
+    )
+}
 
 #[sqlx::test(migrations = "../migrations")]
 async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
@@ -1030,27 +1169,33 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         "{empty}"
     );
     assert!(
-        empty.contains(
-            r#"<label class="field-label" for="add-reaction-role-channel-id">Channel</label><div class="select"><select class="input" id="add-reaction-role-channel-id" name="channel_id" required="" aria-describedby="add-reaction-role-channel-id-help"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
-        ),
+        empty.contains(&format!(
+            r#"<label class="field-label" for="add-reaction-role-channel-id">Channel</label>{SELECT_OPEN}"#
+        )),
         "{empty}"
     );
     assert!(
-        empty.contains(
-            r#"<label class="field-label" for="add-reaction-role-message-id">Message ID</label><input class="input" id="add-reaction-role-message-id" type="text" name="message_id" value="" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-describedby="add-reaction-role-message-id-help"><p class="field-help" id="add-reaction-role-message-id-help">Optional. Leave blank to post a new panel message.</p>"#
-        ),
+        canonical(&empty).contains(&canonical(&format!(
+            r#"<select class="{SELECT}" id="add-reaction-role-channel-id" name="channel_id" required="" aria-describedby="add-reaction-role-channel-id-help"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
+        ))),
         "{empty}"
     );
     assert!(
-        empty.contains(
-            r#"<label class="field-label" for="add-reaction-role-emoji">Emoji</label><input class="input" id="add-reaction-role-emoji" type="text" name="emoji" value="" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help">"#
-        ),
+        canonical(&empty).contains(&canonical(&format!(
+            r#"<label class="field-label" for="add-reaction-role-message-id">Message ID</label><input class="{INPUT}" id="add-reaction-role-message-id" type="text" name="message_id" value="" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-describedby="add-reaction-role-message-id-help"><p class="field-help" id="add-reaction-role-message-id-help">Optional. Leave blank to post a new panel message.</p>"#
+        ))),
         "{empty}"
     );
     assert!(
-        empty.contains(
-            r#"<select class="input" id="add-reaction-role-role-id" name="role_id" required="" aria-describedby="add-reaction-role-role-id-help"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
-        ),
+        canonical(&empty).contains(&canonical(&format!(
+            r#"<label class="field-label" for="add-reaction-role-emoji">Emoji</label><input class="{INPUT}" id="add-reaction-role-emoji" type="text" name="emoji" value="" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help">"#
+        ))),
+        "{empty}"
+    );
+    assert!(
+        canonical(&empty).contains(&canonical(&format!(
+            r#"<select class="{SELECT}" id="add-reaction-role-role-id" name="role_id" required="" aria-describedby="add-reaction-role-role-id-help"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
+        ))),
         "{empty}"
     );
     assert!(
@@ -1110,7 +1255,8 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     let unseeded = add("", "30", "\u{2705}").await;
     assert_eq!(unseeded.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        unseeded.html.contains(r#"<div class="error" id="add-reaction-role-summary" role="alert" tabindex="-1" autofocus="">Not added: "#),
+        canonical(&unseeded.html)
+            .contains(&summary_start("add-reaction-role", "Not added")),
         "{}",
         unseeded.html
     );
@@ -1126,7 +1272,9 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         unseeded.html
     );
     assert!(
-        unseeded.html.contains(r#"name="emoji" value="✅""#),
+        canonical(&unseeded.html).contains(
+            r#"name="emoji" placeholder="✅ or <:name:id>" required="" type="text" value="✅""#
+        ),
         "{}",
         unseeded.html
     );
@@ -1159,17 +1307,20 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         saved.html
     );
     assert_eq!(count(&saved.html, "flash-text"), 1, "{}", saved.html);
-    assert!(saved.html.contains(RR_TABLE), "{}", saved.html);
     assert!(
-        saved.html.contains(&rr_row(
-            0,
+        canonical(&saved.html).contains(&canonical(&rr_table())),
+        "{}",
+        saved.html
+    );
+    assert!(
+        canonical(&saved.html).contains(&canonical(&rr_row(
             "#rules",
             r#"<span class="rr-emoji">✅</span>"#,
             "@Member",
             "https://discord.com/channels/7/20/555",
             "\u{2705}",
             ["20", "555", "\u{2705}"],
-        )),
+        ))),
         "{}",
         saved.html
     );
@@ -1180,14 +1331,18 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     assert_eq!(duplicate.status, StatusCode::UNPROCESSABLE_ENTITY);
     let message = "that emoji is already mapped on that message";
     assert!(
-        duplicate.html.contains(&summary("add-reaction-role", "Not added", message)),
+        canonical(&duplicate.html).contains(&summary(
+            "add-reaction-role",
+            "Not added",
+            message
+        )),
         "{}",
         duplicate.html
     );
     assert!(
-        duplicate.html.contains(
-            r#"aria-describedby="add-reaction-role-emoji-help add-reaction-role-emoji-error" aria-invalid="true"><p class="field-help" id="add-reaction-role-emoji-help">"#
-        ),
+        canonical(&duplicate.html).contains(&canonical(&format!(
+            r#"<input class="{INPUT}" id="add-reaction-role-emoji" type="text" name="emoji" value="✅" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help add-reaction-role-emoji-error" aria-invalid="true"><p class="field-help" id="add-reaction-role-emoji-help">"#
+        ))),
         "{}",
         duplicate.html
     );
@@ -1198,15 +1353,20 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         "{}",
         duplicate.html
     );
-    assert_eq!(count(&duplicate.html, RR_ENTRY), 1, "{}", duplicate.html);
+    assert_eq!(
+        count(&canonical(&duplicate.html), RR_ENTRY),
+        1,
+        "{}",
+        duplicate.html
+    );
 
     let created = add("555", "31", "<:a:5>").await;
     assert_eq!(created.status, StatusCode::SEE_OTHER);
     let custom = app.follow(&created).await.unwrap();
     assert!(
-        custom.html.contains(
-            r#"<td role="cell" data-label="Emoji"><span class="rr-emoji-frame" role="img" aria-label=":a:" title=":a:"><object class="rr-emoji-img" data="https://cdn.discordapp.com/emojis/5.png?size=32" type="image/png" aria-hidden="true"><span class="rr-emoji-name">:a:</span></object></span></td><td role="cell" data-label="Role">@Mod</td>"#
-        ),
+        canonical(&custom.html).contains(&canonical(&format!(
+            r#"<td class="{TD}" role="cell" data-label="Emoji"><span class="rr-emoji-frame" role="img" aria-label=":a:" title=":a:"><object class="rr-emoji-img" data="https://cdn.discordapp.com/emojis/5.png?size=32" type="image/png" aria-hidden="true"><span class="rr-emoji-name">:a:</span></object></span></td><td class="{TD}" role="cell" data-label="Role">@Mod</td>"#
+        ))),
         "{}",
         custom.html
     );
@@ -1215,17 +1375,21 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         "{}",
         custom.html
     );
-    assert_eq!(count(&custom.html, RR_ENTRY), 2, "{}", custom.html);
+    assert_eq!(count(&canonical(&custom.html), RR_ENTRY), 2, "{}", custom.html);
 
     app.seed_mapping(7, 99, 1, 98, "\u{1f3ae}").await.unwrap();
     let listed = app.page("/guild/7/reaction-roles").await.unwrap();
-    assert_eq!(count(&listed, RR_ENTRY), 3, "{listed}");
+    assert_eq!(count(&canonical(&listed), RR_ENTRY), 3, "{listed}");
     assert!(
-        listed.contains(r#"data-label="Channel">#unknown (99)</th>"#),
+        canonical(&listed).contains(&canonical(&format!(
+            r#"<th class="{TH}" scope="row" role="rowheader" data-label="Channel">#unknown (99)</th>"#
+        ))),
         "{listed}"
     );
     assert!(
-        listed.contains(r#"<td role="cell" data-label="Role">@unknown (98)</td>"#),
+        canonical(&listed).contains(&canonical(&format!(
+            r#"<td class="{TD}" role="cell" data-label="Role">@unknown (98)</td>"#
+        ))),
         "{listed}"
     );
     assert!(!listed.contains(r#"role="alert""#), "{listed}");
@@ -1258,10 +1422,11 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     let removed = app.follow(&done).await.unwrap();
     assert_eq!(removed.status, StatusCode::OK);
     assert!(
-        removed.html.contains(&format!(
-            r#"<h2 class="label" id="reaction-roles-title">Mappings</h2>{}{RR_TABLE}"#,
-            flashed("Reaction role removed.")
-        )),
+        canonical(&removed.html).contains(&canonical(&format!(
+            r#"<h2 class="label" id="reaction-roles-title">Mappings</h2>{}{}"#,
+            flashed("Reaction role removed."),
+            rr_table()
+        ))),
         "{}",
         removed.html
     );
@@ -1279,7 +1444,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     let invalid = remove("x", "555", "\u{2705}").await;
     assert_eq!(invalid.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        invalid.html.contains(&summary(
+        canonical(&invalid.html).contains(&summary(
             "remove-reaction-role",
             "Not removed",
             "invalid channel"
@@ -1292,7 +1457,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
 
     let invalid = add("", "", "\u{2705}").await;
     assert!(
-        invalid.html.contains(&summary(
+        canonical(&invalid.html).contains(&summary(
             "add-reaction-role",
             "Not added",
             "invalid role"
@@ -1320,7 +1485,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        missing.html.contains(&summary(
+        canonical(&missing.html).contains(&summary(
             "add-reaction-role",
             "Not added",
             "missing field `role_id`"
@@ -1412,7 +1577,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        refused.html.contains(&summary(
+        canonical(&refused.html).contains(&summary(
             "page",
             "Not saved",
             "you need Manage Server in this server to change this"
@@ -1440,7 +1605,11 @@ fn action(name: &str) -> String {
 
 const CHANNEL_SELECT_OPTIONS: &str = "<option value=\"\" selected=\"\">(not set)</option><option value=\"23\">\u{25b8} Lounge</option><option value=\"20\"># rules</option><option value=\"21\"># chat</option><option value=\"22\"># bots</option>";
 const LEGEND_LIST: &str = r#"<ul class="placeholder-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li></ul>"#;
-const SEE_PLANS: &str = r#"<p class="plan-note"><span class="plan-tag">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a href="/upgrade">See plans</a></p>"#;
+fn see_plans() -> String {
+    format!(
+        r#"<p class="plan-note"><span class="{BADGE_OUTLINE}">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a href="/upgrade">See plans</a></p>"#
+    )
+}
 const GOOD_WORKS_LEAD: &str = "<h2 class=\"label\" id=\"good-channels-title\">Where /good works</h2><p class=\"page-lead\">With nothing listed, <code>/good</code> works in every channel. Add one or more and Discord hides the command everywhere else - it never even shows up in the picker. Adding a category covers every channel inside it.</p><p class=\"page-lead\">This writes the same command permissions as Discord's own Server Settings \u{2192} Integrations panel, so changes made either way show up in both.</p>";
 const NO_IMAGES: &str = r#"<p class="page-lead">No images yet - the command replies with just the message until you add one.</p>"#;
 const NOT_SYNCED_HEADER: &str = r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></div><div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div></div>"#;
@@ -1516,9 +1685,9 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
         "{html}"
     );
     assert!(
-        html.contains(
-            r#"<label class="field-label" for="greeting-messages-morning-message">Good morning message</label><input class="input" id="greeting-messages-morning-message" type="text" name="morning_message" value="" autocomplete="off" aria-describedby="greeting-messages-morning-message-help"><p class="field-help" id="greeting-messages-morning-message-help">Up to 1500 characters. Leave blank to post just the image.</p>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<label class="field-label" for="greeting-messages-morning-message">Good morning message</label><input class="{INPUT}" id="greeting-messages-morning-message" type="text" name="morning_message" value="" autocomplete="off" aria-describedby="greeting-messages-morning-message-help"><p class="field-help" id="greeting-messages-morning-message-help">Up to 1500 characters. Leave blank to post just the image.</p>"#
+        ))),
         "{html}"
     );
     assert_eq!(value(&html, "greeting-messages-night-message"), Some(""));
@@ -1530,33 +1699,39 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     );
     assert!(
         html.contains(&format!(
-            r#"{GOOD_WORKS_LEAD}<div class="flash-region" role="status"></div><p class="page-lead">No channels listed: <code>/good</code> works everywhere.</p><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><div class="field-row"><label class="field-label" for="add-good-channel-channel-id">Allow a channel</label><div class="select"><select class="input" id="add-good-channel-channel-id" name="channel_id" required="" aria-describedby="add-good-channel-channel-id-help">{CHANNEL_SELECT_OPTIONS}</select>"#,
+            r#"{GOOD_WORKS_LEAD}<div class="flash-region" role="status"></div><p class="page-lead">No channels listed: <code>/good</code> works everywhere.</p><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><div class="field-row"><label class="field-label" for="add-good-channel-channel-id">Allow a channel</label>{SELECT_OPEN}"#,
             action("add-channel")
         )),
         "{html}"
     );
     assert!(
-        html.contains(
-            r#"<input class="input" id="greeting-cooldowns-user-cooldown" type="number" name="user_cooldown" value="15" min="15" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-user-cooldown-help"><p class="field-help" id="greeting-cooldowns-user-cooldown-help">In seconds: at least 15 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<select class="{SELECT}" id="add-good-channel-channel-id" name="channel_id" required="" aria-describedby="add-good-channel-channel-id-help">{CHANNEL_SELECT_OPTIONS}</select>"#
+        ))),
         "{html}"
     );
     assert!(
-        html.contains(
-            r#"<input class="input" id="greeting-cooldowns-guild-cooldown" type="number" name="guild_cooldown" value="3" min="3" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-guild-cooldown-help"><p class="field-help" id="greeting-cooldowns-guild-cooldown-help">In seconds: at least 3 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<input class="{INPUT}" id="greeting-cooldowns-user-cooldown" type="number" name="user_cooldown" value="15" min="15" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-user-cooldown-help"><p class="field-help" id="greeting-cooldowns-user-cooldown-help">In seconds: at least 15 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
+        ))),
         "{html}"
     );
     assert!(
-        html.contains(&format!(r#"{SEE_PLANS}<div class="save-bar""#)),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<input class="{INPUT}" id="greeting-cooldowns-guild-cooldown" type="number" name="guild_cooldown" value="3" min="3" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-guild-cooldown-help"><p class="field-help" id="greeting-cooldowns-guild-cooldown-help">In seconds: at least 3 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
+        ))),
+        "{html}"
+    );
+    assert!(
+        html.contains(&format!(r#"{}<div class="save-bar""#, see_plans())),
         "{html}"
     );
     for kind in ["morning", "night"] {
         assert!(
-            html.contains(&format!(
-                r#"<span class="mono">0 of 50</span></h3><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><input type="hidden" name="kind" value="{kind}"><div class="field-row"><label class="field-label" for="add-{kind}-image-url">Image link</label><input class="input" id="add-{kind}-image-url" type="url" name="url" value="" pattern="https://.*" placeholder="https://example.com/sunrise.gif" required="" maxlength="2048""#,
+            canonical(&html).contains(&canonical(&format!(
+                r#"<span class="mono">0 of 50</span></h3><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><input type="hidden" name="kind" value="{kind}"><div class="field-row"><label class="field-label" for="add-{kind}-image-url">Image link</label><input class="{INPUT}" id="add-{kind}-image-url" type="url" name="url" value="" pattern="https://.*" placeholder="https://example.com/sunrise.gif" required="" maxlength="2048" autocomplete="off" aria-describedby="add-{kind}-image-url-help">"#,
                 action("add-image")
-            )),
+            ))),
             "{kind}: {html}"
         );
     }
@@ -1583,8 +1758,19 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     let pro = app.page("/guild/12/greetings").await.unwrap();
     assert!(pro.contains("In seconds: at least 3 on the Pro plan"), "{pro}");
     assert!(pro.contains("In seconds: at least 1 on the Pro plan"), "{pro}");
-    assert!(pro.contains(r#"name="user_cooldown" value="15" min="3""#), "{pro}");
-    assert!(pro.contains(r#"name="guild_cooldown" value="3" min="1""#), "{pro}");
+    let sorted = canonical(&pro);
+    assert!(
+        sorted.contains(
+            r#"min="3" name="user_cooldown" step="1" type="number" value="15""#
+        ),
+        "{pro}"
+    );
+    assert!(
+        sorted.contains(
+            r#"min="1" name="guild_cooldown" step="1" type="number" value="3""#
+        ),
+        "{pro}"
+    );
     assert!(!pro.contains("See plans"), "{pro}");
     assert!(!pro.contains("these floors drop"), "{pro}");
     let below = app
@@ -1598,7 +1784,11 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     assert_eq!(below.status, StatusCode::UNPROCESSABLE_ENTITY);
     let floor = "On the Pro plan the per-member cooldown can't go below 3s. That is as low as this command goes.";
     assert!(
-        below.html.contains(&summary("greeting-cooldowns", "Not saved", floor)),
+        canonical(&below.html).contains(&summary(
+            "greeting-cooldowns",
+            "Not saved",
+            floor
+        )),
         "{}",
         below.html
     );
@@ -1615,9 +1805,9 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     );
     let unknown = app.page(GR).await.unwrap();
     assert!(
-        unknown.contains(
-            r#"<p class="warning">Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></section>"#
-        ),
+        unknown.contains(&format!(
+            r#"<div class="{NEUTRAL_ALERT} warning">{ALERT_TITLE}Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></div></section>"#
+        )),
         "{unknown}"
     );
     assert!(!unknown.contains("With nothing listed"), "{unknown}");
@@ -1659,8 +1849,9 @@ async fn submit(
 }
 
 fn image_card(url: &str, id: &str, host: &str, noun: &str) -> String {
+    let ghost = support::btn("ghost");
     format!(
-        r#"<li class="greet-card"><div class="greet-thumb" role="img" aria-label="Image from {host}"><span class="greet-thumb-host" aria-hidden="true">{host}</span><img class="greet-thumb-img" src="{url}" alt="" aria-hidden="true" loading="lazy" data-host="{host}"></div><a class="greet-url" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="greet-remove" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" aria-label="Remove {noun} image {url}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="image-{id}-remove-title" aria-describedby="image-{id}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="image-{id}-remove-title">Remove this {noun} image from {host}?</h2><p class="dialog-desc" id="image-{id}-remove-desc">{url}</p>"#,
+        r#"<li class="greet-card"><div class="greet-thumb" role="img" aria-label="Image from {host}"><span class="greet-thumb-host" aria-hidden="true">{host}</span><img class="greet-thumb-img" src="{url}" alt="" aria-hidden="true" loading="lazy" data-host="{host}"></div><a class="greet-url" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="greet-remove" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove {noun} image {url}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove this {noun} image from {host}?</h2><p class="dialog-desc" id="tc-ID">{url}</p>"#,
         action("remove-image")
     )
 }
@@ -1713,7 +1904,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(refused.html.contains(&title(GREETINGS_TITLE)), "{}", refused.html);
     assert!(
-        refused.html.contains(&summary(
+        canonical(&refused.html).contains(&summary(
             "greeting-messages",
             "Not saved",
             "Greeting messages are limited to 1500 characters so the reply still fits once mentions are filled in."
@@ -1748,7 +1939,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     );
     assert_eq!(value(&page.html, "greeting-cooldowns-user-cooldown"), Some("30"));
     assert_eq!(value(&page.html, "greeting-cooldowns-guild-cooldown"), Some("10"));
-    assert!(page.html.contains(SEE_PLANS), "{}", page.html);
+    assert!(page.html.contains(&see_plans()), "{}", page.html);
 
     let below = submit(&app, "save-cooldowns", vec![
         ("user_cooldown", "5"),
@@ -1759,7 +1950,11 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     assert_eq!(below.status, StatusCode::UNPROCESSABLE_ENTITY);
     let floor = "On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s.";
     assert!(
-        below.html.contains(&summary("greeting-cooldowns", "Not saved", floor)),
+        canonical(&below.html).contains(&summary(
+            "greeting-cooldowns",
+            "Not saved",
+            floor
+        )),
         "{}",
         below.html
     );
@@ -1776,7 +1971,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     .await
     .unwrap();
     assert!(
-        junk.html.contains(&summary(
+        canonical(&junk.html).contains(&summary(
             "greeting-cooldowns",
             "Not saved",
             "`abc` isn't a usable cooldown. Enter a whole number of seconds between 0 and 86400."
@@ -1825,7 +2020,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
             .unwrap();
     assert_eq!(duplicate.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        duplicate.html.contains(&summary(
+        canonical(&duplicate.html).contains(&summary(
             "add-morning-image",
             "Not added",
             "That image link is already in the list."
@@ -1840,7 +2035,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     .await
     .unwrap();
     assert!(
-        insecure.html.contains(&summary(
+        canonical(&insecure.html).contains(&summary(
             "add-night-image",
             "Not added",
             "`http://example.com/a.gif` isn't a usable image link. Links must start with `https://`."
@@ -1853,7 +2048,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
             .await
             .unwrap();
     assert!(
-        unknown_kind.html.contains(&summary(
+        canonical(&unknown_kind.html).contains(&summary(
             "add-morning-image",
             "Not added",
             "Unknown greeting type `noon`."
@@ -1867,7 +2062,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
         submit(&app, "remove-image", vec![("id", "999999")]).await.unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        missing.html.contains(&summary(
+        canonical(&missing.html).contains(&summary(
             "remove-greeting-image",
             "Not removed",
             "that image is not in this server's list"
@@ -1891,7 +2086,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
         submit(&app, "add-channel", vec![("channel_id", "20")]).await.unwrap();
     assert_eq!(unregistered.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        unregistered.html.contains(&summary(
+        canonical(&unregistered.html).contains(&summary(
             "add-good-channel",
             "Not added",
             "/good isn't registered for this server yet"
@@ -1909,7 +2104,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
     let removed =
         submit(&app, "remove-channel", vec![("channel_id", "20")]).await.unwrap();
     assert!(
-        removed.html.contains(&summary(
+        canonical(&removed.html).contains(&summary(
             "remove-good-channel",
             "Not removed",
             "/good isn't registered for this server yet"
@@ -1932,7 +2127,7 @@ async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_rea
         .unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        missing.html.contains(&summary(
+        canonical(&missing.html).contains(&summary(
             "greeting-messages",
             "Not saved",
             "missing field `night_message`"
@@ -2021,7 +2216,9 @@ async fn the_greetings_header_switch_turns_the_module_on_and_off(
     let refused = submit(&app, "module", vec![("enabled", "maybe")]).await.unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        refused.html.contains(r#"<p class="error" role="alert">Not changed: invalid value for `enabled`</p>"#),
+        canonical(&refused.html).contains(&canonical(&format!(
+            r#"<div class="{ERROR_ALERT} error" role="alert">{ALERT_TITLE}Not changed: invalid value for `enabled`</p></div>"#
+        ))),
         "{}",
         refused.html
     );
@@ -2052,7 +2249,7 @@ async fn a_refused_greetings_save_keeps_what_was_typed_in_its_own_form_only(
     .unwrap();
     assert_eq!(low.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        low.html.contains(&summary(
+        canonical(&low.html).contains(&summary(
             "greeting-cooldowns",
             "Not saved",
             "On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s."
@@ -2132,17 +2329,24 @@ async fn a_refused_reaction_role_add_keeps_what_was_typed(
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        refused.html.contains(r#"<div class="error" id="add-reaction-role-summary" role="alert" tabindex="-1" autofocus="">Not added: "#),
+        canonical(&refused.html)
+            .contains(&summary_start("add-reaction-role", "Not added")),
         "{}",
         refused.html
     );
+    let sorted = canonical(&refused.html);
     for typed in [
         r#"<option value="21" selected=""># chat</option>"#,
         r#"<option value="31" selected="">@Mod</option>"#,
-        r#"name="message_id" value="4242""#,
-        "name=\"emoji\" value=\"\u{1f514}\"",
+        r#"name="message_id" pattern="[0-9]*" type="text" value="4242""#,
+        "name=\"emoji\" placeholder=\"\u{2705} or <:name:id>\" required=\"\" type=\"text\" value=\"\u{1f514}\"",
     ] {
-        assert_eq!(count(&refused.html, typed), 1, "{typed}: {}", refused.html);
+        assert_eq!(
+            count(&sorted, &canonical(typed)),
+            1,
+            "{typed}: {}",
+            refused.html
+        );
     }
 
     app.pool.close().await;
@@ -2174,9 +2378,12 @@ async fn operators_see_the_channel_list_read_only(
 
     let html = app.get("/guild/8/greetings", Some(OPERATOR)).await.unwrap().html;
     assert!(
-        html.contains(
-            r#"<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th></tr></thead><tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#chat</th></tr><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#bots</th></tr></tbody></table></div><p class="warning">Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></section>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"{head}<tbody class="{TBODY}" role="rowgroup">{chat}{bots}</tbody></table></div><div class="{NEUTRAL_ALERT} warning">{ALERT_TITLE}Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></div></section>"#,
+            head = channel_head(),
+            chat = channel_name_row("#chat"),
+            bots = channel_name_row("#bots"),
+        ))),
         "{html}"
     );
     assert!(html.contains("With nothing listed"), "{html}");
@@ -2198,12 +2405,14 @@ async fn operators_see_the_channel_list_read_only(
         .await
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
-    let (_, reason) = refused
-        .html
-        .split_once(r#"<div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: "#)
+    let sorted = canonical(&refused.html);
+    let (_, reason) = sorted
+        .split_once(&summary_start("add-good-channel", "Not added"))
         .unwrap_or_else(|| panic!("{}", refused.html));
     assert!(
-        reason.contains(r#"</div><p class="warning">Read-only: "#),
+        reason.contains(&format!(
+            r#"</p></div><div class="{NEUTRAL_ALERT} warning">{ALERT_TITLE}Read-only: "#
+        )),
         "{}",
         refused.html
     );
@@ -2271,20 +2480,25 @@ async fn standalone(path: &str) -> TestResult<String> {
 #[tokio::test]
 async fn the_channel_section_lists_removable_channels_for_a_member() {
     let html = standalone("/test/channels/editable").await.unwrap();
-    let head = r#"<caption class="visually-hidden">Channels where /good works</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th><th scope="col" role="columnheader">Action</th></tr></thead>"#;
-    assert!(html.contains(head), "{html}");
-    for (index, id, label) in [(0, "21", "#chat"), (1, "99", "#unknown (99)")] {
+    let ghost = support::btn("ghost");
+    let secondary = support::btn("secondary");
+    let destructive = support::btn("destructive");
+    let head = format!(
+        r#"<caption class="{CAPTION}">Channels where /good works</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Channel</th><th class="{TH}" scope="col" role="columnheader">Action</th></tr></thead>"#
+    );
+    assert!(canonical(&html).contains(&canonical(&head)), "{html}");
+    for (id, label) in [("21", "#chat"), ("99", "#unknown (99)")] {
         assert!(
-            html.contains(&format!(
-                r#"<tr role="row"><th scope="row" role="rowheader" data-label="Channel">{label}</th><td role="cell" data-label="Action"><form method="post" action="/guild/7/greetings/remove-channel" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" aria-label="Remove {label}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="good-channel-{index}-remove-title" aria-describedby="good-channel-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="good-channel-{index}-remove-title">Remove {label} from the /good list?</h2><p class="dialog-desc" id="good-channel-{index}-remove-desc">Removing the last channel lets /good work everywhere again.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove channel</button></div>"#
-            )),
+            canonical(&html).contains(&canonical(&format!(
+                r#"<tr class="{ROW}" role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Channel">{label}</th><td class="{TD}" role="cell" data-label="Action"><form method="post" action="/guild/7/greetings/remove-channel" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Remove {label}" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Remove {label} from the /good list?</h2><p class="dialog-desc" id="tc-ID">Removing the last channel lets /good work everywhere again.</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">Remove channel</button></div>"#
+            ))),
             "{label}: {html}"
         );
     }
-    let removed_at = html
-        .find(r#"<div class="error" id="remove-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not removed: gone</div>"#)
-        .unwrap();
-    assert!(removed_at < html.find("data-table-wrap").unwrap(), "{html}");
+    let sorted = canonical(&html);
+    let removed_at =
+        sorted.find(&summary("remove-good-channel", "Not removed", "gone")).unwrap();
+    assert!(removed_at < sorted.find(r#"data-slot="table""#).unwrap(), "{html}");
     assert!(!html.contains("Not added"), "{html}");
     assert!(
         html.contains(r#"<option value="" selected="">(not set)</option><option value="22"># bots</option></select>"#)
@@ -2295,9 +2509,12 @@ async fn the_channel_section_lists_removable_channels_for_a_member() {
 
     let locked = standalone("/test/channels/locked").await.unwrap();
     assert!(
-        locked.contains(
-            r#"<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th></tr></thead><tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#chat</th></tr><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#unknown (99)</th></tr></tbody></table></div><div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: boom</div><p class="warning">Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></section>"#
-        ),
+        canonical(&locked).contains(&canonical(&format!(
+            r#"{head}<tbody class="{TBODY}" role="rowgroup">{chat}{unknown}</tbody></table></div><div class="{ERROR_ALERT} error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}Not added: boom</p></div><div class="{NEUTRAL_ALERT} warning">{ALERT_TITLE}Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></div></section>"#,
+            head = channel_head(),
+            chat = channel_name_row("#chat"),
+            unknown = channel_name_row("#unknown (99)"),
+        ))),
         "{locked}"
     );
     assert!(!locked.contains("remove-channel"), "{locked}");
@@ -2305,9 +2522,9 @@ async fn the_channel_section_lists_removable_channels_for_a_member() {
 
     let unknown = standalone("/test/channels/unknown").await.unwrap();
     assert!(
-        unknown.contains(
-            r#"<div class="flash-region" role="status"></div><div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: boom</div><p class="warning">Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></section>"#
-        ),
+        canonical(&unknown).contains(&canonical(&format!(
+            r#"<div class="flash-region" role="status"></div><div class="{ERROR_ALERT} error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}Not added: boom</p></div><div class="{NEUTRAL_ALERT} warning">{ALERT_TITLE}Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></div></section>"#
+        ))),
         "{unknown}"
     );
     assert!(!unknown.contains("With nothing listed"), "{unknown}");
@@ -2333,10 +2550,12 @@ async fn an_unreachable_database_leaves_each_page_with_its_load_error() {
             r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="error-text">Something went wrong: "#
         );
         assert!(reply.html.contains(&panel), "{path}: {}", reply.html);
+        let primary = support::btn("primary");
+        let secondary = support::btn("secondary");
         assert!(
-            reply.html.contains(&format!(
-                r#"<div class="error-actions"><a href="{path}" class="btn btn-primary">Try again</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section>"#
-            )),
+            canonical(&reply.html).contains(&canonical(&format!(
+                r#"<div class="error-actions"><a href="{path}" class="{primary}">Try again</a><a href="/guilds" class="{secondary}">Back to servers</a></div></section>"#
+            ))),
             "{path}: {}",
             reply.html
         );
@@ -2356,4 +2575,17 @@ async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
             })
             .await;
     }
+}
+
+/// Replaces `element_id` values, which hash the render site, with `tc-ID`.
+fn opaque_ids(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some((head, tail)) = rest.split_once("\"tc-") {
+        out.push_str(head);
+        out.push_str("\"tc-ID\"");
+        rest = tail.split_once('"').map_or("", |(_, after)| after);
+    }
+    out.push_str(rest);
+    out
 }

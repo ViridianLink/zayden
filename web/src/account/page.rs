@@ -4,7 +4,7 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::error::see_other;
 use topcoat::router::{page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, attributes, component, view};
 use tracing::warn;
 
 use super::deadlock::{DeadlockPrefs, deadlock_section, load as load_deadlock};
@@ -15,6 +15,8 @@ use crate::auth::{
     remember_login_next,
     require_user,
 };
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::flash::flash;
 use crate::flash::{Flash, FlashKind, set as set_flash, take as take_flash};
 use crate::public::layout::public_layout;
@@ -53,11 +55,13 @@ pub(super) async fn account(cx: &Cx) -> Result<impl View> {
     };
 
     Ok(view! {
-        public_layout(account_page(
-            notice: notice.as_ref(),
-            links: links.as_deref(),
-            summaries: summaries.as_ref()
-        ))
+        public_layout(
+            account_page(
+                notice: notice.as_ref(),
+                links: links.as_deref(),
+                summaries: summaries.as_ref()
+            )
+        )
     })
 }
 
@@ -128,9 +132,13 @@ async fn account_page(
             flash(notice: notice)
             match links {
                 None => {
-                    <p class="error" role="alert">
-                        "Your linked accounts couldn't be loaded. Please try again shortly."
-                    </p>
+                    alert(
+                        variant: AlertVariant::Destructive,
+                        attrs: attributes! { class="error" role="alert" },
+                        alert_title(
+                            "Your linked accounts couldn't be loaded. Please try again shortly."
+                        )
+                    )
                 }
                 Some(links) => {
                     <ul class="account-list">
@@ -192,7 +200,10 @@ async fn provider_row(
                     <form method="post" action=(unlink_action) data-pending="">
                         <button
                             type="submit"
-                            class="btn btn-secondary"
+                            class=(button_variants(
+                                ButtonVariant::Secondary,
+                                ButtonSize::Md,
+                            ))
                             data-pending-label="Unlinking\u{2026}"
                         >
                             "Unlink"
@@ -200,7 +211,11 @@ async fn provider_row(
                     </form>
                 }
                 None => {
-                    <a href=(link_href) rel="external" class="btn btn-primary">
+                    <a
+                        href=(link_href)
+                        rel="external"
+                        class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    >
                         (link_label)
                     </a>
                 }

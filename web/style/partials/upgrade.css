@@ -131,8 +131,3 @@
     align-items: center;
     margin-top: var(--space-3);
 }
-
-.kofi-link-form .input {
-    flex: 1;
-    min-width: 220px;
-}

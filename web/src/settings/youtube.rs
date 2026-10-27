@@ -15,6 +15,7 @@ use super::fields::channels;
 use super::provider::{Banner, banner, query_value, status_unknown};
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm::confirm_button;
 use crate::components::field_row::{form_summary, select_row, textarea_row};
 use crate::components::placeholder_legend::placeholder_legend;
@@ -238,7 +239,7 @@ async fn panel(
                 }
                 <div class="settings-actions">
                     <a
-                        class="btn btn-secondary"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         href=(connect_href.as_str())
                         rel="external"
                     >
@@ -252,7 +253,6 @@ async fn panel(
                     >
                         <input type="hidden" name="guild" value=(guild_id)>
                         confirm_button(
-                            id: "youtube-disconnect-confirm",
                             label: "Disconnect",
                             prompt: "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
                             confirm: "Disconnect YouTube",
@@ -320,7 +320,7 @@ async fn panel(
                 </p>
                 <div class="settings-actions">
                     <a
-                        class="btn btn-primary"
+                        class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                         href=(connect_href.as_str())
                         rel="external"
                     >

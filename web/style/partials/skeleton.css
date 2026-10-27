@@ -15,13 +15,13 @@
     animation: skeleton-pulse 1.5s var(--ease-out) infinite;
 }
 
-/* Matches .btn: 14px label inside var(--space-2) vertical padding. */
+/* Matches a medium button: 14px label, h-9. */
 .skeleton-btn {
     width: 6.5rem;
     height: 2.4rem;
 }
 
-/* Matches .tier-badge. */
+/* Matches a badge. */
 .skeleton-badge {
     width: 3.4rem;
     height: 1.5rem;

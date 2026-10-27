@@ -26,18 +26,20 @@ use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
+const BUILT_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
 fn partial(name: &str) -> TestResult<String> {
     Ok(fs::read_to_string(Path::new(CRATE_ROOT).join("style/partials").join(name))?)
 }
 
-fn stylesheet() -> TestResult<String> {
-    let mut css = String::new();
-    for entry in fs::read_dir(Path::new(CRATE_ROOT).join("style/partials"))? {
-        css.push_str(&fs::read_to_string(entry?.path())?);
-        css.push('\n');
-    }
-    Ok(css)
+fn escape(class: &str) -> String {
+    class.chars().fold(String::new(), |mut out, c| {
+        if !(c.is_ascii_alphanumeric() || matches!(c, '-' | '_')) {
+            out.push('\\');
+        }
+        out.push(c);
+        out
+    })
 }
 
 /// Every rule block as (selectors, declarations), split on braces.
@@ -90,12 +92,7 @@ async fn everything() -> ViewResult<impl View> {
 
     Ok(view! {
         <form method="post" data-pending="">
-            confirm_button(
-                id: "item-delete",
-                label: "Delete",
-                prompt: "Sure?",
-                confirm: "Delete it"
-            )
+            confirm_button(label: "Delete", prompt: "Sure?", confirm: "Delete it")
             save_bar()
         </form>
         guild_grid(guilds: &guilds)
@@ -135,26 +132,37 @@ async fn everything_html() -> TestResult<String> {
     Ok(String::from_utf8(response.into_body().collect().await?.to_bytes().to_vec())?)
 }
 
+fn unescape(value: &str) -> String {
+    value
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&amp;", "&")
+}
+
 fn rendered_classes(html: &str) -> BTreeSet<String> {
     html.split("class=\"")
         .skip(1)
-        .filter_map(|rest| rest.split_once('"').map(|(classes, _)| classes))
-        .flat_map(str::split_whitespace)
-        .map(str::to_owned)
+        .filter_map(|rest| {
+            rest.split_once('"').map(|(classes, _)| unescape(classes))
+        })
+        .flat_map(|classes| {
+            classes.split_whitespace().map(str::to_owned).collect::<Vec<_>>()
+        })
         .collect()
 }
 
 #[tokio::test]
 async fn every_rendered_class_has_a_rule() {
-    let css = stylesheet().unwrap();
     let selectors: Vec<_> =
-        rules(&css).into_iter().map(|(selectors, _)| selectors).collect();
+        rules(BUILT_CSS).into_iter().map(|(selectors, _)| selectors).collect();
     let classes = rendered_classes(&everything_html().await.unwrap());
 
     let missing: Vec<_> = classes
         .iter()
         .filter(|class| {
-            !selectors.iter().any(|selectors| names_class(selectors, class))
+            !selectors.iter().any(|selectors| names_class(selectors, &escape(class)))
         })
         .collect();
 
@@ -164,7 +172,6 @@ async fn every_rendered_class_has_a_rule() {
 
 #[tokio::test]
 async fn every_disableable_button_has_a_disabled_rule() {
-    let css = stylesheet().unwrap();
     let html = everything_html().await.unwrap();
 
     let buttons: Vec<_> = html
@@ -178,9 +185,9 @@ async fn every_disableable_button_has_a_disabled_rule() {
             attrs.contains("type=\"submit\"") || attrs.contains("disabled")
         })
         .filter(|attrs| {
-            !rendered_classes(attrs)
-                .iter()
-                .any(|class| css.contains(&format!(".{class}:disabled")))
+            !rendered_classes(attrs).iter().any(|class| {
+                BUILT_CSS.contains(&format!(".{}:disabled", escape(class)))
+            })
         })
         .collect();
 
@@ -213,12 +220,21 @@ fn the_danger_style_is_only_reachable_through_the_confirm_component() {
     let mut paths = Vec::new();
     collect_rs(&Path::new(CRATE_ROOT).join("src"), &mut paths).unwrap();
 
+    let manifest =
+        fs::read_to_string(Path::new(CRATE_ROOT).join("components.toml")).unwrap();
+    let registry: Vec<_> = manifest
+        .lines()
+        .filter_map(|line| line.strip_prefix("file = \""))
+        .filter_map(|rest| rest.strip_suffix('"'))
+        .collect();
+
     let mut unguarded = Vec::new();
     for path in &paths {
         let text = fs::read_to_string(path).unwrap();
-        let confirm = path.ends_with("components/confirm.rs")
-            || path.ends_with("components/confirm_dialog.rs");
-        if !confirm && text.contains("btn-danger") {
+        let exempt = path.ends_with("components/confirm.rs")
+            || path.ends_with("components/confirm_dialog.rs")
+            || registry.iter().any(|file| path.ends_with(file));
+        if !exempt && text.contains("ButtonVariant::Destructive") {
             unguarded.push(path.display().to_string());
         }
     }

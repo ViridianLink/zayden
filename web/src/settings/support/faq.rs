@@ -2,9 +2,11 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, StatusCode, page, path_param};
+use topcoat::runtime::{link_attrs, prefetch_mode};
 use topcoat::view::{View, ViewExt, component, suspense, view};
 
 use super::Pane;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm::confirm_button;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::empty_state::empty_state;
@@ -114,7 +116,13 @@ async fn article_list(cx: &Cx, guild_id: &str) -> Result<impl View> {
                         )
                     } else {
                         <div class="settings-actions">
-                            <a class="btn btn-primary" href=(new_href.as_str())>
+                            <a
+                                class=(button_variants(
+                                    ButtonVariant::Primary,
+                                    ButtonSize::Md,
+                                ))
+                                (link_attrs(cx, new_href.as_str(), prefetch_mode(cx)))
+                            >
                                 "New article"
                             </a>
                         </div>
@@ -127,7 +135,13 @@ async fn article_list(cx: &Cx, guild_id: &str) -> Result<impl View> {
                                     data_cell(
                                         label: "Title",
                                         header: true,
-                                        <a href=(article_href(guild_id, &article.id))>
+                                        <a
+                                            (link_attrs(
+                                                cx,
+                                                article_href(guild_id, &article.id),
+                                                prefetch_mode(cx),
+                                            ))
+                                        >
                                             (article.title.as_str())
                                         </a>
                                     )
@@ -347,7 +361,13 @@ async fn article_editor(
                         "This FAQ article doesn't exist. It may have been deleted."
                     </p>
                     <div class="error-actions">
-                        <a href=(back.as_str()) class="btn btn-primary">
+                        <a
+                            class=(button_variants(
+                                ButtonVariant::Primary,
+                                ButtonSize::Md,
+                            ))
+                            (link_attrs(cx, back.as_str(), prefetch_mode(cx)))
+                        >
                             "Back to FAQ articles"
                         </a>
                     </div>
@@ -464,7 +484,6 @@ async fn delete_section(
     let action = format!("{}/delete", article_href(guild_id, &article.id));
     let confirm_object = format!("\u{201c}{}\u{201d}", article.title);
     let failed = state.sent(DELETE_FORM).summary();
-    let confirm_id = format!("faq-{}-delete", article.id);
 
     Ok(view! {
         <form id=(DELETE_FORM) method="post" action=(action.as_str()) data-pending="">
@@ -482,7 +501,6 @@ async fn delete_section(
                     "Deleting removes the article for everyone, including the wiki copy."
                 </p>
                 confirm_button(
-                    id: &confirm_id,
                     label: "Delete article",
                     prompt: "This removes the article for everyone, including the wiki copy. It cannot be undone.",
                     confirm: "Delete article",

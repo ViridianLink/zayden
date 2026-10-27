@@ -40,6 +40,11 @@ use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const MEMBER: &str = "session=member-token";
@@ -191,7 +196,7 @@ impl Harness {
     }
 
     async fn page(&self, path: &str, cookie: Option<&str>) -> TestResult<String> {
-        Ok(normalize(&self.raw_page(path, cookie).await?))
+        Ok(opaque_ids(&normalize(&self.raw_page(path, cookie).await?)))
     }
 
     async fn raw_page(
@@ -210,7 +215,7 @@ impl Harness {
 
 async fn body_text(response: Response) -> TestResult<String> {
     let bytes = response.into_body().collect().await?.to_bytes();
-    Ok(normalize(&String::from_utf8(bytes.to_vec())?))
+    Ok(opaque_ids(&normalize(&String::from_utf8(bytes.to_vec())?)))
 }
 
 /// Drops comments and runtime binding attributes, which the browser does not
@@ -301,30 +306,54 @@ async fn save(pool: &PgPool, raw: RawLoadout) -> TestResult<i32> {
     Ok(write_unchecked(pool, None, &draft(&form)?).await?)
 }
 
-fn confirm(id: i32, name: &str) -> String {
+fn confirm(name: &str) -> String {
+    let ghost = support::btn("ghost");
+    let secondary = support::btn("secondary");
+    let destructive = support::btn("destructive");
     format!(
-        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" aria-label="Delete loadout {name}" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="{ghost}" aria-label="Delete loadout {name}" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">Delete loadout “{name}”?</h2><p class="dialog-desc" id="tc-ID">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">Delete loadout</button></div></div></dialog></div>"#
     )
 }
 
 fn row(id: i32, name: &str, cells: [&str; 4]) -> String {
     let [class, element, mode, author] = cells;
     format!(
-        r#"<tr role="row"><th scope="row" role="rowheader" data-label="Loadout"><a href="{LIST}/{id}" class="loadout-name">{name}</a></th><td role="cell" data-label="Class">{class}</td><td role="cell" data-label="Subclass">{element}</td><td role="cell" data-label="Mode">{mode}</td><td role="cell" data-label="Author">{author}</td><td role="cell" data-label="Action"><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{}</form></td></tr>"#,
-        confirm(id, name)
+        r#"<tr role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Loadout"><a href="{LIST}/{id}" class="loadout-name">{name}</a></th><td class="{TD}" role="cell" data-label="Class">{class}</td><td class="{TD}" role="cell" data-label="Subclass">{element}</td><td class="{TD}" role="cell" data-label="Mode">{mode}</td><td class="{TD}" role="cell" data-label="Author">{author}</td><td class="{TD}" role="cell" data-label="Action"><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{}</form></td></tr>"#,
+        confirm(name)
     )
 }
 
-const HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>Loadout builder</h1><p class="page-lead">Builds shown by /destiny2 builds. Saves apply to the bot immediately.</p></div><a href="/admin/destiny2/loadouts/new" class="btn btn-primary">New loadout</a></div>"#;
+fn header() -> String {
+    format!(
+        r#"<div class="page"><div class="page-header"><div><h1>Loadout builder</h1><p class="page-lead">Builds shown by /destiny2 builds. Saves apply to the bot immediately.</p></div><a href="/admin/destiny2/loadouts/new" class="{}">New loadout</a></div>"#,
+        support::btn("primary")
+    )
+}
 const NO_FLASH: &str = r#"<div class="flash-region" role="status"></div>"#;
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
 const SKELETONS: &str = r#"<div class="skeleton-list"><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div></div>"#;
-const FILTER: &str = r#"<div class="field-row"><label class="field-label" for="loadout-class-filter">Class</label><div class="select"><select class="input loadout-filter" id="loadout-class-filter"><option value="">All classes</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option><option value="Warlock">Warlock</option></select><span class="select-chevron"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></div>"#;
-const TABLE_HEAD: &str = r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">Loadouts</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Loadout</th><th scope="col" role="columnheader">Class</th><th scope="col" role="columnheader">Subclass</th><th scope="col" role="columnheader">Mode</th><th scope="col" role="columnheader">Author</th><th scope="col" role="columnheader">Action</th></tr></thead><tbody role="rowgroup">"#;
+const FILTER_OPEN: &str = r#"<div class="field-row"><label class="field-label" for="loadout-class-filter">Class</label><span class="relative block has-[:disabled]:opacity-50 [&amp;>select]:[appearance:base-select] [&amp;:has(select:open)>svg]:rotate-180 loadout-filter" style=""#;
+const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
+const CHEVRON: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground transition-transform"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m6 9 6 6 6-6"/></g></svg>"#;
+const TABLE: &str = "w-full caption-bottom border-collapse border-border text-sm [:not(:first-child)>&amp;]:border-t [:not(:last-child)>&amp;]:border-b data-table";
+const CAPTION: &str = "mt-4 text-sm text-muted-foreground visually-hidden";
+const THEAD: &str = "bg-foreground/5 [&amp;_tr]:border-b";
+const TBODY: &str = "[&amp;_tr:last-child]:border-0";
+const ROW: &str = "border-b border-border transition-colors hover:bg-foreground/5";
+const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
+const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
+
+fn table_head() -> String {
+    format!(
+        r#"<div class="w-full overflow-x-auto" data-slot="table"><table class="{TABLE}" role="table"><caption class="{CAPTION}">Loadouts</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Loadout</th><th class="{TH}" scope="col" role="columnheader">Class</th><th class="{TH}" scope="col" role="columnheader">Subclass</th><th class="{TH}" scope="col" role="columnheader">Mode</th><th class="{TH}" scope="col" role="columnheader">Author</th><th class="{TH}" scope="col" role="columnheader">Action</th></tr></thead><tbody class="{TBODY}" role="rowgroup">"#
+    )
+}
 
 /// The 403 page a signed-in viewer without the role gets.
 fn forbidden(who: &str) -> String {
+    let primary = support::btn("primary");
     format!(
-        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's {who}.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's {who}.</p><div class="error-actions"><a href="/guilds" class="{primary}">Back to servers</a></div></section></div></main>"#
     )
 }
 
@@ -362,7 +391,10 @@ async fn the_server_list_sends_visitors_to_sign_in_and_refuses_users_without_the
         let response = app.get("/admin/servers", Some(cookie)).await.unwrap();
         assert_eq!(response.status(), StatusCode::FORBIDDEN, "{cookie}");
         let html = body_text(response).await.unwrap();
-        assert!(html.contains(&forbidden("operators")), "{cookie}: {html}");
+        assert!(
+            canonical(&html).contains(&canonical(&forbidden("operators"))),
+            "{cookie}: {html}"
+        );
         assert!(!html.contains("operator-tools"), "{html}");
         assert!(
             html.contains("<title>All bot servers - Zayden Dashboard</title>"),
@@ -412,26 +444,32 @@ async fn the_loadout_list_shows_a_filterable_table_and_refuses_without_the_role(
         .collect();
     let total = stored.len();
     assert!(
-        html.contains(&format!(
-            r#"<p class="operator-count" role="status">{total} of {total} loadouts</p>{TABLE_HEAD}{rows}</tbody></table></div>"#
-        )),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<p class="operator-count" role="status">{total} of {total} loadouts</p>{}{rows}</tbody></table></div>"#,
+            table_head()
+        ))),
         "{html}"
     );
     assert!(
-        html.contains(&format!("{HEADER}{NO_FLASH}{FILTER}{SKELETONS}</div>")),
+        canonical(&html)
+            .contains(&format!("{}{NO_FLASH}{FILTER_OPEN}", canonical(&header()))),
         "{html}"
     );
     assert!(
-        html.contains(&row(hunter, "Pages Shatter", [
-            "Hunter", "Arc", "PvE", "Oscar"
-        ]))
+        canonical(&html).contains(&canonical(&format!(
+            r#"<select id="loadout-class-filter" class="{SELECT}"><option value="">All classes</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option><option value="Warlock">Warlock</option></select>{CHEVRON}</span></div>{SKELETONS}</div>"#
+        ))),
+        "{html}"
     );
+    assert!(canonical(&html).contains(&canonical(&row(hunter, "Pages Shatter", [
+        "Hunter", "Arc", "PvE", "Oscar"
+    ]))));
     assert!(!html.contains("flash-text"), "{html}");
     assert_eq!(html.matches(r#"class="loadout-name""#).count(), stored.len());
     assert!(
-        html.contains(
+        canonical(&html).contains(&canonical(
             r#"<a href="/admin/destiny2/loadouts" class="nav-link" aria-current="page">"#
-        ),
+        )),
         "{html}"
     );
     assert!(
@@ -458,7 +496,10 @@ async fn the_loadout_list_shows_a_filterable_table_and_refuses_without_the_role(
     let response = app.get(LIST, Some(MEMBER)).await.unwrap();
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(&forbidden("loadout admins")), "{html}");
+    assert!(
+        canonical(&html).contains(&canonical(&forbidden("loadout admins"))),
+        "{html}"
+    );
     assert!(!html.contains("loadout-name"), "{html}");
 
     for query in
@@ -495,14 +536,15 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
         app.post(LIST, &format!("id={gone}"), Some(MEMBER)).await.unwrap();
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     assert!(
-        body_text(response).await.unwrap().contains(&forbidden("loadout admins"))
+        canonical(&body_text(response).await.unwrap())
+            .contains(&canonical(&forbidden("loadout admins")))
     );
     assert_eq!(summaries(&pool).await.unwrap().len(), before);
 
     let refused = |message: &str| {
-        format!(
-            r#"{NO_FLASH}<div class="error" id="delete-summary" role="alert" tabindex="-1" autofocus="">Not deleted: {message}</div>"#
-        )
+        canonical(&format!(
+            r#"{NO_FLASH}<div class="{ERROR_ALERT} error" id="delete-summary" role="alert" tabindex="-1" autofocus=""><p class="col-start-2 font-medium tracking-tight">Not deleted: {message}</p></div>"#
+        ))
     };
     let attempts = [
         ("id=abc".to_owned(), "loadout id `abc` is not a whole number".to_owned()),
@@ -515,7 +557,7 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
         let response = app.post(LIST, &body, Some(ADMIN)).await.unwrap();
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY, "{body}");
         let html = body_text(response).await.unwrap();
-        assert!(html.contains(&refused(&message)), "{body}: {html}");
+        assert!(canonical(&html).contains(&refused(&message)), "{body}: {html}");
         assert!(
             html.contains("<title>Loadout builder - Zayden Dashboard</title>"),
             "{html}"
@@ -554,7 +596,8 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     assert!(
-        html.contains(&refused(&format!("loadout {gone} does not exist"))),
+        canonical(&html)
+            .contains(&refused(&format!("loadout {gone} does not exist"))),
         "{html}"
     );
 
@@ -572,4 +615,17 @@ async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
             })
             .await;
     }
+}
+
+/// Replaces `element_id` values, which hash the render site, with `tc-ID`.
+fn opaque_ids(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some((head, tail)) = rest.split_once("\"tc-") {
+        out.push_str(head);
+        out.push_str("\"tc-ID\"");
+        rest = tail.split_once('"').map_or("", |(_, after)| after);
+    }
+    out.push_str(rest);
+    out
 }

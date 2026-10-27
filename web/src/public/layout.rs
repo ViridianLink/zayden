@@ -6,10 +6,12 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::request::uri;
+use topcoat::runtime::{link_attrs, prefetch_mode};
 use topcoat::view::{Child, View, component, view};
 
 use crate::auth::{self, AuthError};
 use crate::components::brand::brand_mark;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::icons::{Icon, icon};
 use crate::components::progress_bar::progress_bar;
 
@@ -51,13 +53,14 @@ pub async fn public_layout(
 
 #[component]
 pub async fn public_nav(
+    cx: &Cx,
     session: SessionSlot,
     #[default("/")] location: &str,
 ) -> Result<impl View> {
     Ok(view! {
         <header class="public-header">
             <div class="public-header-inner">
-                <a href="/" class="brand">
+                <a class="brand" (link_attrs(cx, "/", prefetch_mode(cx)))>
                     brand_mark()
                     <span class="brand-name">"Zayden"</span>
                 </a>
@@ -105,45 +108,72 @@ pub async fn public_nav(
 }
 
 #[component]
-async fn public_links(session: SessionSlot, location: &str) -> Result<impl View> {
+async fn public_links(
+    cx: &Cx,
+    session: SessionSlot,
+    location: &str,
+) -> Result<impl View> {
     let pricing = (location == "/upgrade").then_some("page");
 
     Ok(view! {
         <a href="/#features" rel="external" class="public-nav-link">"Features"</a>
-        <a href="/upgrade" class="public-nav-link" aria-current=(pricing)>"Pricing"</a>
+        <a
+            class="public-nav-link"
+            aria-current=(pricing)
+            (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
+        >
+            "Pricing"
+        </a>
         match session {
             SessionSlot::Unavailable => {
 
             }
             SessionSlot::SignedOut => {
-                <a href="/auth/discord" rel="external" class="btn btn-secondary">
+                <a
+                    href="/auth/discord"
+                    rel="external"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
+                >
                     "Sign in"
                 </a>
             }
             SessionSlot::SignedIn => {
-                <a href="/guilds" class="btn btn-primary">"Open dashboard"</a>
+                <a
+                    class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    (link_attrs(cx, "/guilds", prefetch_mode(cx)))
+                >
+                    "Open dashboard"
+                </a>
             }
         }
     })
 }
 
 #[component]
-async fn footer(session: SessionSlot) -> Result<impl View> {
+async fn footer(cx: &Cx, session: SessionSlot) -> Result<impl View> {
     Ok(view! {
         <footer class="footer">
             <div class="footer-inner">
                 <span>"© 2026 Zayden. Not affiliated with Discord."</span>
                 <nav class="footer-links" aria-label="Footer">
                     <a href="/invite" rel="external">"Invite"</a>
-                    <a href="/upgrade">"Pricing"</a>
+                    <a (link_attrs(cx, "/upgrade", prefetch_mode(cx)))>"Pricing"</a>
                     match session {
-                        SessionSlot::SignedIn => <a href="/guilds">"Dashboard"</a>,
+                        SessionSlot::SignedIn => {
+                            <a (link_attrs(cx, "/guilds", prefetch_mode(cx)))>
+                                "Dashboard"
+                            </a>
+                        }
                         SessionSlot::SignedOut | SessionSlot::Unavailable => {
                             <a href="/auth/discord" rel="external">"Sign in"</a>
                         }
                     }
-                    <a href="/privacy">"Privacy Policy"</a>
-                    <a href="/terms">"Terms of Service"</a>
+                    <a (link_attrs(cx, "/privacy", prefetch_mode(cx)))>
+                        "Privacy Policy"
+                    </a>
+                    <a (link_attrs(cx, "/terms", prefetch_mode(cx)))>
+                        "Terms of Service"
+                    </a>
                 </nav>
             </div>
         </footer>

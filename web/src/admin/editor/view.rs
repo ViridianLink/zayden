@@ -1,6 +1,6 @@
 use topcoat::Result;
 use topcoat::asset::Asset;
-use topcoat::view::{Unescaped, View, ViewExt, component, view};
+use topcoat::view::{Unescaped, View, ViewExt, attributes, class, component, view};
 
 use super::index::{CatalogIndex, missing_emojis};
 use crate::admin::dto::{
@@ -12,7 +12,10 @@ use crate::admin::dto::{
     WeaponForm,
 };
 use crate::admin::keys::display_name;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::icons::{Icon, icon};
+use crate::components::input::input;
+use crate::components::textarea::textarea;
 
 const MAX_ASPECTS: usize = 2;
 const MAX_WEAPONS: usize = 3;
@@ -111,7 +114,12 @@ pub(super) async fn editor(
             </div>
             <p class="visually-hidden" role="status"></p>
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">"Save"</button>
+                <button
+                    type="submit"
+                    class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                >
+                    "Save"
+                </button>
             </div>
         </form>
         <dialog class="picker" aria-labelledby="picker-title"></dialog>
@@ -135,14 +143,15 @@ async fn text_input(
     Ok(view! {
         <div class="setting-field">
             <label for=(id)>(label)</label>
-            <input
-                id=(id)
-                class="input"
-                aria-label=(aria_label)
-                type=(kind)
-                placeholder=(placeholder)
-                value=(value)
-            >
+            input(
+                attrs: attributes! {
+                    id=(id)
+                    aria-label=(aria_label)
+                    type=(kind)
+                    placeholder=(placeholder)
+                    value=(value)
+                }
+            )
         </div>
     })
 }
@@ -417,7 +426,10 @@ async fn subclass_card(
                     )
                 }
                 if form.aspects.len() < MAX_ASPECTS {
-                    <button type="button" class="btn btn-secondary">
+                    <button
+                        type="button"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
+                    >
                         icon(name: Icon::Plus)
                         "Add aspect"
                     </button>
@@ -458,7 +470,10 @@ async fn aspect_block(
             </div>
             <button
                 type="button"
-                class="btn btn-ghost aspect-remove"
+                class=(class!(
+                    button_variants(ButtonVariant::Ghost, ButtonSize::Md),
+                    "aspect-remove",
+                ))
                 aria-label=(format!("Remove aspect {number}"))
             >
                 "Remove aspect"
@@ -564,7 +579,10 @@ async fn weapon_line(
             )
             <button
                 type="button"
-                class="btn btn-ghost gear-remove"
+                class=(class!(
+                    button_variants(ButtonVariant::Ghost, ButtonSize::Md),
+                    "gear-remove",
+                ))
                 aria-label=(format!("Remove {}", row.name))
             >
                 icon(name: Icon::X)
@@ -645,7 +663,12 @@ async fn artifact_card(
                     (if named { name } else { "Choose artifact" })
                 </button>
                 if named {
-                    <button type="button" class="btn btn-ghost">"Clear"</button>
+                    <button
+                        type="button"
+                        class=(button_variants(ButtonVariant::Ghost, ButtonSize::Md))
+                    >
+                        "Clear"
+                    </button>
                 }
             </div>
             <span class="label">"Artifact perks"</span>
@@ -760,10 +783,11 @@ async fn details_card(form: &LoadoutForm) -> Result<impl View> {
             tag_field(tags: &form.tags)
             <div class="setting-field">
                 <label for="loadout-how">"How it works"</label>
-                <textarea id="loadout-how" class="input" rows="8">
+                textarea(
+                    attrs: attributes! { id="loadout-how" rows="8" },
                     "\n"
                     (form.how_it_works.as_str())
-                </textarea>
+                )
             </div>
         </section>
     }
@@ -793,8 +817,12 @@ async fn tag_field(tags: &[String]) -> Result<impl View> {
                 }
             </div>
             <div class="chip-add">
-                <input class="input" id="loadout-tag">
-                <button type="button" class="btn btn-secondary" disabled=(full)>
+                input(attrs: attributes! { id="loadout-tag" })
+                <button
+                    type="button"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
+                    disabled=(full)
+                >
                     "Add"
                 </button>
             </div>

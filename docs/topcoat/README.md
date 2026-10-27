@@ -1,6 +1,6 @@
 # Topcoat reference
 
-Verified against: topcoat 0.10.0
+Verified against: topcoat 0.11.0
 
 Topcoat is pre-1.0 and its API changes between minor releases. This directory records what the pinned version actually provides, so code is written against checked facts instead of memory or search results. Read the relevant file before writing Topcoat code.
 
@@ -9,7 +9,8 @@ Topcoat is pre-1.0 and its API changes between minor releases. This directory re
 | [core.md](core.md) | Features, `view!`, components, client expressions, router, request context, forms, cookies, origin policy, assets, runtime script, head and meta, errors, test harness |
 | [ui.md](ui.md) | Topcoat UI registry components, the `neutral` theme, Geist font, icons, wiring the installed components into `web` |
 | [tooling.md](tooling.md) | `topcoat` CLI, Tailwind build integration, font and icon features, how `web` is built locally, in Docker and in CI |
-| [changes-0.9-to-0.10.md](changes-0.9-to-0.10.md) | Release notes and public API differences between 0.9.0 and 0.10.0, with their impact on this repository |
+| [changes-0.10-to-0.11.md](changes-0.10-to-0.11.md) | Release notes and public API differences between 0.10.0 and 0.11.0, with their impact on this repository |
+| [changes-0.9-to-0.10.md](changes-0.9-to-0.10.md) | The same for 0.9.0 to 0.10.0 |
 
 ## Status labels
 
@@ -40,9 +41,11 @@ An API that is not in (1) and has not compiled in (2) is treated as nonexistent.
 
 The files in `web/src/components/` that `web/components.toml` lists come from `topcoat-ui-registry`. The wired ones carry local edits (lint header, local icons, app tokens), so `topcoat ui add <name> --overwrite` would discard them.
 
-1. Diff each wired file against the registry source of the new version, `~/.cargo/registry/src/*/topcoat-ui-registry-<version>/src/components/<name>.rs`, and note the local edits.
-2. Run `topcoat ui add <name> --overwrite`, then re-apply the local edits.
-3. Never run `topcoat ui remove select` or `topcoat ui add select --overwrite`: the CLI would replace the app's own `select.rs`. Rename the app module first, as was done for `shape_skeleton`.
+1. Install the matching CLI (`cargo install topcoat-cli@<version> --locked`) and copy the wired files aside.
+2. Run `topcoat ui add --all --overwrite -p web`. It rewrites every component, adds new ones and updates the hashes in `components.toml`.
+3. Re-apply the local edits with a three-way merge per wired file: `git merge-file <saved copy> ~/.cargo/registry/src/*/topcoat-ui-registry-<old>/src/components/<name>.rs web/src/components/<name>.rs` writes the result into the saved copy, which then replaces the file. Resolve conflicts by keeping the upstream structure with the local class values.
+4. `topcoat ui add` appends `pub mod` lines for every file it writes; restore `web/src/components/mod.rs` so only wired modules are declared.
+5. Add new parked components to the `@source not` line of `web/styles.css`.
 
 Parked components (listed in the `@source not` line of `web/styles.css`) stay byte-identical to upstream and can be overwritten freely.
 

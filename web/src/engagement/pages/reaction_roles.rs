@@ -10,6 +10,7 @@ use super::fields::{load_error, load_problem};
 use super::header::page_header;
 use super::state::{Done, PageState, rerender, settle};
 use crate::auth::{ChannelInfo, RoleInfo};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::field_row::{form_summary, select_row, text_row};
@@ -276,7 +277,7 @@ async fn add_section(
                 <div class="form-actions">
                     <button
                         type="submit"
-                        class="btn btn-primary"
+                        class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                         data-pending-label="Adding\u{2026}"
                     >
                         icon(name: Icon::Plus)
@@ -323,7 +324,6 @@ async fn list_section(
                     #[key(index)]
                     for (index, mapping) in page.mappings.iter().enumerate() {
                         mapping_row(
-                            index: index,
                             guild_id: guild_id,
                             mapping: mapping,
                             channels: &page.channels,
@@ -346,7 +346,6 @@ fn custom_emoji_name(emoji: &str) -> Option<&str> {
 
 #[component]
 async fn mapping_row(
-    index: usize,
     guild_id: &str,
     mapping: &ReactionRoleInfo,
     channels: &[ChannelInfo],
@@ -356,7 +355,6 @@ async fn mapping_row(
     let role = role_label(roles, &mapping.role_id);
     let link = message_link(guild_id, &mapping.channel_id, &mapping.message_id);
     let action = form_action(guild_id, PAGE, RoleAction::Remove);
-    let confirm_id = format!("rr-{index}-remove");
     let emoji_name = custom_emoji_name(&mapping.emoji)
         .map_or_else(|| mapping.emoji.clone(), |name| format!(":{name}:"));
     let confirm_title = format!("Remove the {emoji_name} reaction role for {role}?");
@@ -417,7 +415,6 @@ async fn mapping_row(
                     >
                     <input type="hidden" name="emoji" value=(mapping.emoji.as_str())>
                     confirm_dialog(
-                        id: &confirm_id,
                         trigger: "Remove",
                         title: &confirm_title,
                         description: Some(

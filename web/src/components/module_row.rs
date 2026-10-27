@@ -4,8 +4,11 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{Child, View, component, view};
+use topcoat::context::Cx;
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{Child, View, attributes, component, view};
 
+use super::alert::{AlertVariant, alert, alert_title};
 use super::icons::{Icon, icon};
 use super::lamp::{LampState, lamp};
 use crate::nav::path_segment;
@@ -25,6 +28,7 @@ const fn lamp_state(on: bool) -> LampState {
 
 #[component]
 pub async fn module_row(
+    cx: &Cx,
     guild_id: &str,
     module_id: &str,
     label: &str,
@@ -38,7 +42,7 @@ pub async fn module_row(
             <div class="rack-main">
                 <h3 class="rack-name">
                     if let Some(href) = href {
-                        <a href=(href)>(label)</a>
+                        <a (link_attrs(cx, href, prefetch_mode(cx)))>(label)</a>
                     } else {
                         (label)
                     }
@@ -77,7 +81,10 @@ pub async fn module_row(
                     <div class="rack-state">lamp(state: lamp_state(on))</div>
                     <div class="rack-control">
                         if let Some(href) = href {
-                            <a href=(href) class="rack-link">
+                            <a
+                                class="rack-link"
+                                (link_attrs(cx, href, prefetch_mode(cx)))
+                            >
                                 "Manage"
                                 icon(name: Icon::ChevronRight)
                             </a>
@@ -91,7 +98,11 @@ pub async fn module_row(
                 }
             }
             if let Some(error) = error {
-                <p class="rack-error" role="alert">(error)</p>
+                alert(
+                    variant: AlertVariant::Destructive,
+                    attrs: attributes! { class="rack-error" role="alert" },
+                    alert_title((error))
+                )
             }
         </li>
     })

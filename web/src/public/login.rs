@@ -3,12 +3,14 @@ use topcoat::context::Cx;
 use topcoat::router::error::see_other;
 use topcoat::router::page;
 use topcoat::router::request::uri;
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, attributes, class, component, view};
 use url::form_urlencoded;
 
 use super::layout::public_layout;
 use crate::auth;
+use crate::components::alert::{AlertVariant, alert, alert_title};
 use crate::components::brand::brand_mark;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 
 const SIGNED_IN_PATH: &str = "/guilds";
 
@@ -47,12 +49,19 @@ async fn login_card(failed: bool) -> Result<impl View> {
                         "Connect your Discord account to manage your server settings."
                     </p>
                     if failed {
-                        <p class="error" role="alert">(AUTH_FAILED_TEXT)</p>
+                        alert(
+                            variant: AlertVariant::Destructive,
+                            attrs: attributes! { class="error" role="alert" },
+                            alert_title((AUTH_FAILED_TEXT))
+                        )
                     }
                     <a
                         href="/auth/discord"
                         rel="external"
-                        class="btn btn-primary btn-lg"
+                        class=(class!(
+                            button_variants(ButtonVariant::Primary, ButtonSize::Lg),
+                            "w-full",
+                        ))
                     >
                         (if failed {
                             "Try again with Discord"

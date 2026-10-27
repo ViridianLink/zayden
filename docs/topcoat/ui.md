@@ -1,8 +1,8 @@
-Verified against: topcoat 0.10.0 (Cargo.lock), 2026-10-06
+Verified against: topcoat 0.11.0 (Cargo.lock), 2026-10-26
 
 # Topcoat UI: registry components, theme, font and icons
 
-Reference for the built-in `topcoat` registry (crate `topcoat-ui-registry` 0.10.0, enabled through topcoat's `ui` feature) and for the files `topcoat ui init` and `topcoat ui add --all` wrote into `web/`. CLI behavior is in [tooling.md](tooling.md); the core framework API is in [core.md](core.md).
+Reference for the built-in `topcoat` registry (crate `topcoat-ui-registry` 0.11.0, enabled through topcoat's `ui` feature) and for the files `topcoat ui init` and `topcoat ui add --all` wrote into `web/`. CLI behavior is in [tooling.md](tooling.md); the core framework API is in [core.md](core.md).
 
 Status labels are defined in [README.md](README.md). The probes under `scratch/topcoat-kb/ui/` compile every example below against the real registry sources and assert the server-rendered HTML. They do not run a browser: statements about focus, hover, popovers and CSS support follow the component sources and their comments, and are marked as such.
 
@@ -24,27 +24,23 @@ Status: VERIFIED (checked against the files in `web/`).
 
 | File | Role |
 |---|---|
-| `web/components.toml` | Install state: format `version = 1`, `components_dir = "src/components"`, the theme (`neutral`, file `styles.css`) and a `[registries.topcoat.components.<name>]` table with the registry source hash and file for every component. 31 components are listed. |
-| `web/styles.css` | The `neutral` theme, byte-identical to `themes/neutral.css` in the registry crate. It is a complete Tailwind input: `@import "tailwindcss"`, an `@source` for `./src/**/*.rs`, the dark variant, the `@theme inline` token map, the `:root` and `.dark` values and one `@layer base` rule. |
-| `web/src/components/<name>.rs` | Verbatim copies of the registry sources (30 files) plus the app's own `select.rs`. `skeleton.rs` is the registry component; the app's skeleton is `shape_skeleton.rs`. |
-| `web/src/components/mod.rs` | Declares only the app's own modules (`confirm`, `guild_grid`, `icons`, `key_list`, `legal`, `select`, `settings`, `shape_skeleton`). The registry modules are not declared, so none of the 30 registry files is compiled. |
+| `web/components.toml` | Install state: format `version = 1`, `components_dir = "src/components"`, the theme (`neutral`, file `styles.css`) and a `[registries.topcoat.components.<name>]` table with the registry source hash and file for every component. All 34 registry components are listed. |
+| `web/styles.css` | The app's Tailwind input (`web/build.rs` builds it), not the registry theme: `@import "tailwindcss" source(none)`, `@source "./src/**/*.rs"`, an `@source not` line for the parked components, the dark variant, the `@theme inline` token map and the `web/style/partials/*.css` imports. `web/style/partials/tokens.css` maps the registry tokens (`--primary`, `--input`, `--shadow-xs`, ...) to the app's palette. `topcoat ui` never rewrites it (`ui add` does not touch the theme). |
+| `web/src/components/<name>.rs`, wired | 13 registry components declared in `mod.rs` and compiled: `alert`, `badge`, `button`, `checkbox`, `field`, `input`, `label`, `pagination`, `radio_group`, `select`, `separator`, `skeleton`, `textarea`. Each carries local edits: the `#![expect(unreachable_pub, ...)]` header, icons from `ui_icons.rs` instead of `iconify_icon!`, app tokens (`border-input`, `bg-popover`, `bg-indicator`) and larger touch sizes (`max-md:h-11`, `size-6`). |
+| `web/src/components/<name>.rs`, parked | 21 registry files kept byte-identical to the registry, not declared in `mod.rs` (so not compiled) and excluded from Tailwind scanning by the `@source not` line: `accordion`, `alert_dialog`, `avatar`, `breadcrumb`, `card`, `dialog`, `dropdown_menu`, `floating`, `hover_card`, `kbd`, `navigation_menu`, `popover`, `progress`, `sheet`, `sidebar`, `spinner`, `switch`, `table`, `tabs`, `toggle`, `tooltip`. |
+| `web/src/components/mod.rs` | Declares the wired registry modules next to the app's own (`brand`, `confirm`, `data_table`, `nav_rail`, `pickers`, `shape_skeleton`, `ui_icons`, ...). |
 
-`topcoat ui add` writes `pub mod <name>;` lines into `mod.rs` when it installs a file; the lines are absent here because they were removed after the install. Registry sources import each other with `super::`, so a component's dependencies must be declared in the same module as siblings under their registry names ([index](#component-index)).
+`topcoat ui add` appends `pub mod <name>;` to `mod.rs` for every file it writes, including parked ones; remove those lines again after an update. Registry sources import each other with `super::`, so a component's dependencies must be declared in the same module as siblings under their registry names ([index](#component-index)). Updating wired files is a three-way merge (local copy, old registry source, new registry source); the steps are in [README.md](README.md#updating-vendored-ui-components).
 
-Two names collided with app files:
+The app's own skeleton is `shape_skeleton.rs`, so the registry `skeleton` keeps its name (`sidebar` imports `super::skeleton::skeleton`). The app's selects (`SelectOption`, `select_field`) live in `pickers.rs` and `field_row.rs`; `select.rs` is the registry component.
 
-| Name | State | Consequence |
-|---|---|---|
-| `select` | `web/src/components/select.rs` is the app's own file (channel, role and forum-tag selects, `SelectOption`, `select_field`). It differs from the registry file, but `components.toml` still records `select` as installed from the registry, with the registry hash and `file = "src/components/select.rs"`. | `topcoat ui remove select` deletes the app's file and its `pub mod select;` line. `topcoat ui add select --overwrite` and `topcoat ui add --all --overwrite` replace it with the registry source. Both were reproduced in a sandbox package. See [coexisting `select`](#registry-select-next-to-the-apps-select). |
-| `skeleton` | The registry file is installed. The app's own skeleton is `shape_skeleton.rs`. | No collision. `sidebar` imports `super::skeleton::skeleton`, so the registry file must keep this module name. |
-
-`topcoat ui list` reports every component as `(installed)`, including `select`, because it compares the recorded hash with the registry's current hash and never reads the file on disk. Local edits are invisible to it.
+`topcoat ui list` compares the recorded hash with the registry's current hash and never reads the file on disk, so local edits are invisible to it.
 
 ## Conventions shared by every component
 
 Status: VERIFIED.
 
-Verified in all 31 registry modules and in `topcoat-ui-0.10.0/src/manage/add.rs` (install behavior).
+Verified in all 34 registry modules and in `topcoat-ui-0.11.0/src/manage/add.rs` (install behavior).
 
 | Convention | Behavior |
 |---|---|
@@ -54,16 +50,16 @@ Verified in all 31 registry modules and in `topcoat-ui-0.10.0/src/manage/add.rs`
 | `attrs: Attributes` | Extra attributes, built with `attributes! { ... }`, forwarded to the main element. Each entry below says which element receives them. |
 | `class` in `attrs` | The component takes it out with `attrs.remove("class")` and appends it after its own classes. Conflicting utilities are not resolved: the one that appears later in the generated stylesheet wins, not the later class in the attribute. Use a more specific selector (`[&]:max-w-xl`) or edit the component. |
 | `child: Child` | Children are text, markup or other components. |
-| `Expr<bool>` props | `open` (dialog, alert_dialog, sheet, sidebar, sidebar_trigger, sidebar_rail) and `mobile_open` (sidebar) and `active` (tabs_trigger, sidebar_menu_button, sidebar_menu_sub_button). A plain `bool` renders a static attribute. A runtime expression (`expr!(open.get())`) renders a bound attribute that the browser runtime updates. See [runtime requirements](#runtime-requirements). |
-| Enum props | 16 `Copy` enums, listed per component. Every enum has a `#[default]` variant. |
-| Class helpers | `button_variants(variant, size)`, `badge_variants(variant)` and `sidebar_menu_button_variants(variant, size)` return a class list for a different element, such as a link. |
-| Hooks | `field` and `field_label` emit `data-slot="field"` and `data-slot="field-label"`. Every `sidebar_*` component emits `data-sidebar="..."`. Other components emit no `data-*` hooks; state is read from native attributes (`[open]`, `:checked`, `:disabled`, `[aria-invalid]`, `[aria-current]`). |
-| No `type` on buttons | `button` and `dropdown_menu_item` render `<button>` without `type`, which submits a surrounding `<form>`. Pass `type="button"` through `attrs`. The sidebar buttons set `type="button"` themselves. |
-| Styling | Tailwind utility classes written literally in the source, and theme tokens only (`bg-primary`, `text-muted-foreground`, `border-border`, `ring-ring`, `bg-sidebar`). No raw colors, no `dark:` variants. Tailwind must scan the component files: `styles.css` does it with `@source "./src/**/*.rs"`. |
+| `Expr<bool>` props | `open` (dialog, alert_dialog, sheet, sidebar, sidebar_trigger, sidebar_rail) and `mobile_open` (sidebar) and `active` (tabs_trigger, sidebar_menu_button, sidebar_menu_sub_button, navigation_menu_link). A plain `bool` renders a static attribute. A runtime expression (`expr!(open.get())`) renders a bound attribute that the browser runtime updates. See [runtime requirements](#runtime-requirements). |
+| Enum props | 20 `Copy` enums, listed per component (0.11 adds `FloatingSide`, `FloatingAlign`, `FloatingAnchor`, `NavigationMenuLinkVariant`). Every enum except `FloatingAnchor` has a `#[default]` variant. |
+| Class helpers | `button_variants(variant, size)`, `badge_variants(variant)`, `sidebar_menu_button_variants(variant, size)` and `navigation_menu_link_variants(variant)` return a class list for a different element, such as a link. `floating_variants(anchor, side, align)` places a floating panel. |
+| Hooks | `field` and `field_label` emit `data-slot="field"` and `data-slot="field-label"`, `table` emits `data-slot="table"` (read by `card`). Every `sidebar_*` component emits `data-sidebar="..."`. Other components emit no `data-*` hooks; state is read from native attributes (`[open]`, `:popover-open`, `:checked`, `:disabled`, `[aria-invalid]`, `[aria-current]`). |
+| No `type` on buttons | `button` renders `<button>` without `type`, which submits a surrounding `<form>`. Pass `type="button"` through `attrs`. The sidebar, dropdown menu, popover and navigation menu buttons set `type="button"` themselves (0.10's `dropdown_menu_item` did not). |
+| Styling | Tailwind utility classes written literally in the source, and theme tokens (`bg-primary`, `text-muted-foreground`, `border-border`, `ring-ring`, `bg-sidebar`). The one raw color is the `dialog` and `sheet` overlay, `bg-black/50` since 0.11. No `dark:` variants. Class lists are split over several `class!` string arguments since 0.11 (joined with spaces). Tailwind must scan the component files: `styles.css` does it with `@source "./src/**/*.rs"`. |
 
 ### Runtime requirements
 
-- `dialog`, `alert_dialog`, `sheet`, `tabs`, `sidebar` import `topcoat::runtime::Expr`, so they need topcoat's `runtime` feature. In 0.10.0, `runtime` also needs `asset`: building topcoat with `features = ["runtime", "view"]` fails with `Asset: AttributeValueViewParts is not satisfied`. `web` already enables `asset`, `router`, `runtime` and `view`.
+- `dialog`, `alert_dialog`, `sheet`, `tabs`, `sidebar`, `navigation_menu` import `topcoat::runtime::Expr`, so they need topcoat's `runtime` feature. In 0.10.0 and 0.11.0, `runtime` also needs `asset`: building topcoat with `features = ["runtime", "view"]` fails with `Asset: AttributeValueViewParts is not satisfied`. `web` already enables `asset`, `router`, `runtime` and `view`.
 - With a literal `bool`, no JavaScript is involved (`open: true` renders `open=""`, `open: false` renders nothing).
 - With `expr!(signal.get())` the element carries `data-topcoat-bind:<attr>="..."`; event handlers written as `@click=$(|_e: Event| ...)` render `data-topcoat-on:click="..."`. These need `topcoat::runtime::script()` in `<head>` and `.runtime()` on the router builder, which `web/src/document.rs` and `web/src/router.rs` already do.
 - Inside `attributes! { }`, closure parameters need an explicit type (`|_e: Event|`); in a plain `<button @click=$(|_e| ...)>` they are inferred.
@@ -97,14 +93,17 @@ Status: VERIFIED (dependencies, icons, features and component counts checked aga
 | [`dialog`](#dialog) | overlay | `dialog`, `dialog_content`, `dialog_header`, `dialog_title`, `dialog_description`, `dialog_footer` | - | - | `view`, `runtime`, `asset` |
 | [`alert_dialog`](#alert_dialog) | overlay | `alert_dialog` | dialog | - | `view`, `runtime`, `asset` |
 | [`sheet`](#sheet) | overlay | `sheet`, `sheet_content` | dialog | - | `view`, `runtime`, `asset` |
-| [`dropdown_menu`](#dropdown_menu) | overlay | 9 components, see entry | - | `lucide:chevron-right` | `view`, `icon-iconify` |
-| [`tooltip`](#tooltip) | overlay | `tooltip`, `tooltip_content` | - | - | `view` |
-| [`hover_card`](#hover_card) | overlay | `hover_card`, `hover_card_content` | - | - | `view` |
+| [`dropdown_menu`](#dropdown_menu) | overlay | 9 components, see entry | floating | `lucide:chevron-right` | `view`, `icon-iconify` |
+| [`popover`](#popover) | overlay | `popover`, `popover_trigger`, `popover_content` | floating | - | `view` |
+| [`floating`](#floating) | overlay helper | none (enums, `FLOATING_SCOPE`, `floating_variants`) | - | - | `view` |
+| [`tooltip`](#tooltip) | overlay | `tooltip`, `tooltip_content` | floating | - | `view` |
+| [`hover_card`](#hover_card) | overlay | `hover_card`, `hover_card_content` | floating | - | `view` |
 | [`breadcrumb`](#breadcrumb) | navigation | 7 components, see entry | - | `lucide:chevron-right`, `lucide:ellipsis` | `view`, `icon-iconify` |
 | [`pagination`](#pagination) | navigation | 7 components, see entry | button | `lucide:chevron-left`, `lucide:chevron-right`, `lucide:ellipsis` | `view`, `icon-iconify` |
 | [`tabs`](#tabs) | navigation | `tabs`, `tabs_list`, `tabs_trigger`, `tabs_content` | - | - | `view`, `runtime`, `asset` |
 | [`accordion`](#accordion) | navigation | `accordion`, `accordion_item`, `accordion_trigger`, `accordion_content` | - | `lucide:chevron-down` | `view`, `icon-iconify` |
 | [`sidebar`](#sidebar) | navigation | 23 components, see entry | button, input, separator, sheet, skeleton | `lucide:panel-left` | `view`, `runtime`, `asset`, `icon-iconify` |
+| [`navigation_menu`](#navigation_menu) | navigation | 7 components, see entry | - | `lucide:chevron-down` | `view`, `runtime`, `asset`, `icon-iconify` |
 | [`table`](#table) | data | 8 components, see entry | - | - | `view` |
 | [`card`](#card) | data | `card`, `card_header`, `card_title`, `card_description`, `card_content`, `card_footer` | - | - | `view` |
 | [`badge`](#badge) | data | `badge` | - | - | `view` |
@@ -116,7 +115,7 @@ Status: VERIFIED (dependencies, icons, features and component counts checked aga
 | [`kbd`](#kbd) | data | `kbd`, `kbd_group` | - | - | `view` |
 | [`separator`](#separator) | data | `separator` | - | - | `view` |
 
-Features are topcoat features on the runtime dependency. `icon-iconify` is needed only while the registry source keeps its `iconify_icon!` calls; see [Icons](#icons). All 31 modules compile together in `scratch/topcoat-kb/ui` (`cargo test`); `select.rs` is the registry file, not the app's.
+Features are topcoat features on the runtime dependency. `icon-iconify` is needed only while the registry source keeps its `iconify_icon!` calls; see [Icons](#icons). All 34 modules compile together in `scratch/topcoat-kb/ui` (`cargo test`).
 
 Every example below is the body of `scratch/topcoat-kb/ui/tests/examples.rs`, compiled and rendered by the probe `examples_render`. `crate::components` is the module the registry files are declared in (the probe crate calls it `kb_ui::components`).
 
@@ -160,7 +159,7 @@ button(variant: ButtonVariant = ButtonVariant::Primary, size: ButtonSize = Butto
 - Dependencies: none. Used by `pagination`, `sidebar`.
 - Icons: none.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/button.rs:129`
+Source: `topcoat-ui-registry-0.11.0/src/components/button.rs:129`
 Probe: `scratch/topcoat-kb/ui/tests/form_controls.rs` (`button_page`), `tests/examples.rs` (`ex_button`)
 
 ### input
@@ -191,7 +190,7 @@ input(attrs)  // :29
 - Client behavior: none. A11y: native; connect labels with `for`/`id`.
 - Dependencies: none. Used by `sidebar` (`sidebar_input`).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/input.rs:29`
+Source: `topcoat-ui-registry-0.11.0/src/components/input.rs:29`
 Probe: `tests/form_controls.rs` (`input_page`), `tests/examples.rs` (`ex_input`)
 
 ### textarea
@@ -220,7 +219,7 @@ textarea(attrs, child)  // :30
 - Markup: `<textarea class="TEXTAREA [class]" ...attrs>child</textarea>`; children are the initial value. `min-h-16`. Same `aria-invalid:` and `disabled:` styling as `input`.
 - Client behavior: none. A11y: native.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/textarea.rs:30`
+Source: `topcoat-ui-registry-0.11.0/src/components/textarea.rs:30`
 Probe: `tests/form_controls.rs` (`input_page`), `tests/examples.rs` (`ex_textarea`)
 
 ### label
@@ -246,15 +245,15 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-label(attrs, child)  // :31
+label(attrs, child)  // :32
 ```
 
-- Markup: `<label class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:... has-[:disabled]:... [class]" ...attrs>child</label>`. Wrap the control or set `for`.
+- Markup: `<label class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:... has-[:disabled]:... [class]" ...attrs>child</label>`. Wrap the control or set `for`; the 0.11 doc comment creates the shared ID with `element_id(cx)` ([core.md](core.md) section 3.5).
 - Disabled styling reacts to `peer-disabled`, `peer-has-[:disabled]`, `has-[+:disabled]` and `has-[:disabled]`.
 - Client behavior: none. A11y: native label association.
 - Dependencies: none. Used by `field` (`field_label`).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/label.rs:31`
+Source: `topcoat-ui-registry-0.11.0/src/components/label.rs:32`
 Probe: `tests/form_controls.rs` (`check_page`), `tests/examples.rs` (`ex_label`)
 
 ### field
@@ -317,7 +316,7 @@ field_error(attrs, child)  // :245
 - Client behavior: none. A11y: `role="group"`, `role="alert"` on the error (announced when it is inserted), `aria-describedby` and `aria-invalid` are set by the caller.
 - Dependencies: `label`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/field.rs:63`
+Source: `topcoat-ui-registry-0.11.0/src/components/field.rs:63`
 Probe: `tests/form_controls.rs` (`field_page`), `tests/examples.rs` (`ex_field`)
 
 ### checkbox
@@ -343,14 +342,14 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-checkbox(attrs)  // :32
+checkbox(attrs)  // :33
 ```
 
 - Markup: `<span class="peer relative inline-flex shrink-0 has-[:disabled]:opacity-50 [class]"><input type="checkbox" class="peer size-4 appearance-none ..." ...attrs><svg class="... opacity-0 peer-checked:opacity-100"></svg></span>`. `class` goes on the wrapper `<span>`; every other attribute goes on the `<input>`. `checked=""` sets the initial state. The indeterminate state has no styling.
 - Client behavior: none. A11y: native checkbox; the icon is `aria-hidden`.
 - Icons: `lucide:check`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/checkbox.rs:32`
+Source: `topcoat-ui-registry-0.11.0/src/components/checkbox.rs:33`
 Probe: `tests/form_controls.rs` (`check_page`), `tests/examples.rs` (`ex_checkbox`)
 
 ### switch
@@ -376,14 +375,14 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-switch(attrs)  // :36
+switch(attrs)  // :37
 ```
 
 - Markup: `<span class="peer relative inline-flex ... [class]"><input type="checkbox" role="switch" class="peer h-4.5 w-8 appearance-none ..." ...attrs><span class="... peer-checked:translate-x-3.5"></span></span>`. `class` goes on the wrapper, other attributes on the `<input>`.
 - Client behavior: none. A11y: `role="switch"` on the native checkbox.
 - Dependencies: none.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/switch.rs:36`
+Source: `topcoat-ui-registry-0.11.0/src/components/switch.rs:37`
 Probe: `tests/form_controls.rs` (`check_page`), `tests/examples.rs` (`ex_switch`)
 
 ### radio_group
@@ -410,14 +409,14 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-radio_group(attrs, child)  // :28
-radio_group_item(attrs)  // :62
+radio_group(attrs, child)  // :29
+radio_group_item(attrs)  // :63
 ```
 
 - Markup: `radio_group` `<div role="radiogroup" class="grid gap-3 [class]" ...attrs>`; `radio_group_item` `<span class="peer relative ..."><input type="radio" class="peer size-4 appearance-none ..." ...attrs><span class="... peer-checked:opacity-100"></span></span>`. Give every item the same `name`. For `radio_group_item`, `class` goes on the wrapper, other attributes on the `<input>`.
 - Client behavior: none; native radio grouping gives arrow-key movement. A11y: name the group with `aria-label` or `aria-labelledby` in `attrs`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/radio_group.rs:28`
+Source: `topcoat-ui-registry-0.11.0/src/components/radio_group.rs:29`
 Probe: `tests/form_controls.rs` (`check_page`), `tests/examples.rs` (`ex_radio_group`)
 
 ### toggle
@@ -461,7 +460,7 @@ toggle_group(attrs, child)  // :130
 - Markup: `toggle` `<label class="... has-[:checked]:bg-foreground/10 ... [class]"><input type="checkbox|radio" class="sr-only" ...attrs>child</label>`; `toggle_group` `<div class="inline-flex w-fit items-center gap-1 rounded-lg border border-border p-1" ...attrs>`. `class` goes on the `<label>`, other attributes on the `<input>`. Exclusive toggles share a `name`.
 - Client behavior: none. A11y: the `sr-only` input keeps keyboard focus and is announced as a checkbox or radio named by the label; `toggle_group` has no role, add `role="group"` through `attrs` when the toggles are related.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/toggle.rs:84`
+Source: `topcoat-ui-registry-0.11.0/src/components/toggle.rs:84`
 Probe: `tests/form_controls.rs` (`toggle_page`), `tests/examples.rs` (`ex_toggle`)
 
 ### select
@@ -495,14 +494,14 @@ select(cx: &Cx, attrs, child)  // :88
 - Markup: `<span class="relative block ... [&>select]:[appearance:base-select] [class]" style="--select-checkmark: url(&quot;data:image/svg+xml,...&quot;)"><select class="SELECT PICKER" ...attrs>children</select><svg chevron-down ...></svg></span>`. `class` goes on the wrapper, other attributes on the `<select>`. The check icon is rendered to a data URI in an inline `style` custom property so CSS can use it as a mask.
 - Browsers with customizable select support (`appearance: base-select`) style the picker, option rows and `<optgroup><legend>`; other browsers use the native picker. This is from the source comments, not from a browser run.
 - Client behavior: none. A11y: native select; `aria-invalid="true"` styles the error state.
-- Registry `select` is not the app's `select`: see [coexisting `select`](#registry-select-next-to-the-apps-select).
+- `web/src/components/select.rs` is this component with local edits; the app's own select helpers are in `pickers.rs` ([details](#registry-select-and-the-apps-selects)).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/select.rs:88`
+Source: `topcoat-ui-registry-0.11.0/src/components/select.rs:88`
 Probe: `tests/form_controls.rs` (`select_page`), `tests/examples.rs` (`ex_select`)
 
 ## Overlays
 
-All overlays are CSS or native elements. None of them sets focus, traps focus, closes on Escape or closes on an outside click; each entry lists what the application must add.
+All overlays are CSS or native elements. `popover` and `dropdown_menu` use the native `popover="auto"` attribute, so the browser closes them on Escape and on an outside click and renders them in the top layer. The others set no focus, trap no focus and do not close on Escape or an outside click; each entry lists what the application must add. `popover`, `dropdown_menu`, `tooltip` and `hover_card` position their panel with CSS anchor positioning from the `floating` module ([floating](#floating)).
 
 ### dialog
 
@@ -567,13 +566,13 @@ dialog_description(attrs, child)  // :145
 dialog_footer(attrs, child)  // :162
 ```
 
-- Markup: `<dialog class="fixed inset-0 z-50 size-full ... bg-background/80 backdrop-blur-sm open:flex opacity-0 open:opacity-100 ... [class]" ...attrs>` with `open=""` when open. `dialog_content` `<div class="relative my-auto flex w-full max-w-lg flex-col gap-4 rounded-xl border border-border bg-card p-6 ... scale-95 opacity-0 in-[[open]]:scale-100 ...">`, `dialog_header` `<div>`, `dialog_title` `<h2>`, `dialog_description` `<p>`, `dialog_footer` `<div>`. `attrs` go on the `<dialog>` (or the `<div>` for the content parts). With a signal, `<dialog>` carries `data-topcoat-bind:open`.
+- Markup: `<dialog class="fixed inset-0 z-50 size-full ... bg-black/50 p-4 text-foreground open:flex opacity-0 open:opacity-100 starting:open:opacity-0 [transition:...] [class]" ...attrs>` (0.11 replaced `bg-background/80 backdrop-blur-sm` with the raw color `bg-black/50`) with `open=""` when open. `dialog_content` `<div class="relative my-auto flex w-full max-w-lg flex-col gap-4 rounded-xl border border-border bg-card p-6 ... scale-95 opacity-0 in-[[open]]:scale-100 ...">`, `dialog_header` `<div>`, `dialog_title` `<h2>`, `dialog_description` `<p>`, `dialog_footer` `<div>`. `attrs` go on the `<dialog>` (or the `<div>` for the content parts). With a signal, `<dialog>` carries `data-topcoat-bind:open`.
 - It is not a modal dialog: the component sets the `open` attribute and never calls `showModal()`. There is no top layer, no `::backdrop`, no inert page and no `aria-modal`. The fixed full-viewport overlay blocks pointer clicks on the page behind it.
 - Application scripting required: Escape (the example's `@keydown` on the `<dialog>` works while focus is inside it), moving focus into the dialog on open and back on close, trapping Tab, scroll lock, clicking the overlay to close, and `aria-modal="true"` if wanted. Closing can also be a navigation to a page that renders it closed.
 - A11y: name it with `aria-label` or `aria-labelledby` (the title's `id`).
 - Dependencies: none. Imported by `alert_dialog`; listed as a dependency of `sheet` in `registry.toml` (the sheet source only links to it in a doc comment).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/dialog.rs:61`
+Source: `topcoat-ui-registry-0.11.0/src/components/dialog.rs:61`
 Probe: `tests/overlays.rs` (`dialog_closed`, `dialog_open`, `dialog_signal`), `tests/examples.rs` (`ex_dialog`)
 
 ### alert_dialog
@@ -615,7 +614,7 @@ alert_dialog(open: Expr<bool>, attrs, child)  // :39
 - Scripting and a11y: as `dialog`; set `aria-labelledby` and `aria-describedby` to the title and description ids.
 - Dependencies: `dialog`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/alert_dialog.rs:39`
+Source: `topcoat-ui-registry-0.11.0/src/components/alert_dialog.rs:39`
 Probe: `tests/overlays.rs` (`alert_dialog_page`), `tests/examples.rs` (`ex_alert_dialog`)
 
 ### sheet
@@ -650,16 +649,16 @@ sheet_content(side: SheetSide = SheetSide::Right, attrs, child)  // :131
 ```
 
 - Side: `SheetSide`: Left, Right (default), Top, Bottom. Panel classes: `Left` `mr-auto h-full w-full max-w-sm border-r`, `Right` `ml-auto h-full w-full max-w-sm border-l`, `Top` `mb-auto max-h-full w-full border-b`, `Bottom` `mt-auto max-h-full w-full border-t`, each with a matching translate transition.
-- Markup: `sheet` renders the same `<dialog>` overlay as `dialog` without padding; `sheet_content` `<div class="flex flex-col gap-4 overflow-y-auto border-border bg-card p-6 ...">`. Use `dialog_header`, `dialog_title` and the other dialog parts inside.
+- Markup: `sheet` renders the same `<dialog>` overlay as `dialog` without padding (`bg-black/50`, no blur since 0.11); `sheet_content` `<div class="flex flex-col gap-4 overflow-y-auto border-border bg-card p-6 ...">`. Use `dialog_header`, `dialog_title` and the other dialog parts inside.
 - Scripting and a11y: as `dialog`.
 - Dependencies: `dialog` is listed in `registry.toml` (so `topcoat ui add sheet` installs it); the source does not import it. Imported by `sidebar`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/sheet.rs:46`
+Source: `topcoat-ui-registry-0.11.0/src/components/sheet.rs:46`
 Probe: `tests/overlays.rs` (`sheet_page`), `tests/examples.rs` (`ex_sheet`)
 
 ### dropdown_menu
 
-A floating action menu on a native `<details>`.
+A floating action menu on a native popover. Rewritten in 0.11: the 0.10 `<details>` version took no IDs.
 
 Status: VERIFIED
 Features: `view`, `icon-iconify` (chevron-right)
@@ -673,23 +672,27 @@ use crate::components::{
         dropdown_menu_sub_trigger, dropdown_menu_trigger,
     },
 };
-use topcoat::{Result, router::page, view::{View, attributes, view}};
+use topcoat::{Result, context::Cx, router::page, view::{View, attributes, element_id, view}};
 
 #[page("/ex/dropdown_menu")]
-async fn demo() -> Result<impl View> {
+async fn demo(cx: &Cx) -> Result<impl View> {
     Ok(view! {
+        let menu = element_id(cx);
+        let sub = element_id(cx);
         dropdown_menu(
             dropdown_menu_trigger(
+                target: &menu,
                 attrs: attributes! { class=(button_variants(ButtonVariant::Outline, ButtonSize::Md)) },
                 "Options"
             )
             dropdown_menu_content(
+                id: &menu,
                 dropdown_menu_label("Actions")
-                dropdown_menu_item(attrs: attributes! { type="button" }, "Rename")
+                dropdown_menu_item(close: Some(&menu), "Rename")
                 dropdown_menu_separator()
                 dropdown_menu_sub(
-                    dropdown_menu_sub_trigger("Move to")
-                    dropdown_menu_sub_content(dropdown_menu_item("Inbox"))
+                    dropdown_menu_sub_trigger(target: &sub, "Move to")
+                    dropdown_menu_sub_content(id: &sub, dropdown_menu_item(close: Some(&menu), "Inbox"))
                 )
             )
         )
@@ -698,24 +701,90 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-dropdown_menu(attrs, child)  // :32
-dropdown_menu_trigger(attrs, child)  // :71
-dropdown_menu_content(attrs, child)  // :92
-dropdown_menu_item(attrs, child)  // :115
-dropdown_menu_sub(attrs, child)  // :148
-dropdown_menu_sub_trigger(attrs, child)  // :165
-dropdown_menu_sub_content(attrs, child)  // :190
-dropdown_menu_label(attrs, child)  // :206
-dropdown_menu_separator(attrs)  // :225
+dropdown_menu(attrs, child)  // :42
+dropdown_menu_trigger(target: &str, attrs, child)  // :82
+dropdown_menu_content(id: &str, side: FloatingSide = Bottom, align: FloatingAlign = Center, attrs, child)  // :116
+dropdown_menu_item(close: Option<&str> = None, attrs, child)  // :162
+dropdown_menu_sub(attrs, child)  // :214
+dropdown_menu_sub_trigger(target: &str, attrs, child)  // :234
+dropdown_menu_sub_content(id: &str, attrs, child)  // :268
+dropdown_menu_label(attrs, child)  // :300
+dropdown_menu_separator(attrs)  // :319
 ```
 
-- Markup: `dropdown_menu` `<details class="group relative inline-block">`, `dropdown_menu_trigger` `<summary>`, `dropdown_menu_content` `<div class="absolute z-50 min-w-40 ... top-full left-0 mt-1">`, `dropdown_menu_item` `<button>`, `dropdown_menu_sub` `<details class="group/sub relative">`, `dropdown_menu_sub_trigger` `<summary>` plus a chevron, `dropdown_menu_sub_content` `<div class="... top-0 left-full ml-1">`, `dropdown_menu_label` `<p>`, `dropdown_menu_separator` `<hr>`. `attrs` go on the element named. Style the trigger as a button with `class=(button_variants(...))` in its `attrs`; `group-open:` classes react to the open state.
-- Client behavior: the trigger opens and closes it without JavaScript. Application scripting required for closing on an outside click or Escape and for closing after an item is chosen; a submenu keeps its open state when its parent closes. Items are `<button>` elements without `type`.
+- Markup: `dropdown_menu` `<div class="group/dropdown-menu contents">`; `dropdown_menu_trigger` `<button type="button" popovertarget="<target>">`; `dropdown_menu_content` `<div id="<id>" popover="auto" class="inset-auto m-0 [position-anchor:auto] ... min-w-40 rounded-lg border ...">`; `dropdown_menu_item` `<button type="button">`, plus `popovertarget="<close>" popovertargetaction="hide"` when `close` is set; `dropdown_menu_sub` `<div>`; `dropdown_menu_sub_trigger` `<button type="button" popovertarget>` plus a chevron; `dropdown_menu_sub_content` a popover fixed to the right of its trigger, aligned to its top; `dropdown_menu_label` `<p>`, `dropdown_menu_separator` `<hr>`. `attrs` go on the element named. Style the trigger with `class=(button_variants(...))`; react to the open state with `group-has-[:popover-open]/dropdown-menu:` (the 0.10 `group-open:` no longer matches).
+- IDs: create them with `element_id(cx)` ([core.md](core.md) section 3.5); the trigger's `target` and the content's `id` must match. An item closes the menu only when `close` names it; with nested menus pass the top menu's ID.
+- Client behavior: no JavaScript. The browser toggles the popover, closes it on Escape or an outside click, and flips it to another side when it does not fit (except `Right`/`Left`, see [floating](#floating)). The default placement is centered below the trigger; `align: FloatingAlign::Start` restores the 0.10 left alignment.
 - A11y: tab navigation only. No `role="menu"`, `aria-haspopup` or arrow-key handling.
-- Icons: `lucide:chevron-right` (sub trigger).
+- Dependencies: `floating`. Icons: `lucide:chevron-right` (sub trigger).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/dropdown_menu.rs:32`
+Source: `topcoat-ui-registry-0.11.0/src/components/dropdown_menu.rs:42`
 Probe: `tests/overlays.rs` (`dropdown_page`), `tests/examples.rs` (`ex_dropdown_menu`)
+
+### popover
+
+A panel that opens beside a button. New in 0.11.
+
+Status: VERIFIED
+Features: `view`
+
+```rust
+use crate::components::{
+    button::{ButtonSize, ButtonVariant, button_variants},
+    floating::FloatingAlign,
+    popover::{popover, popover_content, popover_trigger},
+};
+use topcoat::{Result, context::Cx, router::page, view::{View, attributes, element_id, view}};
+
+#[page("/ex/popover")]
+async fn demo(cx: &Cx) -> Result<impl View> {
+    Ok(view! {
+        let share = element_id(cx);
+        popover(
+            popover_trigger(
+                target: &share,
+                attrs: attributes! { class=(button_variants(ButtonVariant::Outline, ButtonSize::Md)) },
+                "Share"
+            )
+            popover_content(id: &share, align: FloatingAlign::End, <p>"Copy the link below."</p>)
+        )
+    })
+}
+```
+
+```text
+popover(attrs, child)  // :36
+popover_trigger(target: &str, attrs, child)  // :54
+popover_content(id: &str, side: FloatingSide = Bottom, align: FloatingAlign = Center, attrs, child)  // :91
+```
+
+- Markup: `popover` `<div class="group/popover contents">`; `popover_trigger` `<button type="button" popovertarget="<target>" class="cursor-pointer ...">`; `popover_content` `<div id="<id>" popover="auto" class="inset-auto m-0 [position-anchor:auto] transition-opacity starting:open:opacity-0 ... mt-1 [position-try-fallbacks:...] [position-area:bottom_span-left] w-72 rounded-lg border border-border bg-popover p-4 ...">` (observed with `align: End`).
+- Client behavior: as `dropdown_menu` (native popover, light dismiss, top layer). Style children while open with `group-has-[:popover-open]/popover:`.
+- Dependencies: `floating` (`registry.toml` does not list `button`, which the doc example uses for styling).
+
+Source: `topcoat-ui-registry-0.11.0/src/components/popover.rs:36`
+Probe: `tests/floating.rs` (`floating_page`), `tests/examples.rs` (`ex_popover`)
+
+### floating
+
+Shared placement helpers for `popover`, `dropdown_menu`, `tooltip` and `hover_card`. New in 0.11; no components.
+
+Status: VERIFIED (server HTML); placement itself needs a browser with CSS anchor positioning.
+Features: `view`
+
+```text
+enum FloatingSide { Top, Right, Bottom (default), Left }  // :8
+enum FloatingAlign { Start, Center (default), End }  // :49
+enum FloatingAnchor { Invoker, Scope }  // :82, no default
+const FLOATING_SCOPE: StaticClass  // :112, "[anchor-name:--floating-anchor] [anchor-scope:--floating-anchor]"
+fn floating_variants(anchor: FloatingAnchor, side: FloatingSide, align: FloatingAlign) -> Class<..>  // :161
+```
+
+- `Invoker` (popover, dropdown menu) anchors a popover to the button that opened it (`[position-anchor:auto]`); `Scope` (tooltip, hover card) anchors a `fixed` panel to the nearest ancestor carrying `FLOATING_SCOPE`. `side` sets the gap and the `position-try-fallbacks` list, `align` the `position-area`.
+- **Defect in 0.11.0:** `Right` and `Left` split one arbitrary value across two `class!` strings (`:30-31`, `:37-38`), so the rendered class list contains the broken tokens `[position-try-fallbacks:flip-inline,flip-block,flip-inline_flip-block,` and `top_span-left,bottom_span-left]` (observed for `tooltip_content(side: FloatingSide::Right, ..)`). Tailwind generates no rule for either, so those sides get no fallback positions. `Top` and `Bottom` are correct. Join the two strings if a wired copy needs `Right` or `Left`.
+
+Source: `topcoat-ui-registry-0.11.0/src/components/floating.rs:8-167`
+Probe: `tests/floating.rs`
 
 ### tooltip
 
@@ -753,15 +822,16 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-tooltip(attrs, child)  // :28
-tooltip_content(attrs, child)  // :55
+tooltip(attrs, child)  // :32
+tooltip_content(side: FloatingSide = Top, align: FloatingAlign = Center, attrs, child)  // :65
 ```
 
-- Markup: `tooltip` `<span class="group relative inline-flex">`; `tooltip_content` `<span role="tooltip" class="pointer-events-none invisible absolute bottom-full left-1/2 ... group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">`. The bubble is always in the markup; CSS shows it.
-- Client behavior: none (CSS only). Positioning does not adapt to viewport edges.
+- Markup: `tooltip` `<span class="group inline-flex [anchor-name:--floating-anchor] [anchor-scope:--floating-anchor]">`; `tooltip_content` `<span role="tooltip" class="fixed [position-anchor:--floating-anchor] mb-1 [position-try-fallbacks:...] [position-area:top] pointer-events-none hidden z-50 ... opacity-0 ... group-hover:block group-hover:opacity-100 starting:group-hover:opacity-0 group-focus-within:block ...">`. The bubble is always in the markup and is `display: none` until shown.
+- Client behavior: none (CSS only). With anchor positioning the bubble flips to another side when it does not fit (not for `Right`/`Left`, see [floating](#floating)).
+- Dependencies: `floating`.
 - A11y: `role="tooltip"`. Give the content an `id` and reference it with the trigger's `aria-describedby`; the trigger needs its own text or label.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/tooltip.rs:28`
+Source: `topcoat-ui-registry-0.11.0/src/components/tooltip.rs:32`
 Probe: `tests/overlays.rs` (`tooltip_page`), `tests/examples.rs` (`ex_tooltip`)
 
 ### hover_card
@@ -787,14 +857,14 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-hover_card(attrs, child)  // :24
-hover_card_content(attrs, child)  // :50
+hover_card(attrs, child)  // :28
+hover_card_content(side: FloatingSide = Bottom, align: FloatingAlign = Center, attrs, child)  // :60
 ```
 
-- Markup: `hover_card` `<span class="group relative inline-flex">`; `hover_card_content` `<span class="flex flex-col gap-2 invisible absolute top-full left-0 z-50 mt-2 w-64 ... opacity-0 [transition:...300ms,...300ms] group-hover:visible group-focus-within:visible">`. Both are `<span>`, so only phrasing content is valid inside the card.
-- Client behavior: none (CSS only). The panel is `visibility: hidden` until shown, so it is out of the accessibility tree and unfocusable until the trigger is hovered or holds focus. Keep essential information elsewhere; touch users may not see it.
+- Markup: `hover_card` `<span class="group inline-flex [anchor-name:--floating-anchor] [anchor-scope:--floating-anchor]">`; `hover_card_content` `<span class="fixed [position-anchor:--floating-anchor] mt-1 [position-try-fallbacks:...] [position-area:bottom] hidden z-50 w-64 flex-col gap-2 ... opacity-0 [transition:opacity_150ms_ease-out_300ms,display_150ms_allow-discrete_300ms] group-hover:flex ... group-focus-within:flex ...">`. Both are `<span>`, so only phrasing content is valid inside the card.
+- Client behavior: none (CSS only). Dependencies: `floating`. The panel is `display: none` until shown, so it is out of the accessibility tree and unfocusable until the trigger is hovered or holds focus. Keep essential information elsewhere; touch users may not see it.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/hover_card.rs:24`
+Source: `topcoat-ui-registry-0.11.0/src/components/hover_card.rs:28`
 Probe: `tests/overlays.rs` (`tooltip_page`), `tests/examples.rs` (`ex_hover_card`)
 
 ## Navigation
@@ -843,7 +913,7 @@ breadcrumb_ellipsis(attrs)  // :127
 - Client behavior: none. A11y as above.
 - Icons: `lucide:chevron-right`, `lucide:ellipsis`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/breadcrumb.rs:26`
+Source: `topcoat-ui-registry-0.11.0/src/components/breadcrumb.rs:26`
 Probe: `tests/navigation.rs` (`breadcrumb_page_route`), `tests/examples.rs` (`ex_breadcrumb`)
 
 ### pagination
@@ -893,7 +963,7 @@ pagination_ellipsis(attrs)  // :174
 - Client behavior: none. Dependencies: `button`.
 - Icons: `lucide:chevron-left`, `lucide:chevron-right`, `lucide:ellipsis`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/pagination.rs:33`
+Source: `topcoat-ui-registry-0.11.0/src/components/pagination.rs:33`
 Probe: `tests/navigation.rs` (`pagination_route`), `tests/examples.rs` (`ex_pagination`)
 
 ### tabs
@@ -955,7 +1025,7 @@ tabs_content(attrs, child)  // :109
 - Two modes: render only the selected panel on the server and let the triggers be ordinary links (`active: value == tab`), or render all panels, bind `active` and each panel's `hidden` to a signal, and prevent the link navigation in the click handler (the example).
 - A11y: links with `aria-current`; no `role="tablist"`, `role="tab"` or arrow-key movement.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/tabs.rs:33`
+Source: `topcoat-ui-registry-0.11.0/src/components/tabs.rs:33`
 Probe: `tests/navigation.rs` (`tabs_route`, `tabs_signal`), `tests/examples.rs` (`ex_tabs`)
 
 ### accordion
@@ -1000,7 +1070,7 @@ accordion_content(attrs, child)  // :110
 - Client behavior: none. A11y: native disclosure semantics.
 - Icons: `lucide:chevron-down`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/accordion.rs:31`
+Source: `topcoat-ui-registry-0.11.0/src/components/accordion.rs:31`
 Probe: `tests/navigation.rs` (`accordion_route`), `tests/examples.rs` (`ex_accordion`)
 
 ### sidebar
@@ -1115,8 +1185,67 @@ sidebar_menu_sub_button(active: Expr<bool> = false /* into */, size: SidebarMenu
 - Dependencies: `button`, `input`, `separator`, `sheet`, `skeleton` (`super::` imports). Icons: `lucide:panel-left`.
 - Conflict: the app's own shell (`web/style/partials/layout.css`, `.app-sidebar*`, `--sidebar-width: 248px`) is a separate implementation; inside a `sidebar_provider` the registry's `--sidebar-width` is set on the provider element and shadows the app's `:root` value.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/sidebar.rs:96`
+Source: `topcoat-ui-registry-0.11.0/src/components/sidebar.rs:96`
 Probe: `tests/navigation.rs` (`sidebar_route`), `tests/examples.rs` (`ex_sidebar`)
+
+### navigation_menu
+
+A row of site links; an item can open a panel of further links. New in 0.11.
+
+Status: VERIFIED (server HTML); the hover, focus and tap behavior follows the source comments.
+Features: `view`, `runtime`, `asset` (the `active` prop is an `Expr<bool>`), `icon-iconify` (chevron-down)
+
+```rust
+use crate::components::navigation_menu::{
+    NavigationMenuLinkVariant, navigation_menu, navigation_menu_content, navigation_menu_item,
+    navigation_menu_link, navigation_menu_list, navigation_menu_trigger,
+};
+use topcoat::{Result, router::page, view::{View, attributes, view}};
+
+#[page("/ex/navigation_menu")]
+async fn demo() -> Result<impl View> {
+    Ok(view! {
+        navigation_menu(
+            attrs: attributes! { aria-label="Main" },
+            navigation_menu_list(
+                navigation_menu_item(
+                    navigation_menu_trigger("Guides")
+                    navigation_menu_content(
+                        navigation_menu_link(attrs: attributes! { href="/guides/start" }, "Getting started")
+                    )
+                )
+                navigation_menu_item(
+                    navigation_menu_link(
+                        variant: NavigationMenuLinkVariant::Trigger,
+                        active: true,
+                        attrs: attributes! { href="/blog" },
+                        "Blog"
+                    )
+                )
+            )
+        )
+    })
+}
+```
+
+```text
+navigation_menu(attrs, child)  // :46
+navigation_menu_list(attrs, child)  // :62
+navigation_menu_item(attrs, child)  // :81
+navigation_menu_trigger(attrs, child)  // :116
+navigation_menu_content(attrs, child)  // :169
+enum NavigationMenuLinkVariant { Panel (default), Trigger }  // :194
+navigation_menu_link_variants(variant) -> StaticClass  // :221
+navigation_menu_link(variant: NavigationMenuLinkVariant = Panel, active: Expr<bool> = false /* into */, attrs, child)  // :230
+```
+
+- Markup: `<nav class="relative flex items-center">` > `<ul class="flex list-none items-center gap-1">` > `<li tabindex="-1" class="group/navigation-item relative outline-none">`; `navigation_menu_trigger` `<button type="button">` plus a chevron; `navigation_menu_content` an outer positioning `<div>` and an inner panel `<div class="rounded-xl border border-border bg-popover p-1.5 ...">` that receives `attrs`; `navigation_menu_link` `<a>`, with `aria-current="page"` when `active` is true (a literal renders a static attribute, a runtime expression a bound one). `navigation_menu_link_variants` styles another element like a link.
+- Client behavior: CSS only. A panel opens while the pointer rests on its item or focus is inside it; on coarse pointers a tap opens it and tapping elsewhere closes it. Escape does not close it, and there is no arrow-key navigation. Not a popover and not anchor-positioned.
+- A11y: set `aria-label` on the `<nav>` when the page has several navigation regions.
+- Dependencies: none. Icons: `lucide:chevron-down`.
+
+Source: `topcoat-ui-registry-0.11.0/src/components/navigation_menu.rs:46`
+Probe: `tests/floating.rs` (`nav_page`), `tests/examples.rs` (`ex_navigation_menu`)
 
 ## Data display
 
@@ -1150,20 +1279,20 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-table(attrs, child)  // :30
-table_header(attrs, child)  // :51
-table_body(attrs, child)  // :64
-table_footer(attrs, child)  // :80
-table_row(attrs, child)  // :99
-table_head(attrs, child)  // :118
-table_cell(attrs, child)  // :138
-table_caption(attrs, child)  // :154
+table(attrs, child)  // :34
+table_header(attrs, child)  // :57
+table_body(attrs, child)  // :73
+table_footer(attrs, child)  // :89
+table_row(attrs, child)  // :108
+table_head(attrs, child)  // :127
+table_cell(attrs, child)  // :147
+table_caption(attrs, child)  // :166
 ```
 
-- Markup: `table` `<div class="w-full overflow-x-auto"><table class="w-full caption-bottom border-collapse text-sm [class]" ...attrs>` (attributes go on the `<table>`), `table_header` `<thead>`, `table_body` `<tbody>`, `table_footer` `<tfoot>`, `table_row` `<tr class="border-b border-border hover:bg-foreground/5">`, `table_head` `<th class="h-10 px-3 text-left ... text-muted-foreground">`, `table_cell` `<td class="p-3 align-middle whitespace-nowrap">`, `table_caption` `<caption>` (placed below the table).
+- Markup: `table` `<div data-slot="table" class="w-full overflow-x-auto"><table class="w-full caption-bottom border-collapse border-border text-sm [:not(:first-child)>&]:border-t [:not(:last-child)>&]:border-b [class]" ...attrs>` (attributes go on the `<table>`; the borders separate it from siblings), `table_header` `<thead class="bg-foreground/5 ...">`, `table_body` `<tbody>`, `table_footer` `<tfoot>`, `table_row` `<tr class="border-b border-border hover:bg-foreground/5">`, `table_head` `<th class="p-3 text-left ... text-muted-foreground first:pl-6 last:pr-6">`, `table_cell` `<td class="p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6">`, `table_caption` `<caption>` (placed below the table).
 - Client behavior: none. A11y: native table elements; `colspan`, `scope` and similar go through `attrs`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/table.rs:30`
+Source: `topcoat-ui-registry-0.11.0/src/components/table.rs:34`
 Probe: `tests/data_display.rs` (`table_route`), `tests/examples.rs` (`ex_table`)
 
 ### card
@@ -1197,18 +1326,18 @@ async fn demo() -> Result<impl View> {
 ```
 
 ```text
-card(attrs, child)  // :34
-card_header(attrs, child)  // :44
-card_title(attrs, child)  // :60
-card_description(attrs, child)  // :76
-card_content(attrs, child)  // :92
-card_footer(attrs, child)  // :101
+card(attrs, child)  // :39
+card_header(attrs, child)  // :49
+card_title(attrs, child)  // :65
+card_description(attrs, child)  // :81
+card_content(attrs, child)  // :97
+card_footer(attrs, child)  // :106
 ```
 
-- Markup: `card` `<div class="flex flex-col gap-5 rounded-xl border border-border bg-card py-6 text-card-foreground shadow-sm">`, `card_header` `<div class="flex flex-col gap-1.5 px-6">`, `card_title` `<h3>`, `card_description` `<p>`, `card_content` `<div class="px-6">`, `card_footer` `<div class="flex items-center gap-2 px-6">`. Sections carry their own horizontal padding.
+- Markup: `card` `<div class="flex flex-col gap-5 rounded-xl border border-border bg-card py-6 text-card-foreground shadow-sm has-[>[data-slot=table]:first-child]:overflow-hidden has-[>[data-slot=table]:first-child]:pt-0 has-[>[data-slot=table]:last-child]:overflow-hidden has-[>[data-slot=table]:last-child]:pb-0">` (a `table` placed first or last in the card runs to its edges; new in 0.11), `card_header` `<div class="flex flex-col gap-1.5 px-6">`, `card_title` `<h3>`, `card_description` `<p>`, `card_content` `<div class="px-6">`, `card_footer` `<div class="flex items-center gap-2 px-6">`. Sections carry their own horizontal padding.
 - Client behavior: none. Dependencies: none.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/card.rs:34`
+Source: `topcoat-ui-registry-0.11.0/src/components/card.rs:39`
 Probe: `tests/data_display.rs` (`card_route`), `tests/examples.rs` (`ex_card`)
 
 ### badge
@@ -1239,7 +1368,7 @@ badge(variant: BadgeVariant = BadgeVariant::Primary, attrs, child)  // :70
 - Markup: `<span class="inline-flex w-fit shrink-0 items-center ... rounded-md border px-2 py-0.5 text-xs font-medium VARIANT [class]" ...attrs>`. `badge_variants(variant)` returns the class list for another element.
 - Client behavior: none. A11y: none beyond the text.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/badge.rs:70`
+Source: `topcoat-ui-registry-0.11.0/src/components/badge.rs:70`
 Probe: `tests/data_display.rs` (`badge_alert_route`), `tests/examples.rs` (`ex_badge`)
 
 ### avatar
@@ -1275,7 +1404,7 @@ avatar_fallback(attrs, child)  // :104
 - Markup: `avatar` `<span class="relative flex shrink-0 overflow-hidden rounded-full SIZE">`, `avatar_image` `<img alt class="absolute inset-0 size-full object-cover">` (`src` through `attrs`), `avatar_fallback` `<span class="flex size-full items-center justify-center bg-foreground/10 ...">`. The fallback sits behind the image.
 - A11y: `alt` defaults to empty text; pass a real `alt` when no adjacent text names the person.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/avatar.rs:51`
+Source: `topcoat-ui-registry-0.11.0/src/components/avatar.rs:51`
 Probe: `tests/data_display.rs` (`avatar_route`), `tests/examples.rs` (`ex_avatar`)
 
 ### alert
@@ -1319,7 +1448,7 @@ alert_description(attrs, child)  // :96
 - A11y: `role="alert"` is deliberately not set (it interrupts a screen reader the moment the element appears); pass it in `attrs` for a message that arrives after the page is shown.
 - Icons: none inside the component; the example passes `lucide:triangle-alert` as a child.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/alert.rs:53`
+Source: `topcoat-ui-registry-0.11.0/src/components/alert.rs:53`
 Probe: `tests/data_display.rs` (`badge_alert_route`), `tests/examples.rs` (`ex_alert`)
 
 ### progress
@@ -1349,7 +1478,7 @@ progress(value: Option<f32> = None /* into */, max: f32 = 100.0, attrs)  // :31
 - Markup: `<progress class="h-2 w-full appearance-none ... [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary" value max ...attrs></progress>`. `value` is omitted when `None` (indeterminate; the appearance depends on the browser). `max` defaults to 100.
 - A11y: give it `aria-label` or an associated label.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/progress.rs:31`
+Source: `topcoat-ui-registry-0.11.0/src/components/progress.rs:31`
 Probe: `tests/data_display.rs` (`misc_route`), `tests/examples.rs` (`ex_progress`)
 
 ### skeleton
@@ -1381,7 +1510,7 @@ skeleton(attrs)  // :24
 - Markup: `<div class="animate-pulse rounded-md bg-foreground/10 [class]" ...attrs></div>`; set the size with classes in `attrs`.
 - A11y: the shape has no `aria-hidden`; mark the group hidden as in the example. Used by `sidebar_menu_skeleton`. Unrelated to the app's `shape_skeleton`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/skeleton.rs:24`
+Source: `topcoat-ui-registry-0.11.0/src/components/skeleton.rs:24`
 Probe: `tests/data_display.rs` (`misc_route`), `tests/examples.rs` (`ex_skeleton`)
 
 ### spinner
@@ -1411,7 +1540,7 @@ spinner(size: Length = Length::em(1.0) /* into */, label: String = String::from(
 - Markup: the `topcoat::icon::icon` component with `class="animate-spin"`, `size` (default `1em`) and `label` (default `"Loading"`): `<svg role="img" aria-label="Loading" width="1em" height="1em" class="animate-spin">`. `attrs` go on the `<svg>`.
 - Icons: `lucide:loader-circle`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/spinner.rs:23`
+Source: `topcoat-ui-registry-0.11.0/src/components/spinner.rs:23`
 Probe: `tests/data_display.rs` (`misc_route`), `tests/examples.rs` (`ex_spinner`)
 
 ### kbd
@@ -1440,7 +1569,7 @@ kbd_group(attrs, child)  // :33
 
 - Markup: `kbd` `<kbd class="inline-flex h-5 w-fit min-w-5 ... border border-border bg-foreground/5 ...">`, `kbd_group` `<span class="inline-flex items-center gap-1 whitespace-nowrap">`.
 
-Source: `topcoat-ui-registry-0.10.0/src/components/kbd.rs:24`
+Source: `topcoat-ui-registry-0.11.0/src/components/kbd.rs:24`
 Probe: `tests/data_display.rs` (`misc_route`), `tests/examples.rs` (`ex_kbd`)
 
 ### separator
@@ -1477,14 +1606,14 @@ separator(orientation: SeparatorOrientation = SeparatorOrientation::Horizontal, 
 - Markup: `<hr class="shrink-0 border-0 bg-border h-px w-full|h-full w-px" aria-orientation="vertical"? ...attrs>`. `aria-orientation="vertical"` is emitted only for `Vertical`. A vertical rule needs a container with a height. Use `aria-hidden="true"` for decoration.
 - Used by `sidebar` (`sidebar_separator`).
 
-Source: `topcoat-ui-registry-0.10.0/src/components/separator.rs:62`
+Source: `topcoat-ui-registry-0.11.0/src/components/separator.rs:62`
 Probe: `tests/data_display.rs` (`misc_route`), `tests/examples.rs` (`ex_separator`)
 
 ## Theme: `styles.css`
 
 Status: VERIFIED.
 
-The `neutral` theme (`web/styles.css`, registry `themes/neutral.css`, hash recorded in `components.toml`). Components use tokens only. Verified by compiling it with the pinned Tailwind CLI 4.3.2 (`scratch/topcoat-kb/ui/styles.css`, output inspected).
+The registry's `neutral` theme (`themes/neutral.css`, hash recorded in `web/components.toml`; `web/styles.css` replaces it with the app's own token mapping, see [What is installed](#what-is-installed-in-web)). Components use tokens, apart from the `bg-black/50` overlay. Verified by compiling it with the pinned Tailwind CLI 4.3.2 (`scratch/topcoat-kb/ui/styles.css`, output inspected).
 
 ### Custom properties
 
@@ -1507,8 +1636,10 @@ Each token is declared in `:root` (light) and `.dark`. `@theme inline` maps it t
 | `--sidebar-accent` | hover and selected rows | `color-mix(in oklab, var(--sidebar-foreground) 10%, var(--sidebar))` | same expression |
 | `--sidebar-accent-foreground` | text on accents | `oklch(0.24 0.012 260)` | `oklch(0.93 0.006 260)` |
 | `--sidebar-border`, `--sidebar-ring` | sidebar border and ring | as `--border`, `--ring` | as `--border`, `--ring` |
-| `--shadow-xs` | raised controls (`shadow-xs`) | `0 1px 2px oklch(0.24 0.02 260 / 12%)` | `0 1px 2px oklch(0 0 0 / 35%)` |
-| `--shadow-sm` | raised surfaces (`shadow-sm`) | two-layer oklch shadow | two-layer black shadow |
+| `--shadow-xs` | raised controls (`shadow-xs`) | `0 0 #0000` (0.11; the 0.10 value `0 1px 2px oklch(0.24 0.02 260 / 12%)` is kept in a comment) | `0 0 #0000` (was `0 1px 2px oklch(0 0 0 / 35%)`) |
+| `--shadow-sm` | raised surfaces (`shadow-sm`) | `0 0 #0000` (was a two-layer oklch shadow, kept in a comment) | `0 0 #0000` (was a two-layer black shadow) |
+
+Disable a shadow with `0 0 #0000`, never `none`: Tailwind writes `shadow-*` and `ring-*` into one comma-separated `box-shadow` (`var(--tw-inset-shadow), ..., var(--tw-ring-shadow), var(--tw-shadow)`), and a `none` entry invalidates the whole list, which removes the focus ring of every `shadow-xs` button (`themes/neutral.css:31-35`; observed in `web`'s compiled CSS). `web/style/partials/tokens.css` uses `0 0 #0000`.
 
 Hover and press states are derived in the components from fills at reduced opacity (`bg-primary/90`, `bg-foreground/5`), not from extra tokens. `--font-sans: "Geist", sans-serif` is set in `@theme inline`; Tailwind derives `--default-font-family` from it, so the compiled `html` rule also uses Geist. Radii are not tokens: components use Tailwind's `rounded-*` scale, which reads `--radius-sm` .. `--radius-xl` from Tailwind's own theme layer.
 
@@ -1533,7 +1664,7 @@ Consequence: unlayered CSS beats utilities regardless of specificity. Any unlaye
 
 Scanning: `@source "./src/**/*.rs"` is relative to `styles.css`, so for `web/styles.css` it is `web/src`. `@import "tailwindcss"` without `source(none)` also auto-detects sources from the working directory (`web/`, including `tests/` and `assets/`).
 
-Size: the theme plus the utilities of all 31 components compiles to 51,603 bytes minified (observed with Tailwind 4.3.2). The same file with the app's 24 partials appended compiles to 94,239 bytes.
+Size (measured on 0.10.0, not re-measured): the theme plus the utilities of all 31 components of that release compiles to 51,603 bytes minified (observed with Tailwind 4.3.2). The same file with the app's 24 partials appended compiles to 94,239 bytes.
 
 ## Geist font
 
@@ -1550,7 +1681,7 @@ Status: VERIFIED.
 | Served CSS | `GET /_topcoat/fonts/Geist-<hash>.css` returns `200`, `content-type: text/css; charset=utf-8`, `cache-control: public, max-age=31536000, immutable`, and one `@font-face` per face with `font-display: swap` and the latin `unicode-range`. |
 | Font files | By default the browser loads `https://cdn.jsdelivr.net/fontsource/fonts/geist@latest/latin-<weight>-<style>.woff2` from jsDelivr (`@latest`, unpinned). `host: Asset` makes each face an `asset!` URL instead: `topcoat asset bundle` downloads the files into the asset bundle and the app serves them. |
 
-The registry components use weights 400 (body), 500 (`font-medium`) and 600 (`font-semibold`) and no italics (no `font-bold`, `italic` or `font-light` in the 31 sources). Three faces cover them:
+The registry components use weights 400 (body), 500 (`font-medium`) and 600 (`font-semibold`) and no italics (no `font-bold`, `italic` or `font-light` in the 34 sources). Three faces cover them:
 
 ```rust
 /// Only the weights the registry components use (400 body, 500 medium, 600 semibold).
@@ -1598,17 +1729,17 @@ Status: VERIFIED (compiled and rendered by `web`: `web/src/font.rs`, `web/tests/
 | Missing asset | Rendering an `Asset` URL that the registered `AssetConfig` catalog does not hold panics (`failed to resolve asset .. in the asset catalog`). `web/src/font.rs` checks `asset_config(cx).get(asset).is_some()` before preloading, so a build without the bundled file renders no preload instead of failing the page. |
 | `topcoat fmt` | The `font!` printer breaks descriptor lines longer than its margin mid-value (for example `format(\n"woff2");` and a re-indented `unicode-range` list). The tokens are unchanged, so the font's content hash and CSS are identical; keep the printer's output so `topcoat fmt --check` stays clean. |
 
-Source: `topcoat-font-macro-0.10.0/docs/font.md` (CSS-like and expression forms, registration), `topcoat-font-macro-0.10.0/docs/font_face.md:39-58` (`src`, expression and `Asset` arguments), `topcoat-font-0.10.0/src/font.rs:35-85` (`Font`, `faces`), `src/face.rs:129-140,204-208` (`src`, `weight`, `FontFaces::as_slice`), `src/weight.rs:120-130` (`FontWeightRange::from_u16`), `src/source.rs:14-20,138-155,287-291` (`FontSourceUrl::Asset`, `FontSource`, `FontSources::as_slice`), `src/component.rs:23-66` (`link`, `preload_link`), `topcoat-asset-0.10.0/src/config.rs:96-101,126-133,164-167` (`AssetConfig::get`, `fmt_url` panic, `asset_config`), `topcoat-core-grammar-0.10.0/src/pretty/printer.rs:11` (`MARGIN`).
+Source: `topcoat-font-macro-0.11.0/docs/font.md` (CSS-like and expression forms, registration), `topcoat-font-macro-0.11.0/docs/font_face.md:39-58` (`src`, expression and `Asset` arguments), `topcoat-font-0.11.0/src/font.rs:35-85` (`Font`, `faces`), `src/face.rs:129-140,204-208` (`src`, `weight`, `FontFaces::as_slice`), `src/weight.rs:120-130` (`FontWeightRange::from_u16`), `src/source.rs:14-20,138-155,287-291` (`FontSourceUrl::Asset`, `FontSource`, `FontSources::as_slice`), `src/component.rs:23-66` (`link`, `preload_link`), `topcoat-asset-0.11.0/src/config.rs:96-101,126-133,164-167` (`AssetConfig::get`, `fmt_url` panic, `asset_config`), `topcoat-core-grammar-0.11.0/src/pretty/printer.rs:11` (`MARGIN`).
 
 ## Icons
 
 Status: VERIFIED.
 
-Eight registry files call `iconify_icon!("lucide:<name>")` in code (the macro appears in other files only inside doc comments):
+Nine registry files call `iconify_icon!("lucide:<name>")` in code (the macro appears in other files only inside doc comments):
 
 | Icon | Used by |
 |---|---|
-| `lucide:chevron-down` | `accordion`, `select` |
+| `lucide:chevron-down` | `accordion`, `navigation_menu`, `select` |
 | `lucide:chevron-right` | `breadcrumb`, `dropdown_menu`, `pagination` |
 | `lucide:chevron-left` | `pagination` |
 | `lucide:ellipsis` | `breadcrumb`, `pagination` |
@@ -1624,7 +1755,7 @@ Three ways to supply the icons, all verified in probes:
 |---|---|---|---|---|
 | A. Iconify, default cache | `icon-iconify` | Build script downloads `https://cdn.jsdelivr.net/npm/@iconify-json/lucide@latest/icons.json` (about 610 KB) when `target/topcoat/cache/iconify/lucide.json` is missing; no checksum, `latest` unless pinned with `icon_set_version` | none | `scratch/topcoat-kb/ui` |
 | B. Iconify, vendored set | `icon-iconify` | none: a committed `icons/lucide.json` is used as is (`cache_dir("icons")`) | none | `scratch/topcoat-kb/ui/vendored` (built and tested in a network-less namespace) |
-| C. Local `IconData` constants | `icon` only | none | the 8 files | `scratch/topcoat-kb/ui/local-icons` |
+| C. Local `IconData` constants | `icon` only | none | the 9 files | `scratch/topcoat-kb/ui/local-icons` |
 
 Option B: the vendored file may contain only the seven icons. A hand-trimmed `{"prefix":"lucide","width":24,"height":24,"icons":{...}}` of the seven bodies is 1,343 bytes (the full set is 610,753 bytes); the build step checks that the `prefix` equals the set name and that every alias resolves.
 
@@ -1639,7 +1770,7 @@ pub const CHEVRON_DOWN: IconData = IconData::unescaped_unchecked(
 );
 ```
 
-and edits `use topcoat::icon::{icon, iconify::iconify_icon};` to `use topcoat::icon::icon;` and `iconify_icon!("lucide:chevron-down")` to `super::ui_icons::CHEVRON_DOWN` in `accordion`, `breadcrumb`, `checkbox`, `dropdown_menu`, `pagination`, `select` (also `IconData` in its import and `CHECKMARK`), `sidebar` and `spinner`. The probe's `gen.py` performs exactly these substitutions from the vendored set and renders the same markup as option A. The module can also hold the app's existing hand-written paths from `web/src/components/icons.rs`.
+and edits `use topcoat::icon::{icon, iconify::iconify_icon};` to `use topcoat::icon::icon;` and `iconify_icon!("lucide:chevron-down")` to `super::ui_icons::CHEVRON_DOWN` in `accordion`, `breadcrumb`, `checkbox`, `dropdown_menu`, `navigation_menu`, `pagination`, `select` (also `IconData` in its import and `CHECKMARK`), `sidebar` and `spinner`. The probe's `gen.py` performs exactly these substitutions from the vendored set and renders the same markup as option A. The module can also hold the app's existing hand-written paths from `web/src/components/icons.rs`.
 
 `icon(...)` renders `<svg viewBox width="1em" height="1em" style="vertical-align: -0.125em" aria-hidden="true">` (or `role="img" aria-label=...` when `label` is given) and `attrs` go on the `<svg>`.
 
@@ -1647,7 +1778,7 @@ and edits `use topcoat::icon::{icon, iconify::iconify_icon};` to `use topcoat::i
 
 Status: VERIFIED (steps 1 to 7 in a probe crate that mirrors `web`).
 
-State at the time of writing (checked in the repository): `web/Cargo.toml` enables `asset`, `compression`, `cookie`, `router`, `runtime`, `serve`, `view` on topcoat and `tailwind`, `ui` in `[build-dependencies]`; `web/build.rs` uses `style/input.css`; `web/src/components/mod.rs` has no registry modules; the workspace `Cargo.toml` pins `topcoat = { version = "0.10", default-features = false }`. Nothing in `web/src` or `web/tests` imports a registry component. The build script, stylesheet, font, icon and lint steps below were run in probe crates that mirror these files; nothing in `web/` was changed.
+This is the integration recipe as it was planned and probed on 0.10.0 (2026-10-06), when `web` used `style/input.css` and declared no registry module. `web` has since followed it with option C icons and wires 13 components; the current state is in [What is installed in `web/`](#what-is-installed-in-web). Steps 1 to 7 still describe what each piece is for; the commands and counts below are from that snapshot unless they name 0.11.
 
 ### 1. Features
 
@@ -1760,11 +1891,14 @@ pub mod checkbox;
 pub mod dialog;
 pub mod dropdown_menu;
 pub mod field;
+pub mod floating;
 pub mod hover_card;
 pub mod input;
 pub mod kbd;
 pub mod label;
+pub mod navigation_menu;
 pub mod pagination;
+pub mod popover;
 pub mod progress;
 pub mod radio_group;
 pub mod separator;
@@ -1780,7 +1914,7 @@ pub mod toggle;
 pub mod tooltip;
 ```
 
-(`select` stays the app's until it is resolved, below.) Declare only what is used if the others are not wanted, but keep the dependency sets together: `alert_dialog` needs `dialog`, `field` needs `label`, `pagination` needs `button`, `sheet` needs `dialog`, `sidebar` needs `button`, `input`, `separator`, `sheet`, `skeleton`.
+Declare only what is used if the others are not wanted, but keep the dependency sets together: `alert_dialog` needs `dialog`, `dropdown_menu`, `hover_card`, `popover` and `tooltip` need `floating` (0.11), `field` needs `label`, `pagination` needs `button`, `sheet` needs `dialog`, `sidebar` needs `button`, `input`, `separator`, `sheet`, `skeleton`.
 
 The registry sources do not pass the workspace lints and formatters as copied. Under the lint set in the workspace `Cargo.toml` with `-D warnings` (probe `lint-wired`, same lints as the probe `Cargo.toml`):
 
@@ -1789,19 +1923,14 @@ The registry sources do not pass the workspace lints and formatters as copied. U
 | `unreachable_pub` | 115 | `#![expect(unreachable_pub, reason = "...")]` at the top of `components/mod.rs`, with the reason the existing component files use. A module-level `expect` covers the child modules and is fulfilled. |
 | `clippy::allow_attributes`, `allow_attributes_without_reason` | 16 each | Delete the 16 `#[allow(dead_code)]` lines on the public enums; no `dead_code` warning follows. |
 | `clippy::missing_const_for_fn` | 19 | `const fn` on the 19 private `classes`, `motion`, `aria`, `name`, `sheet` and `input_type` methods, then on `button_variants`, `badge_variants` and `sidebar_menu_button_variants`, which clippy flags once the methods are `const`. |
-| `cargo fmt --check` (workspace `rustfmt.toml`, `max_width = 85`) | all 31 files | Run `topcoat fmt` on the directory, then `cargo fmt`. |
+| `cargo fmt --check` (workspace `rustfmt.toml`, `max_width = 85`) | all 31 files (0.10) | Run `topcoat fmt` on the directory, then `cargo fmt`. |
 | `topcoat fmt --check` after `cargo fmt` | `card.rs` | The one-line `Ok(view! { <div class=(class!(CARD, ...)) (attrs)>(child)</div> })` bodies in `card` and `card_content` are 86 to 89 columns: `topcoat fmt` (fixed 89-column margin) keeps them on one line, `rustfmt` (`max_width = 85`) wraps them, and the two keep undoing each other. Bind `let class = class!(...)` first so the line stays under 85 columns. |
 
 `scratch/topcoat-kb/ui/lint-wired/fix.py` applies all of these (plus the `mod.rs` attribute); after it, then `topcoat fmt` and `cargo fmt` in that order, `cargo clippy -- -D warnings` is clean, `cargo fmt --check` and `topcoat fmt --check` pass, and the crate builds.
 
-### Registry `select` next to the app's `select`
+### Registry `select` and the app's selects
 
-`web/src/components/select.rs` is imported by 12 source files as `crate::components::select::{...}` and by two test files (`web::components::select`). Options:
-
-1. Keep the app's module name and give the registry file another one. Copy `topcoat-ui-registry-0.10.0/src/components/select.rs` to `web/src/components/native_select.rs` (it has no `super::` imports), add `pub mod native_select;`, and edit `components.toml`: either delete the `[registries.topcoat.components.select]` table, or change its `file` to `src/components/native_select.rs`. The second form keeps `list` accurate and makes `topcoat ui remove select` delete the copy instead of the app's file. In both cases never run `topcoat ui add select --overwrite` or `topcoat ui add --all --overwrite`; they write `select.rs`.
-2. Rename the app's module (for example to `select_field`), update those 12 imports and two tests, then `topcoat ui add select --overwrite` installs the registry file as `select.rs` and appends `pub mod select;`.
-
-With option 1 the two `select` items never share a path: the registry function is `crate::components::native_select::select`, the app's items are `crate::components::select::{select_field, channel_select, ...}`.
+Resolved: the app's own select helpers moved to `web/src/components/pickers.rs` and `field_row.rs`, and `web/src/components/select.rs` is the wired registry `select` (with the local edits listed in [What is installed](#what-is-installed-in-web)), so `topcoat ui add select --overwrite` no longer destroys app code. It still discards the local edits, like any wired component; update it with the three-way merge in [README.md](README.md#updating-vendored-ui-components).
 
 ### Conflicts with the app stylesheet (`web/style/**`)
 
@@ -1824,9 +1953,10 @@ All under `scratch/topcoat-kb/ui/` (local only; `CARGO_TARGET_DIR=.../scratch/to
 
 | Path | Verifies |
 |---|---|
-| `src/components/` | the 31 registry sources, verbatim |
+| `src/components/` | the 34 registry sources (0.11.0), verbatim |
 | `tests/examples.rs` | one compiled and rendered example per component (embedded above) |
 | `tests/form_controls.rs`, `overlays.rs`, `navigation.rs`, `data_display.rs` | emitted HTML and hooks per kind; HTML dumps are written to `dump/` |
+| `tests/floating.rs` | 0.11 `popover`, `floating` placement classes (including the `Right`/`Left` defect) and `navigation_menu` markup |
 | `tests/font_and_stylesheet.rs` | Geist faces, `link`, router registration, font route headers, 500 without registration, `tailwind::stylesheet!` |
 | `build.rs`, `styles.css` | the theme as a Tailwind input, iconify staging |
 | `vendored/` | option B, built and tested without network |

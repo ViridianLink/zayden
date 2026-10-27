@@ -6,14 +6,17 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::page;
-use topcoat::runtime::{Event, expr, signal};
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::runtime::{Event, expr, link_attrs, prefetch_mode, signal};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 
 use super::gate::{Gate, closed, gate};
 use crate::admin::{AdminError, list_bot_guilds, parse_guild_id};
 use crate::auth::WebRole;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::data_table::{data_cell, data_table};
 use crate::components::guild_grid::GuildCard;
+use crate::components::input::input;
 use crate::shell::app_shell;
 use crate::util::server_error_text;
 
@@ -56,13 +59,19 @@ pub async fn servers_page(
                 </div>
             </div>
             match guilds {
-                Err(None) => <p class="error">
-                    "Operator access is required to list every server."
-                </p>,
-                Err(Some(text)) => <p class="error">
-                    "Couldn't load the server list: "
-                    (text)
-                </p>,
+                Err(None) => alert(
+                    variant: AlertVariant::Destructive,
+                    attrs: attributes! { class="error" },
+                    alert_title("Operator access is required to list every server.")
+                ),
+                Err(Some(text)) => alert(
+                    variant: AlertVariant::Destructive,
+                    attrs: attributes! { class="error" },
+                    alert_title(
+                        "Couldn't load the server list: "
+                        (text)
+                    )
+                ),
                 Ok(guilds) => server_tools(guilds: &guilds),
             }
         </div>
@@ -109,36 +118,40 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
         <div class="operator-tools">
             <div class="field-row">
                 <label class="field-label" for="server-filter">"Filter by name"</label>
-                <input
-                    class="input"
-                    id="server-filter"
-                    type="search"
-                    autocomplete="off"
-                    :value=$(filter.get())
-                    @input=$(|e: Event| filter.set(e.target.value))
-                >
+                input(
+                    attrs: attributes! {
+                        class="grow basis-64"
+                        id="server-filter"
+                        type="search"
+                        autocomplete="off"
+                        :value=$(filter.get())
+                        @input=$(|e: Event| filter.set(e.target.value))
+                    }
+                )
             </div>
             <div class="field-row operator-jump">
                 <label class="field-label" for="server-jump">"Go to server ID"</label>
-                <input
-                    class="input"
-                    id="server-jump"
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    :value=$(jump.get())
-                    @input=$(|e: Event| jump.set(e.target.value))
-                >
+                input(
+                    attrs: attributes! {
+                        class="[&]:w-52 font-mono"
+                        id="server-jump"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        :value=$(jump.get())
+                        @input=$(|e: Event| jump.set(e.target.value))
+                    }
+                )
                 <button
                     type="button"
-                    class="btn btn-secondary"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                     disabled=""
                     :hidden=$(!target.is_empty())
                 >
                     "Go"
                 </button>
                 <a
-                    class="btn btn-secondary"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                     :href=$(target)
                     :hidden=$(target.is_empty())
                 >
@@ -176,7 +189,7 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
                         data_cell(
                             label: "Server",
                             header: true,
-                            <a href=(guild.href())>
+                            <a (link_attrs(cx, guild.href(), prefetch_mode(cx)))>
                                 match guild.icon_url() {
                                     Some(url) => <img src=(url) alt="" class="guild-icon">,
                                     None => <span

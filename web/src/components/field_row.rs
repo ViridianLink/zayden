@@ -4,10 +4,13 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{Child, View, component, view};
+use topcoat::view::{Child, View, attributes, component, view};
 
-use super::icons::{Icon, icon};
+use super::alert::{AlertVariant, alert, alert_title};
+use super::input::input;
 use super::pickers::SelectOption;
+use super::select::select;
+use super::textarea::textarea;
 
 #[must_use]
 pub fn field_id(form: &str, name: &str) -> String {
@@ -82,24 +85,25 @@ pub async fn text_row(
             label: label,
             help: help,
             error: error,
-            <input
-                class="input"
-                id=(id.as_str())
-                type=(input_type)
-                name=(name)
-                value=(value)
-                min=(min)
-                max=(max)
-                step=(step.or_else(|| range.map(|_| "1")))
-                inputmode=(numeric.then_some("numeric"))
-                pattern=(pattern)
-                placeholder=(placeholder)
-                required=(required)
-                maxlength=(max_length)
-                autocomplete="off"
-                aria-describedby=(describedby(&id, help.is_some(), error.is_some()))
-                aria-invalid=(error.map(|_| "true"))
-            >
+            input(
+                attrs: attributes! {
+                    id=(id.as_str())
+                    type=(input_type)
+                    name=(name)
+                    value=(value)
+                    min=(min)
+                    max=(max)
+                    step=(step.or_else(|| range.map(|_| "1")))
+                    inputmode=(numeric.then_some("numeric"))
+                    pattern=(pattern)
+                    placeholder=(placeholder)
+                    required=(required)
+                    maxlength=(max_length)
+                    autocomplete="off"
+                    aria-describedby=(describedby(&id, help.is_some(), error.is_some()))
+                    aria-invalid=(error.map(|_| "true"))
+                }
+            )
         )
     })
 }
@@ -123,17 +127,17 @@ pub async fn textarea_row(
             label: label,
             help: help,
             error: error,
-            <textarea
-                class="input"
-                id=(id.as_str())
-                name=(name)
-                rows=(rows)
-                required=(required)
-                aria-describedby=(describedby(&id, help.is_some(), error.is_some()))
-                aria-invalid=(error.map(|_| "true"))
-            >
+            textarea(
+                attrs: attributes! {
+                    id=(id.as_str())
+                    name=(name)
+                    rows=(rows)
+                    required=(required)
+                    aria-describedby=(describedby(&id, help.is_some(), error.is_some()))
+                    aria-invalid=(error.map(|_| "true"))
+                },
                 (value)
-            </textarea>
+            )
         )
     })
 }
@@ -165,9 +169,8 @@ pub async fn select_row(
                     label: label,
                     help: help,
                     error: error,
-                    <div class="select">
-                        <select
-                            class="input"
+                    select(
+                        attrs: attributes! {
                             id=(id.as_str())
                             name=(name)
                             required=(required)
@@ -177,25 +180,21 @@ pub async fn select_row(
                                 error.is_some(),
                             ))
                             aria-invalid=(error.map(|_| "true"))
-                        >
-                            <option value="" selected=(!has_selected)>(empty)</option>
-                            if let Some(text) = fallback {
-                                <option value=(selected) selected="">(text)</option>
-                            }
-                            #[key(index)]
-                            for (index, option) in options.iter().enumerate() {
-                                <option
-                                    value=(option.value.as_str())
-                                    selected=(option.value == selected)
-                                >
-                                    (option.label.as_str())
-                                </option>
-                            }
-                        </select>
-                        <span class="select-chevron">
-                            icon(name: Icon::ChevronDown)
-                        </span>
-                    </div>
+                        },
+                        <option value="" selected=(!has_selected)>(empty)</option>
+                        if let Some(text) = fallback {
+                            <option value=(selected) selected="">(text)</option>
+                        }
+                        #[key(index)]
+                        for (index, option) in options.iter().enumerate() {
+                            <option
+                                value=(option.value.as_str())
+                                selected=(option.value == selected)
+                            >
+                                (option.label.as_str())
+                            </option>
+                        }
+                    )
                 )
             }
             Err(reason) => {
@@ -209,19 +208,14 @@ pub async fn select_row(
                     label: label,
                     help: Some(reason),
                     error: error,
-                    <div class="select">
-                        <select
-                            class="input"
+                    select(
+                        attrs: attributes! {
                             id=(id.as_str())
                             aria-describedby=(describedby(&id, true, error.is_some()))
                             disabled=""
-                        >
-                            <option selected="">(current)</option>
-                        </select>
-                        <span class="select-chevron">
-                            icon(name: Icon::ChevronDown)
-                        </span>
-                    </div>
+                        },
+                        <option selected="">(current)</option>
+                    )
                     <input type="hidden" name=(name) value=(selected)>
                 )
             }
@@ -248,19 +242,16 @@ pub async fn toggle_row(
             label: label,
             help: help,
             error: error,
-            <div class="select">
-                <select
-                    class="input"
+            select(
+                attrs: attributes! {
                     id=(id.as_str())
                     name=(name)
                     aria-describedby=(describedby(&id, help.is_some(), error.is_some()))
                     aria-invalid=(error.map(|_| "true"))
-                >
-                    <option value="true" selected=(value)>(on_label)</option>
-                    <option value="false" selected=(!value)>(off_label)</option>
-                </select>
-                <span class="select-chevron">icon(name: Icon::ChevronDown)</span>
-            </div>
+                },
+                <option value="true" selected=(value)>(on_label)</option>
+                <option value="false" selected=(!value)>(off_label)</option>
+            )
         )
     })
 }
@@ -272,14 +263,16 @@ pub async fn form_summary(
     #[default("Not saved")] outcome: &str,
 ) -> Result<impl View> {
     Ok(view! {
-        <div
-            class="error"
-            id=(format!("{form}-summary"))
-            role="alert"
-            tabindex="-1"
-            autofocus=""
-        >
-            (format!("{outcome}: {message}"))
-        </div>
+        alert(
+            variant: AlertVariant::Destructive,
+            attrs: attributes! {
+                class="error"
+                id=(format!("{form}-summary"))
+                role="alert"
+                tabindex="-1"
+                autofocus=""
+            },
+            alert_title((format!("{outcome}: {message}")))
+        )
     })
 }

@@ -114,12 +114,12 @@ pub async fn sidebar_provider(
 // Ordinary components nested in the panel inherit its palette too. The
 // scoped aliases keep buttons, inputs and captions independent of the page.
 const PANEL_THEME: StaticClass = class!(
-    "[--background:var(--sidebar)] [--foreground:var(--sidebar-foreground)] \
-     [--card:var(--sidebar)] [--card-foreground:var(--sidebar-foreground)] \
-     [--primary:var(--sidebar-primary)] \
-     [--primary-foreground:var(--sidebar-primary-foreground)] \
-     [--border:var(--sidebar-border)] [--ring:var(--sidebar-ring)] \
-     [--muted-foreground:color-mix(in_oklab,var(--sidebar-foreground)_70%,transparent)]",
+    "[--background:var(--sidebar)] [--foreground:var(--sidebar-foreground)]",
+    "[--card:var(--sidebar)] [--card-foreground:var(--sidebar-foreground)]",
+    "[--primary:var(--sidebar-primary)]",
+    "[--primary-foreground:var(--sidebar-primary-foreground)]",
+    "[--border:var(--sidebar-border)] [--ring:var(--sidebar-ring)]",
+    "[--muted-foreground:color-mix(in_oklab,var(--sidebar-foreground)_70%,transparent)]",
 );
 
 /// A desktop panel that becomes a sheet over the page below `md` (48rem).
@@ -184,7 +184,7 @@ pub async fn sidebar(
                     role="navigation"
                     aria-label="Sidebar"
                     class=(class!(
-                        "md:relative md:inset-auto md:flex md:overflow-visible md:bg-transparent md:opacity-100 md:backdrop-blur-none md:starting:open:opacity-100 md:transition-none md:group-data-[collapsible=offcanvas]/sidebar:invisible motion-reduce:transition-none",
+                        "md:relative md:inset-auto md:flex md:overflow-visible md:bg-transparent md:opacity-100 md:starting:open:opacity-100 md:transition-none md:group-data-[collapsible=offcanvas]/sidebar:invisible motion-reduce:transition-none",
                         sheet_attrs.remove("class"),
                     ))
                     (sheet_attrs)

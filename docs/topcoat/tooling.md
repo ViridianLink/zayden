@@ -1,8 +1,8 @@
-Verified against: topcoat 0.10.0 (Cargo.lock), 2026-10-06
+Verified against: topcoat 0.11.0 (Cargo.lock), 2026-10-26
 
 # Tooling: the `topcoat` CLI, Tailwind, fonts, icons and the `web` build
 
-Everything here was read from `topcoat-cli-0.10.0`, `topcoat-ui-0.10.0`, `topcoat-tailwind-0.10.0`, `topcoat-font-0.10.0`, `topcoat-icon-0.10.0`, `topcoat-asset-0.10.0` and `topcoat-core-0.10.0`, run through the installed `topcoat 0.10.0` binary, or compiled in the probes under `scratch/topcoat-kb/ui/`. Components, theme and icon recipes are in [ui.md](ui.md).
+Everything here was read from `topcoat-cli-0.11.0`, `topcoat-ui-0.11.0`, `topcoat-tailwind-0.11.0`, `topcoat-font-0.11.0`, `topcoat-icon-0.11.0`, `topcoat-asset-0.11.0` and `topcoat-core-0.11.0`, run through the installed `topcoat 0.11.0` binary, or compiled in the probes under `scratch/topcoat-kb/ui/`. Components, theme and icon recipes are in [ui.md](ui.md).
 
 ## Contents
 
@@ -17,23 +17,25 @@ Everything here was read from `topcoat-cli-0.10.0`, `topcoat-ui-0.10.0`, `topcoa
 
 ## The CLI
 
-Install and version pin: `cargo install topcoat-cli@0.10.0 --locked` installs two binaries, `topcoat` and `cargo-topcoat` (`cargo topcoat <command>` is equivalent; the cargo shim drops the leading `topcoat` argument). `topcoat --version` and `-V` exist since 0.10. Before every command the CLI reads the nearest `Cargo.lock` at or above the working directory and prints a warning (never an error) when the locked `topcoat` version is not in the CLI's semver-compatibility group (for 0.10.x: `0.10`). `TOPCOAT_NO_VERSION_CHECK` set to any value silences it.
+Install and version pin: `cargo install topcoat-cli@0.11.0 --locked` installs two binaries, `topcoat` and `cargo-topcoat` (`cargo topcoat <command>` is equivalent; the cargo shim drops the leading `topcoat` argument). `topcoat --version` and `-V` exist since 0.10. Before every command the CLI reads the nearest `Cargo.lock` at or above the working directory and prints a warning (never an error) when the locked `topcoat` version is not in the CLI's semver-compatibility group (for 0.11.x: `0.11`; observed: `this project depends on topcoat 0.11.0, but the topcoat CLI is 0.10.0`). `TOPCOAT_NO_VERSION_CHECK` set to any value silences it.
 
 Status: VERIFIED (`topcoat <command> --help` and the source).
 
 | Command | Purpose |
 |---|---|
+| `topcoat new [PATH]` | Create a new app from a wizard or a preset (`--recommended`, `--minimal`; `--no-interactive` for scripts). New in 0.11. |
 | `topcoat dev` | Build, bundle assets and run the app; rebuild on source changes. |
 | `topcoat fmt [FILES]...` | Format the bodies of Topcoat macros (and optionally the Rust around them). |
 | `topcoat asset list` | Print the asset sources embedded in the built binary. |
 | `topcoat asset bundle` | Build the app and write its asset bundle. |
 | `topcoat asset clean` | Delete asset bundles and the asset download cache. |
+| `topcoat l10n check` | Build the app and check its Fluent translations against its `t!` calls; errors exit nonzero. New in 0.11. |
 | `topcoat ui init` | Create `components.toml` and install the theme stylesheet. |
 | `topcoat ui add` | Copy registry components into the package. |
 | `topcoat ui list` | List registry components and their install status. |
 | `topcoat ui remove` | Delete installed components. |
 
-There is no other subcommand in the 0.10.0 source (`topcoat-cli-0.10.0/src/lib.rs:30`).
+There is no other subcommand in the 0.11.0 source (`topcoat-cli-0.11.0/src/lib.rs:34-47`).
 
 ### Build flags (`dev`, `asset list`, `asset bundle`)
 
@@ -49,34 +51,34 @@ The CLI runs `cargo build --message-format=json-diagnostic-rendered-ansi` with t
 ### `topcoat dev`
 
 Status: UNVERIFIED (read from the source and `--help`; `topcoat dev` was not run)
-Source: `topcoat-cli-0.10.0/src/dev.rs`
+Source: `topcoat-cli-0.11.0/src/dev.rs`
 
 - Starts a broadcast server for browsers (the first free port from 59039, 100 ports tried), builds, bundles assets after each successful build, and starts the executable. A rebuild that does not change the executable (same path, mtime and length) leaves the running process alone. A failed build keeps the previous process serving.
 - Starts the app with `TOPCOAT_DEV_URL=<broadcast url>`, `HOST` and `PORT` set. The address is `HOST` (default `127.0.0.1`) and `PORT` (default 3000) from the CLI's own environment; if the port is taken, it tries the next ones and reports the choice.
 - `[package] default-run` in `Cargo.toml` selects the binary when the package has several (new in 0.10); an explicit `--bin` wins.
-- Watches the workspace root and the directory of every local package, recursively. It ignores paths under the cargo target directory, hidden path components, editor temp files (`*~`, `4913`, `#*#`, `___jb_`) and anything matched by `.gitignore` files and `.git/info/exclude`. A `Cargo.toml` change re-derives the watched set. Changes are debounced by 50 ms.
+- Watches the workspace root and the directory of every local package, recursively. It ignores paths under the cargo target directory, hidden path components, editor temp files (`*~`, `4913`, `#*#`, `___jb_`) and anything matched by `.gitignore` files and `.git/info/exclude`. A `Cargo.toml` change re-derives the watched set. Changes are debounced by 50 ms. Since 0.11 a file added inside a package touches that package's crate roots so Cargo reruns macros that read directories (`.ftl` files, `src/dev/watch/new_files.rs`), the app restarts when only the asset bundle changes, and each build runs the `topcoat l10n check` checks as warnings (`src/dev/build.rs:140-165`).
 - Pressing `r` on an interactive terminal forces a rebuild and a restart. Ctrl-C stops the build and the app.
 - Live page updates need the app's cooperation: `topcoat::dev::script()` in `<head>` (renders the `dev.js` tag only when `TOPCOAT_DEV_URL` is set) and `topcoat::dev::notify_ready(addr)` after binding (needs the `serve` feature). `web` does neither (`web/src/document.rs` renders no `dev::script()`, `web/src/main.rs` binds with `DASHBOARD_BIND_ADDR`/`[dashboard].bind_addr` and calls `topcoat::serve`), so under `topcoat dev -p web` the app would be built, bundled and started, but it would ignore the `HOST` and `PORT` it is given (it binds from config) and the browser would not auto-reload. Not run against `web` here.
 
 ### `topcoat fmt`
 
 Status: VERIFIED (`--check`, in-place and `--rustfmt` runs in the probes)
-Source: `topcoat-cli-0.10.0/src/fmt.rs`, `docs/fmt.md`
+Source: `topcoat-cli-0.11.0/src/fmt.rs`, `docs/fmt.md`
 
 | Flag | Meaning |
 |---|---|
-| `[FILES]...` | Files, directories or globs. Directories are searched for `*.rs` recursively. With none, `**/*.rs` under the working directory, which includes `target/`. |
+| `[FILES]...` | Files, directories or globs. Directories are searched for `*.rs` recursively, honoring `.gitignore` (inside a Git repository) and skipping directories that contain `CACHEDIR.TAG` (Cargo's `target`). With none, the working directory is searched that way (0.10 globbed `**/*.rs` including `target/`; `src/fmt.rs:158-160,230-245`). Pass ignored files explicitly to format them. |
 | `--check` | Report files that need formatting on stderr and exit 1 if any, or if any cannot be formatted; write nothing. New in 0.10. |
 | `--stdin` | Read source from stdin and write the formatted source to stdout (with `--check`, only the status). |
 | `--rustfmt` | Run `rustfmt` first, then format macro bodies. Both must succeed before a file is written. The edition must be set in `rustfmt.toml` (`edition = "2024"`). New in 0.10. |
 | `--macros <LIST>` | Comma-separated subset of: `view`, `attributes`, `class`, `live`, `emit`, `font_face`, `font`, `fontsource_font_face`, `fontsource_font`, `mail`. Unknown names exit 1. |
 
-Final line: `successfully formatted N files (M modified) in T`, or `checked N inputs (M need formatting), F failed in T`. Macro bodies are printed with a fixed margin of 89 columns and a 4-space indent (`topcoat-core-grammar-0.10.0/src/pretty/printer.rs:11`); the workspace `rustfmt.toml` (`max_width = 85`) is not read for them. A one-line `Ok(view! { ... })` between 86 and 89 columns therefore oscillates between `topcoat fmt` (keeps it on one line) and `rustfmt` (wraps it in `Ok(...)`); observed in the registry's `card.rs` (see [ui.md](ui.md#3-declare-the-components)).
+Final line: `successfully formatted N files (M modified) in T`, or `checked N inputs (M need formatting), F failed in T`. Macro bodies are printed with a fixed margin of 89 columns and a 4-space indent (`topcoat-core-grammar-0.11.0/src/pretty/printer.rs:11`); the workspace `rustfmt.toml` (`max_width = 85`) is not read for them. A one-line `Ok(view! { ... })` between 86 and 89 columns therefore oscillates between `topcoat fmt` (keeps it on one line) and `rustfmt` (wraps it in `Ok(...)`); observed in the registry's `card.rs` (see [ui.md](ui.md#3-declare-the-components)).
 
 ### `topcoat asset`
 
 Status: VERIFIED (`--help`, the source and the bundle `topcoat asset bundle -p web` produced in `target/debug/assets`; `clean` and `list` were not run)
-Source: `topcoat-cli-0.10.0/src/asset.rs` and `asset/*.rs`
+Source: `topcoat-cli-0.11.0/src/asset.rs` and `asset/*.rs`
 
 | Subcommand | Behavior |
 |---|---|
@@ -89,20 +91,20 @@ Observed bundle for `web` (`target/debug/assets/`): `manifest.toml`, `tailwind-<
 ### `topcoat ui`
 
 Status: VERIFIED (`init`, `add`, `add --all`, `list` and `remove` run in a sandbox package, `scratch/topcoat-kb/ui/cli-sandbox`)
-Source: `topcoat-cli-0.10.0/src/ui/*.rs`, `topcoat-ui-0.10.0/src/manage/*.rs`. Behavior of `add`, `remove` and `list` is tabulated in [ui.md](ui.md#install-behavior-topcoat-ui).
+Source: `topcoat-cli-0.11.0/src/ui/*.rs`, `topcoat-ui-0.11.0/src/manage/*.rs`. Behavior of `add`, `remove` and `list` is tabulated in [ui.md](ui.md#install-behavior-topcoat-ui).
 
 | Subcommand | Flags |
 |---|---|
-| `init` | `-c, --components-dir <DIR>` (default `src/components`), `-t, --theme <NAME>` (prompts when several exist; `neutral` is the only one in 0.10), `-p, --package <SPEC>`. Fails when `components.toml` exists. Writes the theme to `<package root>/<theme file>` (`styles.css`) and prints the Tailwind `build.rs` hint and the Geist/`font-fontsource` hint. |
+| `init` | `-c, --components-dir <DIR>` (default `src/components`), `-t, --theme <NAME>` (prompts when several exist; `neutral` is the only one in 0.11), `-p, --package <SPEC>`. Fails when `components.toml` exists. Writes the theme to `<package root>/<theme file>` (`styles.css`) and prints the Tailwind `build.rs` hint and the Geist/`font-fontsource` hint. |
 | `add [COMPONENTS]...` | `-a, --all`, `-r, --registry <CRATE>`, `-o, --overwrite`, `-p, --package <SPEC>`. Without `--registry` the built-in `topcoat` registry is preferred; another dependency registry asks for confirmation (needs a terminal). |
 | `list` | `-r, --registry`, `-i, --installed`, `-p, --package`. Statuses: available (listed bare), `(installed)`, `(update available)`, `(orphaned)`. |
 | `remove <COMPONENTS>...` | `-r, --registry`, `-p, --package`. |
 
-All four locate the package from the working directory (`cargo locate-project`) or `-p`, and resolve registries with `cargo metadata`. The built-in registry is the crate `topcoat-ui-registry`, which must be in the dependency graph through topcoat's `ui` feature (`web` enables it in `[build-dependencies]`). A custom registry is a crate with `[package.metadata.topcoat-ui] registry = "<dir>"` and a `registry.toml`, and must be a direct dependency.
+All four locate the package from the working directory (`cargo locate-project`) or `-p`, and resolve registries with `cargo metadata`. The built-in registry is the crate `topcoat-ui-registry`, which must be in the dependency graph through topcoat's `ui` feature (`web` enables it in `[build-dependencies]`). The 0.11 CLI also embeds a copy (`topcoat-ui-registry` feature `embedded`), used only by `topcoat new` (`src/new/generate.rs:466`). A custom registry is a crate with `[package.metadata.topcoat-ui] registry = "<dir>"` and a `registry.toml`, and must be a direct dependency.
 
 ## Environment variables
 
-Status: VERIFIED (source; `RUSTFLAGS`, `RUSTUP_TOOLCHAIN` and `CARGO_TARGET_DIR` reaching the inner build was observed with the installed 0.10.0 binary).
+Status: VERIFIED (source; `RUSTFLAGS`, `RUSTUP_TOOLCHAIN` and `CARGO_TARGET_DIR` reaching the inner build was observed with the installed 0.10.0 binary; the 0.11 build code still removes nothing).
 
 | Variable | By | Meaning |
 |---|---|---|
@@ -114,11 +116,11 @@ Status: VERIFIED (source; `RUSTFLAGS`, `RUSTUP_TOOLCHAIN` and `CARGO_TARGET_DIR`
 | `TAILWIND_CLI` (name chosen by the build script) | `web/build.rs` through `executable_env` | Path to a Tailwind CLI binary; skips the download. |
 | `TMPDIR`, `TMP`, `TEMP` | Tailwind build sets for the Tailwind child | A private `tailwind-scratch-<pid>-<n>` directory under `OUT_DIR`. |
 
-What the CLI strips: nothing in 0.10. Version 0.9's inner build removed every `CARGO*` variable and `RUSTC`, `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, `RUSTUP_TOOLCHAIN` and `RUSTFLAGS` (`topcoat-cli-0.9.0/src/common/cargo/build.rs:100-116`); 0.10 removed that loop, and its release notes state that CLI builds preserve Cargo and Rust environment settings. `RUSTUP_TOOLCHAIN`, `RUSTFLAGS`, `CARGO_TARGET_DIR`, wrappers and `.cargo/config.toml` therefore reach `topcoat dev` and `topcoat asset bundle` unchanged.
+What the CLI strips: nothing since 0.10. Version 0.9's inner build removed every `CARGO*` variable and `RUSTC`, `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, `RUSTUP_TOOLCHAIN` and `RUSTFLAGS` (`topcoat-cli-0.9.0/src/common/cargo/build.rs:100-116`); 0.10 removed that loop, and its release notes state that CLI builds preserve Cargo and Rust environment settings. `RUSTUP_TOOLCHAIN`, `RUSTFLAGS`, `CARGO_TARGET_DIR`, wrappers and `.cargo/config.toml` therefore reach `topcoat dev` and `topcoat asset bundle` unchanged.
 
 ## Output and cache directories
 
-Status: VERIFIED for `<target>/<profile>/assets/`, `components.toml`, `styles.css` and the component files; the cache paths are read from `topcoat-core-0.10.0/src/cache.rs` and the Tailwind and Iconify sources.
+Status: VERIFIED for `<target>/<profile>/assets/`, `components.toml`, `styles.css` and the component files; the cache paths are read from `topcoat-core-0.11.0/src/cache.rs` and the Tailwind and Iconify sources.
 
 | Path | Contents | Written by |
 |---|---|---|
@@ -135,7 +137,7 @@ Status: VERIFIED for `<target>/<profile>/assets/`, `components.toml`, `styles.cs
 
 ## Tailwind build integration
 
-Source: `topcoat-tailwind-0.10.0/src/build/*.rs`, `docs/tailwind.md`. Status: VERIFIED (probes `scratch/topcoat-kb/ui/build.rs`, `web-build/build.rs`; `web/build.rs` in the repository).
+Source: `topcoat-tailwind-0.11.0/src/build/*.rs`, `docs/tailwind.md`. Status: VERIFIED (probes `scratch/topcoat-kb/ui/build.rs`, `web-build/build.rs`; `web/build.rs` in the repository).
 
 Features: `tailwind` on the `[build-dependencies]` entry for `BuildConfig`. The runtime dependency needs it only for `tailwind::stylesheet!()`, which expands to `asset!(concat!(env!("OUT_DIR"), "/tailwind.css"))`; enabling it there compiles `topcoat-tailwind` with its default `build` feature (`ureq`, `sha2`, `thiserror`) into the app. `web` leaves it off and writes the `asset!` call itself (`web/src/document.rs:22`).
 
@@ -185,9 +187,9 @@ Scanning: Tailwind scans the working directory by default. `@import "tailwindcss
 
 ## Font and icon modules
 
-Status: VERIFIED (compiled and run in the probes), except the `host: Asset` download at bundle time: UNVERIFIED (the faces compile and the bundler's download code was read in `topcoat-asset-0.10.0/src/bundler/cache.rs`, but `topcoat asset bundle` was not run with it)
+Status: VERIFIED (compiled and run in the probes), except the `host: Asset` download at bundle time: UNVERIFIED (the faces compile and the bundler's download code was read in `topcoat-asset-0.11.0/src/bundler/cache.rs`, but `topcoat asset bundle` was not run with it)
 Features: `font`, `font-fontsource`, `icon`, `icon-iconify`
-Source: `topcoat-font-0.10.0/src/{component,router}.rs`, `topcoat-font-0.10.0/src/fontsource/`, `topcoat-icon-0.10.0/src/iconify/config.rs`, `topcoat-icon-grammar-0.10.0/src/iconify/staged.rs`
+Source: `topcoat-font-0.11.0/src/{component,router}.rs`, `topcoat-font-0.11.0/src/fontsource/`, `topcoat-icon-0.11.0/src/iconify/config.rs`, `topcoat-icon-grammar-0.11.0/src/iconify/staged.rs`
 Probe: `scratch/topcoat-kb/ui/tests/font_and_stylesheet.rs`, `scratch/topcoat-kb/ui/vendored/`, `scratch/topcoat-kb/ui/local-icons/`
 
 | Module | Feature | What it adds | Build-time network | Run-time network |
@@ -204,7 +206,7 @@ Iconify (`iconify::BuildConfig`): `icon_set("lucide")`, `icon_set_version("mdi",
 
 ### Dependency weight
 
-Status: VERIFIED (`cargo tree -e normal` and `-e normal,build` in probe crates).
+Status: VERIFIED on 0.10.0 (`cargo tree -e normal` and `-e normal,build` in probe crates), not re-measured for 0.11. The only new dependency of the crates below in 0.11 is `percent-encoding` in `topcoat-asset`, which `web`'s tree already has.
 
 Measured with `cargo tree` for the feature sets `web` uses today plus each addition (`scratch/topcoat-kb/ui/deps/`; `web`'s `asset, compression, cookie, router, runtime, serve, view` and build-dependencies `tailwind, ui`):
 
@@ -217,7 +219,7 @@ Measured with `cargo tree` for the feature sets `web` uses today plus each addit
 
 All six topcoat crates are MIT. The repository's `Cargo.lock` lists `topcoat-font*` but not `topcoat-icon*`; enabling `icon` adds the three icon crates to the lock.
 
-Feature interplay observed while building the probes: topcoat 0.10.0 does not compile with `runtime` and without `asset` (`Asset: AttributeValueViewParts` is not satisfied in topcoat's own `runtime` module), so `runtime` needs `asset` next to it.
+Feature interplay observed while building the probes: topcoat 0.10.0 and 0.11.0 do not compile with `runtime` and without `asset` (`Asset: AttributeValueViewParts` is not satisfied in topcoat's own `runtime` module), so `runtime` needs `asset` next to it.
 
 ## How this repository builds `web`
 
@@ -225,19 +227,19 @@ Status: VERIFIED for the files read (`web/build.rs`, `web/Cargo.toml`, `docker/D
 
 ### Locally
 
-- `web/Cargo.toml`: `topcoat` (workspace entry `version = "0.10", default-features = false`) with `asset`, `compression`, `cookie`, `router`, `runtime`, `serve`, `view`; `[build-dependencies]` `topcoat` with `tailwind`, `ui`. No `font`, `icon` or `discover`.
+- `web/Cargo.toml`: `topcoat` (workspace entry `version = "0.11", default-features = false`; workspace `rust-version = "1.99"`, the floor of topcoat 0.11) with `asset`, `compression`, `cookie`, `router`, `runtime`, `serve`, `view`; `[build-dependencies]` `topcoat` with `tailwind`, `ui`. No `font`, `icon` or `discover`.
 - `web/build.rs`: `BuildConfig::new().input("style/input.css")`, then `executable_env("TAILWIND_CLI")` when `TAILWIND_CLI` is set and non-empty, else on Linux x86-64 `version_checksum("4.3.2", "sha256:5036...425c1")`, else `version("4.3.2")`. Errors are printed as `cargo::error=tailwind failed: ...`. It prints `rerun-if-env-changed=TAILWIND_CLI` and `rerun-if-changed` for `style`, `src` and `assets`.
 - `web/src/document.rs`: `STYLESHEET = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"))` linked in `<head>`, followed by `topcoat::runtime::script()` and the `pending-submit.js` asset.
 - `web/src/main.rs`: `AssetBundle::load()` and `Router::builder().app_context(state).assets(assets)`, then `topcoat::serve(listener, router(base))`.
 - Workflow (README, `bacon.toml` job `bundle-web`): `topcoat asset bundle -p web` after every change, then `cargo run -p web`; `topcoat fmt web/src web/tests && cargo fmt`.
-- The toolchain is nightly through `rust-toolchain.toml`, and `.cargo/config.toml` sets `rustflags = ["-Z", "threads=8"]` and `RUST_TEST_THREADS=8`. 0.10's CLI passes them through (see [environment variables](#environment-variables)), which is the intended local behavior.
+- The toolchain is nightly through `rust-toolchain.toml`, and `.cargo/config.toml` sets `rustflags = ["-Z", "threads=8"]` and `RUST_TEST_THREADS=8`. The CLI (0.10 and later) passes them through (see [environment variables](#environment-variables)), which is the intended local behavior.
 
 ### Docker (`docker/Dockerfile.web`)
 
 1. `chef`: `rust:1-slim-trixie`, `RUSTUP_TOOLCHAIN=stable`, `cargo install cargo-chef --locked`.
 2. `planner`: `cargo chef prepare`.
 3. `tailwind`: `debian:trixie-slim`; `curl` of `tailwindcss-linux-x64` v4.3.2 from GitHub and `sha256sum -c` against `5036c4fb...425c1`, so the build script never downloads an unverified binary.
-4. `builder`: build tools and `libssl-dev`; `cargo install topcoat-cli@0.10.0 --locked`; the Tailwind binary copied to `/usr/local/bin/tailwindcss`; `ENV SQLX_OFFLINE=true TAILWIND_CLI=/usr/local/bin/tailwindcss`; `cargo chef cook --release -p web`; `COPY . .`; `rm -f rust-toolchain.toml && topcoat asset bundle --release -p web`.
+4. `builder`: build tools and `libssl-dev`; `cargo install topcoat-cli@0.11.0 --locked`; the Tailwind binary copied to `/usr/local/bin/tailwindcss`; `ENV SQLX_OFFLINE=true TAILWIND_CLI=/usr/local/bin/tailwindcss`; `cargo chef cook --release -p web`; `COPY . .`; `rm -f rust-toolchain.toml && topcoat asset bundle --release -p web`.
 5. `runtime`: copies `/app/target/release/web` and `/app/target/release/assets` side by side; runs as the `zayden` user on `0.0.0.0:3000`.
 
 `.dockerignore` excludes `.cargo/`, `rust-toolchain.toml`, `*.md`, `design-docs/`, `docs/` and `scratch/`. Nothing a font or icon change adds under `web/` is excluded.
@@ -246,9 +248,9 @@ Status: VERIFIED for the files read (`web/build.rs`, `web/Cargo.toml`, `docker/D
 
 - Global env: `RUSTUP_TOOLCHAIN: stable`, `RUSTFLAGS: ""`, `SQLX_OFFLINE: true`, `TAILWIND_VERSION: 4.3.2`, `TAILWIND_SHA256`.
 - Every job that compiles `web` reuses the `Fetch Tailwind CLI` step (a YAML anchor): download, `sha256sum -c`, `TAILWIND_CLI` exported through `GITHUB_ENV`.
-- `web-bundle`: installs `topcoat-cli@0.10.0 --locked`, then `rm -f rust-toolchain.toml`, `rm -rf .cargo`, `topcoat asset bundle -p web`, and checks `target/debug/assets/manifest.toml` is non-empty. It runs on `ubuntu-latest` with network.
-- `web-image`: `docker/build-push-action` builds `docker/Dockerfile.web` with a gha cache, without pushing.
-- `deny`: `EmbarkStudios/cargo-deny-action@v2` `check`. The `fmt` job runs `cargo fmt --all --check` on nightly; `clippy` runs `cargo clippy --workspace --all-targets --locked -- -D warnings` on stable. `topcoat fmt --check` is not run in CI.
+- `test` runs `cargo test --workspace --all-targets --locked` against a Postgres service; it builds `web` (and runs the Tailwind build script) but never installs the Topcoat CLI.
+- `images` (matrix `bot`, `web`): `docker/build-push-action` builds `docker/Dockerfile.web`, which is the only place CI installs the CLI and bundles assets; it pushes to GHCR and writes a registry build cache except on pull requests.
+- `deny`: `EmbarkStudios/cargo-deny-action` `check`. The `fmt` job runs `cargo fmt --all --check` on nightly; `clippy` runs `cargo clippy --workspace --all-targets --locked -- -D warnings` on stable. `topcoat fmt --check` is not run in CI.
 
 ## What enabling fonts and icons changes
 
@@ -260,7 +262,7 @@ Status: VERIFIED for the lock, dependency and run-time rows; the Docker and CI r
 | `--locked` CI | commit the lock | commit the lock | commit the lock |
 | Build-time network | none | yes unless the set is vendored (`cache_dir("icons")` with a committed `lucide.json`): `latest` is fetched from jsDelivr with no checksum | none |
 | Docker builder | none for the default `host`. With `host: Asset`, `topcoat asset bundle --release -p web` downloads the face files (the step has network). `fontsource_font!` passes no `checksum:` option to `asset!`. | the `web` build script runs during `topcoat asset bundle`; with a vendored set it needs nothing | none |
-| CI `web-bundle` | none by default; `host: Asset` downloads in this step | as Docker | none |
+| CI `images` (web) | as Docker (the image build is the only CI step that bundles assets) | as Docker | none |
 | Offline / air-gapped builds | fine by default | vendor the set | fine |
 | Reproducibility | the CSS pins no font version: files come from `@latest` on jsDelivr | `latest` unless pinned or vendored | exact |
 | Run time | each visitor's browser requests the font files from `cdn.jsdelivr.net` (default host) and preloads every face; `host: Asset` serves them from `/_topcoat/assets/` | none | none |
@@ -272,7 +274,7 @@ Practical consequences for this repository: the Docker image already reaches the
 
 ## Corrections to older notes
 
-Status: VERIFIED (both corrections reproduced with the installed 0.10.0 binary).
+Status: VERIFIED (both corrections reproduced with the installed 0.10.0 binary; neither behavior changed in 0.11).
 
-- `README.md` says "`topcoat fmt` ... has no `--check` mode". It does in 0.10: `topcoat fmt --check [paths]`, exit status 1 when files need formatting.
+- `README.md` says "`topcoat fmt` ... has no `--check` mode". It does since 0.10: `topcoat fmt --check [paths]`, exit status 1 when files need formatting.
 - `README.md` says the CLI "clears `RUSTUP_TOOLCHAIN` and `RUSTFLAGS` for its inner build, so it always builds with the toolchain `rust-toolchain.toml` selects". That was 0.9 behavior; 0.10 passes the environment through. Locally the toolchain is still the one `rust-toolchain.toml` selects unless `RUSTUP_TOOLCHAIN` is exported. CI and Docker set `RUSTUP_TOOLCHAIN=stable` and `RUSTFLAGS=""` explicitly, which now takes effect directly.

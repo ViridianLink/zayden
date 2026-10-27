@@ -34,6 +34,11 @@ use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 /// Seeded with the `admin` role by the migrations.
@@ -41,9 +46,23 @@ const ADMIN: i64 = 211_486_447_369_322_506;
 const ADMIN_COOKIE: &str = "session=admin-token";
 const PLAIN_COOKIE: &str = "session=plain-token";
 const TEST_POOL_CONNECTIONS: u32 = 2;
-const FORBIDDEN: &str = r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's loadout admins.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#;
-const NOT_FOUND: &str = r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">Loadout not found</h1><p class="error-text">There is no loadout at this address. It may have been deleted, or the link has a typo.</p><div class="error-actions"><a href="/admin/destiny2/loadouts" class="btn btn-primary">Back to loadouts</a></div></section></div></main>"#;
 const SCRIPT_SRC: &str = "/_topcoat/assets/loadout-editor-0123456789abcdef.js";
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+const TEXTAREA: &str = "field-sizing-content min-h-16 max-md:min-h-20 w-full rounded-lg border border-input bg-popover px-3 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+
+fn forbidden() -> String {
+    format!(
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's loadout admins.</p><div class="error-actions"><a href="/guilds" data-topcoat-link="never" class="{}">Back to servers</a></div></section></div></main>"#,
+        support::btn("primary")
+    )
+}
+
+fn not_found() -> String {
+    format!(
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">Loadout not found</h1><p class="error-text">There is no loadout at this address. It may have been deleted, or the link has a typo.</p><div class="error-actions"><a href="/admin/destiny2/loadouts" data-topcoat-link="never" class="{}">Back to loadouts</a></div></section></div></main>"#,
+        support::btn("primary")
+    )
+}
 
 fn bundle_dir() -> TestResult<PathBuf> {
     static DIR: OnceLock<Result<PathBuf, String>> = OnceLock::new();
@@ -269,7 +288,8 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
         has(
             html,
             &format!(
-                r#"<button type="button" class="btn btn-ghost gear-remove" aria-label="Remove {}">"#,
+                r#"<button type="button" class="{} gear-remove" aria-label="Remove {}">"#,
+                support::btn("ghost"),
                 attr(&weapon.name)
             ),
         )?;
@@ -284,7 +304,8 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
         has(
             html,
             &format!(
-                r#"<button type="button" class="btn btn-ghost aspect-remove" aria-label="Remove aspect {number}">Remove aspect</button>"#
+                r#"<button type="button" class="{} aspect-remove" aria-label="Remove aspect {number}">Remove aspect</button>"#,
+                support::btn("ghost")
             ),
         )?;
         has(
@@ -346,21 +367,22 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
     has(
         html,
         &format!(
-            r#"<button type="button" class="artifact-choice" aria-label="Artifact: {}, change">{}</button><button type="button" class="btn btn-ghost">Clear</button>"#,
+            r#"<button type="button" class="artifact-choice" aria-label="Artifact: {}, change">{}</button><button type="button" class="{}">Clear</button>"#,
             attr(&form.artifact_name),
-            text(&form.artifact_name)
+            text(&form.artifact_name),
+            support::btn("ghost")
         ),
     )?;
 
     let stat = form.stats.first().ok_or("seeded loadout has stats")?;
     has(html, &format!(r#"aria-label="Move {}, priority 1""#, attr(&stat.stat)))?;
     has(
-        html,
-        &format!(
-            r#"<input id="stat-value-0" class="input" aria-label="{} value" type="number" placeholder="0–200" value="{}">"#,
+        &canonical(html),
+        &canonical(&format!(
+            r#"<input id="stat-value-0" class="{INPUT}" aria-label="{} value" type="number" placeholder="0–200" value="{}">"#,
             attr(&stat.stat),
             attr(&stat.value)
-        ),
+        )),
     )?;
     for tag in &form.tags {
         has(
@@ -373,20 +395,25 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
         )?;
     }
     has(html, r#"<label for="loadout-tag">Tags (up to 3)</label>"#)?;
-    has(html, r#"<div class="chip-add"><input class="input" id="loadout-tag">"#)?;
     has(
-        html,
-        &format!(
-            r#"<input id="loadout-author" class="input" type="text" placeholder="" value="{}">"#,
-            attr(&form.author)
-        ),
+        &canonical(html),
+        &canonical(&format!(
+            r#"<div class="chip-add"><input class="{INPUT}" id="loadout-tag">"#
+        )),
     )?;
     has(
-        html,
-        &format!(
-            "<textarea id=\"loadout-how\" class=\"input\" rows=\"8\">\n{}</textarea>",
+        &canonical(html),
+        &canonical(&format!(
+            r#"<input id="loadout-author" class="{INPUT}" type="text" placeholder="" value="{}">"#,
+            attr(&form.author)
+        )),
+    )?;
+    has(
+        &canonical(html),
+        &canonical(&format!(
+            "<textarea id=\"loadout-how\" class=\"{TEXTAREA}\" rows=\"8\">\n{}</textarea>",
             text(&form.how_it_works)
-        ),
+        )),
     )?;
     Ok(())
 }
@@ -411,7 +438,10 @@ async fn visitors_sign_in_and_non_admins_get_a_403(
         let (status, html) = h.get(path, Some(PLAIN_COOKIE)).await?;
         assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
         assert!(html.contains(&format!("<title>{title}</title>")), "{path}");
-        assert!(html.contains(FORBIDDEN), "{path}: {html}");
+        assert!(
+            canonical(&html).contains(&canonical(&forbidden())),
+            "{path}: {html}"
+        );
         assert!(!html.contains("loadout-editor"), "{path}");
     }
 
@@ -465,7 +495,7 @@ async fn admins_get_the_server_rendered_editor(
             "{path}"
         );
         assert!(html.contains(r#"<form class="loadout-editor"><header class="loadout-header"><h1>New loadout</h1>"#), "{path}");
-        assert!(html.contains(r#"<input id="loadout-name" class="input" type="text" placeholder="" value="">"#), "{path}");
+        assert!(canonical(&html).contains(&canonical(&format!(r#"<input id="loadout-name" class="{INPUT}" type="text" placeholder="" value="">"#))), "{path}");
         assert!(html.contains(r#"<fieldset class="icon-choice-field"><legend class="label">Class</legend><div class="icon-choice"><label class="icon-choice-option active" for="loadout-class-0"><input type="radio" id="loadout-class-0" name="loadout-class" value="Hunter" checked=""><span>Hunter</span></label><label class="icon-choice-option" for="loadout-class-1"><input type="radio" id="loadout-class-1" name="loadout-class" value="Titan"><span>Titan</span></label>"#), "{html}");
         for group in ["Subclass", "Mode"] {
             assert!(html.contains(&format!(r#"<fieldset class="icon-choice-field"><legend class="label">{group}</legend>"#)), "{group}");
@@ -497,7 +527,7 @@ async fn admins_get_the_server_rendered_editor(
         );
         assert!(html.contains(r#"<span class="gear-name gear-empty">Add a weapon</span><span class="gear-meta">0 of 3</span>"#));
         assert!(html.contains(r#"aria-label="Move health, priority 1""#));
-        assert!(html.contains(r#"<p class="visually-hidden" role="status"></p><div class="form-actions"><button type="submit" class="btn btn-primary">Save</button></div></form><dialog class="picker" aria-labelledby="picker-title"></dialog>"#));
+        assert!(html.contains(&format!(r#"<p class="visually-hidden" role="status"></p><div class="form-actions"><button type="submit" class="{}">Save</button></div></form><dialog class="picker" aria-labelledby="picker-title"></dialog>"#, support::btn("primary"))));
         assert!(html.contains(&format!(
             r#"<script type="module" src="{SCRIPT_SRC}"></script>"#
         )));
@@ -512,10 +542,10 @@ async fn admins_get_the_server_rendered_editor(
         h.get("/admin/destiny2/loadouts/1", Some(ADMIN_COOKIE)).await?;
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("<h1>Edit loadout</h1>"));
-    assert!(html.contains(&format!(
-        r#"id="loadout-name" class="input" type="text" placeholder="" value="{}""#,
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<input id="loadout-name" class="{INPUT}" type="text" placeholder="" value="{}">"#,
         stored.name
-    )));
+    ))));
     let data = data_block(&html)?;
     assert_eq!(data["draftKey"], "zayden:loadout-draft:1");
     assert_eq!(data["form"], form_value(&stored)?);
@@ -525,7 +555,10 @@ async fn admins_get_the_server_rendered_editor(
         let path = format!("/admin/destiny2/loadouts/{missing}");
         let (status, html) = h.get(&path, Some(ADMIN_COOKIE)).await?;
         assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
-        assert!(html.contains(NOT_FOUND), "{path}: {html}");
+        assert!(
+            canonical(&html).contains(&canonical(&not_found())),
+            "{path}: {html}"
+        );
         assert!(
             html.contains(&format!("<title>{LOADOUT_NOT_FOUND_TITLE}</title>")),
             "{path}"
@@ -587,7 +620,8 @@ async fn endpoints_check_save_and_refuse_bad_emoji_names(
     let stored = stored_form(&pool, 1).await?;
     let (_, html) = h.get("/admin/destiny2/loadouts/1", Some(ADMIN_COOKIE)).await?;
     assert!(
-        html.contains(&format!("rows=\"8\">\n{}</textarea>", stored.how_it_works))
+        canonical(&html)
+            .contains(&format!("rows=\"8\">\n{}</textarea>", stored.how_it_works))
     );
     assert_eq!(stored.how_it_works, "Starts on line two");
 

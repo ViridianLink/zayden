@@ -6,15 +6,15 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
+use super::button::ButtonVariant;
 use super::confirm_dialog::confirm_dialog;
 
 #[component]
 pub async fn confirm_button(
-    id: &str,
     label: &str,
     prompt: &str,
     confirm: &str,
-    #[default("btn btn-danger")] class: &str,
+    #[default(ButtonVariant::Destructive)] variant: ButtonVariant,
     #[default] object: Option<&str>,
 ) -> Result<impl View> {
     let title = object.map_or_else(
@@ -24,12 +24,11 @@ pub async fn confirm_button(
 
     Ok(view! {
         confirm_dialog(
-            id: id,
             trigger: label,
             title: &title,
             description: Some(prompt),
             confirm: confirm,
-            trigger_class: class
+            trigger_variant: variant
         )
     })
 }

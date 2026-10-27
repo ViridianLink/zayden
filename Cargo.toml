@@ -5,7 +5,7 @@ members = ["bot", "bot-modules/*", "web", "zayden-app"]
 [workspace.package]
 version = "1.0.0"
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 authors = ["Oscar Six"]
 license = "LicenseRef-Proprietary"
 publish = false
@@ -312,7 +312,7 @@ aws-lc-rs = { version = "*", default-features = false }
 secrecy = { version = "*", default-features = false }
 
 # -- Frontend (Topcoat)
-topcoat = { version = "0.10", default-features = false }
+topcoat = { version = "0.11", default-features = false }
 
 # ── Testing and benchmarking ─────────────────────────────────────────────────
 criterion = { version = "*", default-features = false, features = [

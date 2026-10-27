@@ -164,8 +164,6 @@
 .rack-error {
     grid-column: 1 / -1;
     margin: var(--space-2) 0 0;
-    font-size: 13px;
-    color: var(--danger);
 }
 
 .rack-state {
@@ -283,10 +281,6 @@
     color: var(--danger);
 }
 
-.data-table-wrap {
-    overflow-x: auto;
-}
-
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -319,7 +313,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-.data-table :is(td, th) > a:not(.btn) {
+.data-table :is(td, th) > a:not(.no-underline) {
     display: inline-flex;
     align-items: center;
     min-height: var(--target-min);
@@ -394,53 +388,6 @@
     min-height: var(--target-min);
 }
 
-.plan-tag {
-    display: inline-flex;
-    align-items: center;
-    min-height: 20px;
-    padding: 0 var(--space-2);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-full);
-    color: var(--text);
-    font-family: var(--font-code);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.page-subnav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-    margin: 0 0 var(--space-5);
-    padding: 0;
-    border-bottom: 1px solid var(--rule);
-    list-style: none;
-}
-
-.page-subnav a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 36px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-control) var(--radius-control) 0 0;
-    color: var(--text-2);
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-}
-
-.page-subnav a:hover {
-    background-color: var(--wash-2);
-    color: var(--text);
-    text-decoration: none;
-}
-
-.page-subnav a[aria-current="page"] {
-    color: var(--text);
-    box-shadow: inset 0 -2px 0 var(--indicator);
-}
-
 .subpage-title {
     margin: 0 0 var(--space-4);
     font-size: 17px;
@@ -510,10 +457,9 @@
         text-align: left;
     }
 
-    .data-table :is(td, th) > a:not(.btn),
+    .data-table :is(td, th) > a:not(.no-underline),
     .rack-name a,
-    .plan-note a,
-    .page-subnav a {
+    .plan-note a {
         min-height: var(--row-h);
     }
 

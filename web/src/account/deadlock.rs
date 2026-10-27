@@ -5,7 +5,7 @@ use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::error::see_other;
 use topcoat::router::page;
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 use tracing::warn;
 
 use super::page::{PAGE, SIGN_IN_PATH};
@@ -17,6 +17,8 @@ use crate::auth::{
     require_user,
     user_guilds,
 };
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::flash::{FlashKind, set as set_flash};
 use crate::state::SessionIdentity;
 
@@ -225,9 +227,13 @@ pub(super) async fn deadlock_section(
             </p>
             match prefs {
                 None => {
-                    <p class="error" role="alert">
-                        "Your Deadlock settings couldn't be loaded. Please try again shortly."
-                    </p>
+                    alert(
+                        variant: AlertVariant::Destructive,
+                        attrs: attributes! { class="error" role="alert" },
+                        alert_title(
+                            "Your Deadlock settings couldn't be loaded. Please try again shortly."
+                        )
+                    )
                 }
                 Some(prefs) => {
                     <form
@@ -250,11 +256,16 @@ pub(super) async fn deadlock_section(
                                 name=(BRIEFING_FIELD)
                                 checked=(prefs.patch_briefing)
                             >
-                            <span>"DM me a patch-day briefing for the heroes I play"</span>
+                            <span>
+                                "DM me a patch-day briefing for the heroes I play"
+                            </span>
                         </label>
                         <button
                             type="submit"
-                            class="btn btn-secondary"
+                            class=(button_variants(
+                                ButtonVariant::Secondary,
+                                ButtonSize::Md,
+                            ))
                             data-pending-label="Saving\u{2026}"
                         >
                             "Save"
@@ -297,7 +308,10 @@ pub(super) async fn deadlock_section(
                             </ul>
                             <button
                                 type="submit"
-                                class="btn btn-secondary"
+                                class=(button_variants(
+                                    ButtonVariant::Secondary,
+                                    ButtonSize::Md,
+                                ))
                                 data-pending-label="Saving\u{2026}"
                             >
                                 "Save servers"

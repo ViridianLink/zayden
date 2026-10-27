@@ -1,17 +1,21 @@
-use topcoat::{
-    Result,
-    runtime::Expr,
-    view::{Attributes, Child, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::runtime::Expr;
+use topcoat::view::{Attributes, Child, StaticClass, View, class, component, view};
 
 /// A group of panels with controls for selecting the visible panel.
 ///
 /// Triggers can navigate to a server-rendered panel or update a signal. For browser
 /// updates, bind each trigger's `active` prop and each panel's `hidden` attribute to
-/// the selected-tab signal. Triggers are ordinary links and do not implement the ARIA
-/// tab pattern's arrow-key navigation.
+/// the selected-tab signal. Triggers are ordinary links and do not implement the
+/// ARIA tab pattern's arrow-key navigation.
 ///
-/// `attrs` are forwarded to the outer `<div>`, with extra classes added to its classes.
+/// `attrs` are forwarded to the outer `<div>`, with extra classes added to its
+/// classes.
 ///
 /// ```ignore
 /// view! {
@@ -62,21 +66,21 @@ pub async fn tabs_list(
 
 /// Classes for a tab trigger's active and hover states.
 const TRIGGER: StaticClass = class!(
-    "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 \
-     rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none \
-     focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
-     focus-visible:ring-offset-background text-muted-foreground \
-     hover:bg-foreground/5 hover:text-foreground \
-     aria-[current=page]:bg-foreground/10 aria-[current=page]:text-foreground \
-     aria-[current=page]:hover:bg-foreground/10",
+    "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2",
+    "rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none",
+    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "focus-visible:ring-offset-background text-muted-foreground",
+    "hover:bg-foreground/5 hover:text-foreground",
+    "aria-[current=page]:bg-foreground/10 aria-[current=page]:text-foreground",
+    "aria-[current=page]:hover:bg-foreground/10",
 );
 
 /// A link that selects a panel.
 ///
-/// `active` accepts a boolean or runtime expression and controls the selected styling
-/// and `aria-current="page"`. Pass the destination as `href` in `attrs`. To select a
-/// panel locally, handle the click, prevent navigation, and update the selected-tab
-/// signal.
+/// `active` accepts a boolean or runtime expression and controls the selected
+/// styling and `aria-current="page"`. Pass the destination as `href` in `attrs`. To
+/// select a panel locally, handle the click, prevent navigation, and update the
+/// selected-tab signal.
 #[component]
 pub async fn tabs_trigger(
     /// Whether this trigger selects the visible panel.

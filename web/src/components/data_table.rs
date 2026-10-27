@@ -4,7 +4,17 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{Child, View, component, view};
+use topcoat::view::{Child, View, attributes, component, view};
+
+use super::table::{
+    table,
+    table_body,
+    table_caption,
+    table_cell,
+    table_head,
+    table_header,
+    table_row,
+};
 
 #[component]
 pub async fn data_table(
@@ -13,26 +23,30 @@ pub async fn data_table(
     #[default] child: Child<'_>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="data-table-wrap">
-            <table class="data-table" role="table">
-                <caption class="visually-hidden">(caption)</caption>
-                <thead role="rowgroup">
-                    <tr role="row">
-                        #[key(column)]
-                        for column in columns {
-                            <th scope="col" role="columnheader">(*column)</th>
-                        }
-                    </tr>
-                </thead>
-                <tbody role="rowgroup">(child)</tbody>
-            </table>
-        </div>
+        table(
+            attrs: attributes! { class="data-table" role="table" },
+            table_caption(attrs: attributes! { class="visually-hidden" }, (caption))
+            table_header(
+                attrs: attributes! { role="rowgroup" },
+                table_row(
+                    attrs: attributes! { role="row" },
+                    #[key(column)]
+                    for column in columns {
+                        table_head(
+                            attrs: attributes! { scope="col" role="columnheader" },
+                            (*column)
+                        )
+                    }
+                )
+            )
+            table_body(attrs: attributes! { role="rowgroup" }, (child))
+        )
     })
 }
 
 #[component]
 pub async fn data_row(#[default] child: Child<'_>) -> Result<impl View> {
-    Ok(view! { <tr role="row">(child)</tr> })
+    Ok(view! { table_row(attrs: attributes! { role="row" }, (child)) })
 }
 
 #[component]
@@ -46,11 +60,20 @@ pub async fn data_cell(
 
     Ok(view! {
         if header {
-            <th scope="row" role="rowheader" data-label=(label) class=(class)>
+            table_head(
+                attrs: attributes! {
+                    scope="row"
+                    role="rowheader"
+                    data-label=(label)
+                    class=(class)
+                },
                 (child)
-            </th>
+            )
         } else {
-            <td role="cell" data-label=(label) class=(class)>(child)</td>
+            table_cell(
+                attrs: attributes! { role="cell" data-label=(label) class=(class) },
+                (child)
+            )
         }
     })
 }

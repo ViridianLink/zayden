@@ -21,6 +21,13 @@ use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 fn bundle_dir() -> TestResult<PathBuf> {
@@ -250,9 +257,9 @@ async fn landing_has_the_public_chrome_and_hero() {
         "<!DOCTYPE html><html lang=\"en\" class=\"dark\" data-bot=\"zayden\">"
     ));
     assert!(html.contains(r#"<div class="public"><header class="public-header">"#));
-    assert!(html.contains(
-        r#"<a href="/" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
-    ));
+    assert!(canonical(&html).contains(&canonical(
+        r#"<a href="/" class="brand" data-topcoat-link="never"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
+    )));
     assert_eq!(
         vec!["The Discord bot that grows with your server"],
         texts(&html, "h1"),
@@ -305,20 +312,29 @@ async fn landing_links_keep_their_order_and_external_rel() {
     );
     assert_eq!(
         2,
-        count(&html, r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
+        count(
+            &canonical(&html),
+            &canonical(
+                r#"<a href="/upgrade" class="public-nav-link" data-topcoat-link="never">Pricing</a>"#
+            )
+        )
     );
     assert_eq!(
         2,
         count(
             &html,
-            r#"<a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#
+            &format!(
+                r#"<a href="/auth/discord" rel="external" class="{}">Sign in</a>"#,
+                support::btn("secondary")
+            )
         )
     );
-    assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">Sign in with Discord<svg"#));
+    assert!(html.contains(&format!(r#"<a href="/auth/discord" rel="external" class="{}">Sign in with Discord<svg"#, support::btn("secondary-lg"))));
     assert!(!html.contains("Open dashboard"));
-    assert!(html.contains(
-        r#"<a href="/upgrade" class="btn btn-ghost btn-lg">See plans</a>"#
-    ));
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<a href="/upgrade" class="{}" data-topcoat-link="never">See plans</a>"#,
+        support::btn("ghost-lg")
+    ))));
 }
 
 #[tokio::test]
@@ -328,16 +344,24 @@ async fn landing_sends_a_signed_in_visitor_to_their_servers() {
     assert_eq!(StatusCode::OK, response.status());
     let html = body_text(response).await.unwrap();
 
-    assert!(html.contains(r#"<div class="hero-actions"><a href="/invite" rel="external" class="btn btn-primary btn-lg">"#));
-    assert!(html.contains(
-        r#"<a href="/guilds" class="btn btn-secondary btn-lg">Open dashboard<svg"#
-    ));
+    assert!(html.contains(&format!(
+        r#"<div class="hero-actions"><a href="/invite" rel="external" class="{}">"#,
+        support::btn("primary-lg")
+    )));
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<a href="/guilds" class="{}" data-topcoat-link="never">Open dashboard"#,
+        support::btn("secondary-lg")
+    ))));
+    assert!(html.contains("Open dashboard<svg"));
     assert!(!html.contains("Sign in with Discord"));
     assert_eq!(
         2,
         count(
-            &html,
-            r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
+            &canonical(&html),
+            &canonical(&format!(
+                r#"<a href="/guilds" class="{}" data-topcoat-link="never">Open dashboard</a>"#,
+                support::btn("primary")
+            ))
         )
     );
 }
@@ -395,17 +419,17 @@ async fn footer_lists_the_five_links() {
     let footer = between(&html, "<footer class=\"footer\">", "</footer>").unwrap();
 
     assert_eq!(
-        concat!(
+        canonical(concat!(
             r#"<div class="footer-inner"><span>© 2026 Zayden. Not affiliated with Discord.</span>"#,
             r#"<nav class="footer-links" aria-label="Footer">"#,
             r#"<a href="/invite" rel="external">Invite</a>"#,
-            r#"<a href="/upgrade">Pricing</a>"#,
+            r#"<a href="/upgrade" data-topcoat-link="never">Pricing</a>"#,
             r#"<a href="/auth/discord" rel="external">Sign in</a>"#,
-            r#"<a href="/privacy">Privacy Policy</a>"#,
-            r#"<a href="/terms">Terms of Service</a>"#,
+            r#"<a href="/privacy" data-topcoat-link="never">Privacy Policy</a>"#,
+            r#"<a href="/terms" data-topcoat-link="never">Terms of Service</a>"#,
             "</nav></div>",
-        ),
-        footer,
+        )),
+        canonical(footer),
     );
 }
 
@@ -418,9 +442,9 @@ async fn header_slot_is_empty_when_the_session_lookup_fails() {
 
     assert!(!html.contains("Sign in"));
     assert!(!html.contains("Open dashboard"));
-    assert!(
-        html.contains(r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
-    );
+    assert!(canonical(&html).contains(&canonical(
+        r#"<a href="/upgrade" class="public-nav-link" data-topcoat-link="intent">Pricing</a>"#
+    )));
 }
 
 #[tokio::test]
@@ -429,9 +453,10 @@ async fn header_slot_offers_login_when_signed_out() {
         .await
         .unwrap();
 
-    assert!(html.contains(
-        r#"<a href="/upgrade" class="public-nav-link">Pricing</a><a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#
-    ));
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<a href="/upgrade" class="public-nav-link" data-topcoat-link="intent">Pricing</a><a href="/auth/discord" rel="external" class="{}">Sign in</a>"#,
+        support::btn("secondary")
+    ))));
     assert!(!html.contains("Open dashboard"));
 }
 
@@ -441,9 +466,10 @@ async fn header_slot_offers_the_dashboard_when_signed_in() {
         .await
         .unwrap();
 
-    assert!(html.contains(
-        r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
-    ));
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<a href="/guilds" class="{}" data-topcoat-link="intent">Open dashboard</a>"#,
+        support::btn("primary")
+    ))));
     assert!(!html.contains(">Sign in<"));
 }
 
@@ -467,12 +493,15 @@ async fn login_renders_the_card_in_a_main_landmark() {
     assert!(html.contains(
         r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="public"><header class="public-header">"##
     ));
-    assert!(html.contains(concat!(
-        r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page"><div class="hero-glow"></div><div class="login-card">"#,
-        r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
-        "<h1>Welcome back</h1>",
-        "<p>Connect your Discord account to manage your server settings.</p>",
-        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a></div></div></main>"#,
+    assert!(html.contains(&format!(
+        concat!(
+            r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page"><div class="hero-glow"></div><div class="login-card">"#,
+            r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
+            "<h1>Welcome back</h1>",
+            "<p>Connect your Discord account to manage your server settings.</p>",
+            r#"<a href="/auth/discord" rel="external" class="{} w-full">Sign in with Discord</a></div></div></main>"#,
+        ),
+        support::btn("primary-lg")
     )));
     assert_eq!(1, count(&html, "<main"));
     assert_eq!(1, count(&html, "<header class=\"public-header\">"));
@@ -485,13 +514,23 @@ async fn login_explains_a_failed_sign_in_and_offers_a_retry() {
     let plain = page_html("/login").await.unwrap();
     let failed = page_html("/login?error=auth_failed").await.unwrap();
 
-    assert!(failed.contains(concat!(
-        "<p>Connect your Discord account to manage your server settings.</p>",
-        r#"<p class="error" role="alert">Signing in with Discord didn't finish, so you aren't signed in. Please try again.</p>"#,
-        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Try again with Discord</a></div>"#,
-    )));
-    assert_eq!(plain, page_html("/login?error=other").await.unwrap());
-    assert_eq!(plain, page_html("/login?unrelated=auth_failed").await.unwrap());
+    assert!(canonical(&failed).contains(&canonical(&format!(
+        concat!(
+            "<p>Connect your Discord account to manage your server settings.</p>",
+            r#"<div class="{ERROR_ALERT} error" role="alert"><p class="col-start-2 font-medium tracking-tight">Signing in with Discord didn't finish, so you aren't signed in. Please try again.</p></div>"#,
+            r#"<a href="/auth/discord" rel="external" class="{btn} w-full">Try again with Discord</a></div>"#,
+        ),
+        ERROR_ALERT = ERROR_ALERT,
+        btn = support::btn("primary-lg")
+    ))));
+    assert_eq!(
+        canonical(&plain),
+        canonical(&page_html("/login?error=other").await.unwrap())
+    );
+    assert_eq!(
+        canonical(&plain),
+        canonical(&page_html("/login?unrelated=auth_failed").await.unwrap())
+    );
 }
 
 #[tokio::test]
@@ -517,9 +556,10 @@ async fn login_still_offers_sign_in_in_a_main_landmark_when_the_session_lookup_f
     assert!(html.contains(
         r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page">"#
     ));
-    assert!(html.contains(
-        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a>"#
-    ));
+    assert!(html.contains(&format!(
+        r#"<a href="/auth/discord" rel="external" class="{} w-full">Sign in with Discord</a>"#,
+        support::btn("primary-lg")
+    )));
 }
 
 #[tokio::test]
@@ -531,11 +571,16 @@ async fn pages_keep_rendering_with_an_empty_header_slot_when_the_session_lookup_
 
     assert_eq!(StatusCode::OK, response.status());
     let html = body_text(response).await.unwrap();
-    assert!(!html.contains(r#"class="btn btn-secondary">Sign in</a>"#));
-    assert!(!html.contains("Open dashboard"));
     assert!(
-        html.contains(r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
+        !html.contains(&format!(
+            r#"class="{}">Sign in</a>"#,
+            support::btn("secondary")
+        ))
     );
+    assert!(!html.contains("Open dashboard"));
+    assert!(canonical(&html).contains(&canonical(
+        r#"<a href="/upgrade" class="public-nav-link" data-topcoat-link="never">Pricing</a>"#
+    )));
     assert!(html.contains(LEGAL_MAIN));
 }
 

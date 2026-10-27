@@ -1,7 +1,8 @@
 @import "tailwindcss" source(none);
 
 @source "./src/**/*.rs";
-@source not "./src/components/{accordion,alert_dialog,avatar,breadcrumb,card,dialog,dropdown_menu,hover_card,kbd,progress,sheet,sidebar,spinner,switch,table,tabs,toggle,tooltip}.rs";
+@source "./assets/loadout-editor.js";
+@source not "./src/components/{accordion,alert_dialog,avatar,breadcrumb,card,dialog,dropdown_menu,floating,hover_card,kbd,navigation_menu,popover,progress,sheet,sidebar,spinner,switch,toggle,tooltip}.rs";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -42,8 +43,6 @@
 @import "./style/partials/fonts.css";
 @import "./style/partials/base.css";
 @import "./style/partials/card.css";
-@import "./style/partials/forms.css";
-@import "./style/partials/buttons.css";
 @import "./style/partials/chrome.css";
 @import "./style/partials/overlays.css";
 @import "./style/partials/components.css";
@@ -58,7 +57,6 @@
 @import "./style/partials/reaction-roles.css";
 @import "./style/partials/greetings.css";
 @import "./style/partials/chips.css";
-@import "./style/partials/pager.css";
 @import "./style/partials/operator.css";
 @import "./style/partials/skeleton.css";
 @import "./style/partials/loadouts.css";

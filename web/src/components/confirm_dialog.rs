@@ -4,28 +4,31 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{View, component, view};
+use topcoat::context::Cx;
+use topcoat::view::{View, class, component, element_id, view};
+
+use super::button::{ButtonSize, ButtonVariant, button_variants};
 
 #[component]
 pub async fn confirm_dialog(
-    id: &str,
+    cx: &Cx,
     trigger: &str,
     title: &str,
     confirm: &str,
     #[default] description: Option<&str>,
-    #[default("btn btn-ghost")] trigger_class: &str,
+    #[default(ButtonVariant::Ghost)] trigger_variant: ButtonVariant,
     #[default] form: Option<&str>,
     #[default("Cancel")] cancel: &str,
     #[default] trigger_label: Option<&str>,
 ) -> Result<impl View> {
-    let title_id = format!("{id}-title");
-    let desc_id = description.map(|_| format!("{id}-desc"));
+    let title_id = element_id(cx);
+    let desc_id = description.map(|_| element_id(cx));
 
     Ok(view! {
         <div class="confirm" data-confirm="">
             <button
                 type="submit"
-                class=(trigger_class)
+                class=(button_variants(trigger_variant, ButtonSize::Md))
                 form=(form)
                 aria-label=(trigger_label)
                 data-confirm-trigger=""
@@ -46,13 +49,23 @@ pub async fn confirm_dialog(
                     <div class="dialog-actions">
                         <button
                             type="button"
-                            class="btn btn-secondary"
+                            class=(class!(
+                                button_variants(ButtonVariant::Secondary, ButtonSize::Md),
+                                "max-md:flex-1",
+                            ))
                             data-dialog-close=""
                             autofocus=""
                         >
                             (cancel)
                         </button>
-                        <button type="submit" class="btn btn-danger" form=(form)>
+                        <button
+                            type="submit"
+                            class=(class!(
+                                button_variants(ButtonVariant::Destructive, ButtonSize::Md),
+                                "max-md:flex-1",
+                            ))
+                            form=(form)
+                        >
                             (confirm)
                         </button>
                     </div>

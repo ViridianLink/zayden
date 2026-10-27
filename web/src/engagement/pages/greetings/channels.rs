@@ -4,10 +4,12 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 
 use super::{ADD_CHANNEL, CHANNELS, GreetingAction, PAGE, REMOVE_CHANNEL};
 use crate::auth::ChannelInfo;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::field_row::{form_summary, select_row};
@@ -72,11 +74,15 @@ pub async fn channel_section(
                         outcome: "Not added"
                     )
                 }
-                <p class="warning">
-                    "Discord didn't report which channels "
-                    <code>"/good"</code>
-                    " is allowed in, so its restrictions can't be shown or changed right now."
-                </p>
+                alert(
+                    variant: AlertVariant::Neutral,
+                    attrs: attributes! { class="warning" },
+                    alert_title(
+                        "Discord didn't report which channels "
+                        <code>"/good"</code>
+                        " is allowed in, so its restrictions can't be shown or changed right now."
+                    )
+                )
             } else {
                 if allowed.is_empty() {
                     <p class="page-lead">
@@ -89,10 +95,9 @@ pub async fn channel_section(
                         caption: "Channels where /good works",
                         columns: columns,
                         #[key(id.as_str())]
-                        for (index, id) in allowed.iter().enumerate() {
+                        for id in allowed {
                             channel_row(
                                 guild_id: guild_id,
-                                index: index,
                                 label: channel_label(channels, id),
                                 id: id,
                                 editable: editable
@@ -108,9 +113,13 @@ pub async fn channel_section(
                             outcome: "Not added"
                         )
                     }
-                    <p class="warning">
-                        "Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in."
-                    </p>
+                    alert(
+                        variant: AlertVariant::Neutral,
+                        attrs: attributes! { class="warning" },
+                        alert_title(
+                            "Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in."
+                        )
+                    )
                 } else {
                     <form
                         method="post"
@@ -141,7 +150,10 @@ pub async fn channel_section(
                         <div class="form-actions">
                             <button
                                 type="submit"
-                                class="btn btn-secondary"
+                                class=(button_variants(
+                                    ButtonVariant::Secondary,
+                                    ButtonSize::Md,
+                                ))
                                 data-pending-label="Adding\u{2026}"
                             >
                                 "Add channel"
@@ -158,13 +170,11 @@ pub async fn channel_section(
 #[component]
 async fn channel_row(
     guild_id: &str,
-    index: usize,
     label: String,
     id: &str,
     editable: bool,
 ) -> Result<impl View> {
     let action = form_action(guild_id, PAGE, GreetingAction::RemoveChannel);
-    let confirm_id = format!("good-channel-{index}-remove");
     let confirm_title = format!("Remove {label} from the /good list?");
     let trigger_label = format!("Remove {label}");
 
@@ -178,7 +188,6 @@ async fn channel_row(
                         <input type="hidden" name="guild" value=(guild_id)>
                         <input type="hidden" name="channel_id" value=(id)>
                         confirm_dialog(
-                            id: &confirm_id,
                             trigger: "Remove",
                             title: &confirm_title,
                             description: Some(

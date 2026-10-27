@@ -6,7 +6,7 @@
 .greet-card,
 .pro-feature,
 .rack,
-.data-table-wrap,
+[data-slot="table"],
 .login-card {
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);

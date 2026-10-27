@@ -48,23 +48,6 @@
   color: var(--caution);
 }
 
-/* Styled native select (channel/role picker). */
-.select {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-chevron {
-  position: absolute;
-  right: var(--space-3);
-  display: grid;
-  place-items: center;
-  color: var(--text-3);
-  font-size: 16px;
-  pointer-events: none;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;

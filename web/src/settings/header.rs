@@ -1,10 +1,11 @@
 use topcoat::Result;
 use topcoat::context::Cx;
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 use zayden_app::modules::{self, Backing};
 
 use super::Page;
 use super::state::{Done, Failure, PageState, settle};
+use crate::components::alert::{AlertVariant, alert, alert_title};
 use crate::components::lamp::{LampState, lamp};
 use crate::components::module_row::NOT_SYNCED_NOTE;
 use crate::form::fold;
@@ -67,10 +68,14 @@ pub(super) async fn feature_header(
                     <p class="field-hint">(NOT_SYNCED_NOTE)</p>
                 }
                 if let Some(error) = error {
-                    <p class="error" role="alert">
-                        "Not changed: "
-                        (error)
-                    </p>
+                    alert(
+                        variant: AlertVariant::Destructive,
+                        attrs: attributes! { class="error" role="alert" },
+                        alert_title(
+                            "Not changed: "
+                            (error)
+                        )
+                    )
                 }
             </div>
             match module {

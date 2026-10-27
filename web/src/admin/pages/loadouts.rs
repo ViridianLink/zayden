@@ -8,8 +8,8 @@ use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::error::see_other;
 use topcoat::router::{StatusCode, page};
-use topcoat::runtime::{Event, Signal, expr, signal};
-use topcoat::view::{View, ViewExt, component, suspense, view};
+use topcoat::runtime::{Event, Signal, expr, link_attrs, prefetch_mode, signal};
+use topcoat::view::{View, ViewExt, attributes, component, suspense, view};
 
 use super::error::DeleteError;
 use super::gate::{Gate, closed, gate};
@@ -20,10 +20,12 @@ use crate::admin::{
     list_loadouts,
 };
 use crate::auth::WebRole;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_table};
 use crate::components::flash::flash;
-use crate::components::icons::{Icon, icon};
+use crate::components::select::select;
 use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::flash::{Flash, FlashKind, set as set_flash, take as take_flash};
 use crate::form::fold;
@@ -99,36 +101,41 @@ pub async fn loadout_list_page(
                         "Builds shown by /destiny2 builds. Saves apply to the bot immediately."
                     </p>
                 </div>
-                <a href=(NEW_PATH) class="btn btn-primary">"New loadout"</a>
+                <a
+                    class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    (link_attrs(cx, NEW_PATH, prefetch_mode(cx)))
+                >
+                    "New loadout"
+                </a>
             </div>
             flash(notice: notice)
             if let Some(message) = failure {
-                <div
-                    class="error"
-                    id="delete-summary"
-                    role="alert"
-                    tabindex="-1"
-                    autofocus=""
-                >
-                    (format!("Not deleted: {message}"))
-                </div>
+                alert(
+                    variant: AlertVariant::Destructive,
+                    attrs: attributes! {
+                        class="error"
+                        id="delete-summary"
+                        role="alert"
+                        tabindex="-1"
+                        autofocus=""
+                    },
+                    alert_title((format!("Not deleted: {message}")))
+                )
             }
             <div class="field-row">
                 <label class="field-label" for="loadout-class-filter">"Class"</label>
-                <div class="select">
-                    <select
-                        class="input loadout-filter"
+                select(
+                    attrs: attributes! {
+                        class="loadout-filter"
                         id="loadout-class-filter"
                         @change=$(|e: Event| class.set(e.target.value))
-                    >
-                        <option value="">"All classes"</option>
-                        #[key(*option)]
-                        for option in CLASSES {
-                            <option value=(option)>(option)</option>
-                        }
-                    </select>
-                    <span class="select-chevron">icon(name: Icon::ChevronDown)</span>
-                </div>
+                    },
+                    <option value="">"All classes"</option>
+                    #[key(*option)]
+                    for option in CLASSES {
+                        <option value=(option)>(option)</option>
+                    }
+                )
             </div>
             suspense(
                 fallback: view! {
@@ -162,13 +169,19 @@ async fn loadout_table(cx: &Cx, class: &Signal<String>) -> Result<impl View> {
 
     Ok(view! {
         match rows {
-            Err(None) => <p class="error">
-                "Admin access is required to edit loadouts."
-            </p>,
-            Err(Some(text)) => <p class="error">
-                "Couldn't load loadouts: "
-                (text)
-            </p>,
+            Err(None) => alert(
+                variant: AlertVariant::Destructive,
+                attrs: attributes! { class="error" },
+                alert_title("Admin access is required to edit loadouts.")
+            ),
+            Err(Some(text)) => alert(
+                variant: AlertVariant::Destructive,
+                attrs: attributes! { class="error" },
+                alert_title(
+                    "Couldn't load loadouts: "
+                    (text)
+                )
+            ),
             Ok(rows) => loadout_rows(rows: &rows, class: class),
         }
     }
@@ -217,12 +230,12 @@ async fn loadout_rows(
 
 #[component]
 async fn loadout_row(
+    cx: &Cx,
     loadout: &LoadoutSummary,
     class: &Signal<String>,
 ) -> Result<impl View> {
     let href = format!("{LIST_PATH}/{}", loadout.id);
     let own_class = loadout.class.clone();
-    let delete_id = format!("loadout-{}-delete", loadout.id);
     let delete_title = format!("Delete loadout \u{201c}{}\u{201d}?", loadout.name);
     let delete_label = format!("Delete loadout {}", loadout.name);
     let hidden =
@@ -233,7 +246,12 @@ async fn loadout_row(
             data_cell(
                 label: "Loadout",
                 header: true,
-                <a href=(href.as_str()) class="loadout-name">(loadout.name.as_str())</a>
+                <a
+                    class="loadout-name"
+                    (link_attrs(cx, href.as_str(), prefetch_mode(cx)))
+                >
+                    (loadout.name.as_str())
+                </a>
             )
             data_cell(label: "Class", (loadout.class.as_str()))
             data_cell(label: "Subclass", (loadout.element.as_str()))
@@ -244,7 +262,6 @@ async fn loadout_row(
                 <form method="post" action=(LIST_PATH) data-pending="">
                     <input type="hidden" name="id" value=(loadout.id.to_string())>
                     confirm_dialog(
-                        id: &delete_id,
                         trigger: "Delete",
                         title: &delete_title,
                         description: Some(DELETE_PROMPT),

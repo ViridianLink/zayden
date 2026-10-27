@@ -40,6 +40,11 @@ use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const MEMBER: &str = "session=member-token";
@@ -389,13 +394,28 @@ const ZAP: &str = r#"<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.4
 const GRID: &str = r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>"#;
 const SETTINGS: &str = r#"<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>"#;
 const MAIN: &str = r#"<main id="main" class="app-main" tabindex="-1">"#;
-const FREE_CHIP: &str = r#"<a href="/upgrade" class="plan-chip" aria-label="Upgrade, current plan: Free">Upgrade</a>"#;
+const FREE_CHIP: &str = r#"<a href="/upgrade" class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-foreground plan-chip hover:bg-foreground/5" aria-label="Upgrade, current plan: Free">Upgrade</a>"#;
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+const TIER_BADGE: &str = "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-transparent bg-foreground/5 text-foreground";
 const LEGAL: &str = r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav>"#;
 
 const SHIELD: &str = r#"<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>"#;
 const GAMEPAD: &str = r#"<line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>"#;
-const SUBSCRIBE: &str = r#"<div class="upgrade-actions"><p class="page-lead">Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord.</p><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to Discord</a></div>"#;
-const OVERVIEW_HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>Overview</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings" class="btn btn-secondary">Server settings</a></div>"#;
+fn subscribe() -> String {
+    format!(
+        r#"<div class="upgrade-actions"><p class="page-lead">Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord.</p><a href="/invite" rel="external" class="{}">Add Zayden to Discord</a></div>"#,
+        support::btn("secondary")
+    )
+}
+
+fn overview_header() -> String {
+    format!(
+        r#"<div class="page"><div class="page-header"><div><h1>Overview</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings" class="{}">Server settings</a></div>"#,
+        support::btn("secondary")
+    )
+}
+
 const ROW: &str = r#"<li class="rack-row">"#;
 const NOT_SYNCED: &str =
     r#"<span class="lamp lamp-sync" aria-hidden="true"></span>"#;
@@ -457,33 +477,35 @@ async fn the_guild_list_frames_the_managed_guilds(
     assert!(html.contains(
         r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
     ), "{html}");
-    assert!(html.contains(
+    let sorted = canonical(&html);
+    assert!(sorted.contains(&canonical(
         r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
-    ), "{html}");
+    )), "{html}");
     assert!(
         html.contains(&format!(
             r#"<a href="/logout" rel="external" class="menu-item">{ICON_OPEN}"#
         )),
         "{html}"
     );
-    assert!(html.contains(FREE_CHIP), "{html}");
+    assert!(sorted.contains(&canonical(FREE_CHIP)), "{html}");
     let nav = outer_nav(true, false, "");
-    assert_eq!(count(&html, &nav), 2, "{html}");
+    assert_eq!(count(&sorted, &canonical(&nav)), 2, "{html}");
     assert!(
-        html.contains(&format!(
+        sorted.contains(&canonical(&format!(
             r#"<div class="rail">{nav}<div class="nav-spacer"></div>{LEGAL}</div>"#
-        )),
+        ))),
         "{html}"
     );
-    assert!(html.contains(&format!(
-        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to a server</a></div><div class="guild-grid">"#
-    )), "{html}");
-    assert!(html.contains(
+    assert!(sorted.contains(&canonical(&format!(
+        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div><div class="guild-grid">"#,
+        support::btn("secondary")
+    ))), "{html}");
+    assert!(sorted.contains(&canonical(
         r#"<a href="/guild/7" class="guild-card"><span class="guild-icon placeholder">G</span><div class="guild-card-body"><div class="guild-name">Guild 7</div>"#
-    ), "{html}");
-    assert!(html.contains(
+    )), "{html}");
+    assert!(sorted.contains(&canonical(
         r#"<a href="/guild/9" class="guild-card"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon">"#
-    ), "{html}");
+    )), "{html}");
     assert!(!html.contains("Guild 8"), "{html}");
     assert!(html.contains("</div></div></main></div></body>"), "{html}");
     assert!(!html.contains("server-switcher"));
@@ -502,12 +524,16 @@ async fn the_guild_list_frames_the_managed_guilds(
                 false
             ),
         );
-        assert!(html.contains(&outer_nav(true, false, &admin)), "{html}");
+        assert!(
+            canonical(&html).contains(&canonical(&outer_nav(true, false, &admin))),
+            "{html}"
+        );
     }
     assert!(
-        html.contains(
-            r#"<h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div></div><div class="empty-state"><h2 class="empty-title">Add Zayden to a server you manage</h2><p class="empty-text">Servers appear here when you have Manage Server in them.</p><a href="/invite" rel="external" class="btn btn-primary">Add Zayden to a server</a></div>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div></div><div class="empty-state"><h2 class="empty-title">Add Zayden to a server you manage</h2><p class="empty-text">Servers appear here when you have Manage Server in them.</p><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
+            support::btn("primary")
+        ))),
         "{html}"
     );
 
@@ -546,22 +572,23 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
 
     assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
-    assert!(html.contains(
+    let sorted = canonical(&html);
+    assert!(sorted.contains(&canonical(
         r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
-    ), "{html}");
+    )), "{html}");
     assert!(html.contains(&format!(
         r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#
     )), "{html}");
-    assert!(html.contains(&format!(
+    assert!(sorted.contains(&canonical(&format!(
         r#"<div class="menu-list"><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="plate-avatar"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
-    )), "{html}");
+    ))), "{html}");
     assert!(!html.contains("operator-badge"), "{html}");
-    assert!(html.contains(&format!(
+    assert!(sorted.contains(&canonical(&format!(
         r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}{}</ul><div class="nav-group"><p class="nav-heading" id="rail-community">Community</p><ul class="nav-list" aria-labelledby="rail-community">{}"#,
         nav_link("/guild/7", Some(GRID), "Overview", true),
         nav_link("/guild/7/settings", Some(SETTINGS), "Server settings", false),
         nav_link("/guild/7/greetings", None, "Greetings", false),
-    )), "{html}");
+    ))), "{html}");
     for heading in ["community", "support---safety", "voice---games", "integrations"]
     {
         for prefix in ["rail", "sheet"] {
@@ -575,20 +602,21 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
         let href = module.href(7);
         let icon = (*module == GENERAL).then_some(SETTINGS);
         assert_eq!(
-            count(&html, &nav_link(&href, icon, module.label, false)),
+            count(&sorted, &canonical(&nav_link(&href, icon, module.label, false))),
             2,
             "{href}: {html}"
         );
     }
     assert_eq!(
-        count(&html, &nav_link("/upgrade", Some(ZAP), "Plans", false)),
+        count(&sorted, &canonical(&nav_link("/upgrade", Some(ZAP), "Plans", false))),
         2,
         "{html}"
     );
     assert!(
-        html.contains(&format!(
-            r#"{MAIN}{OVERVIEW_HEADER}<div class="flash-region" role="status"></div><div id="modules-community"><section class="rack-group" aria-labelledby="rack-community"><h2 class="rack-heading label" id="rack-community">Community</h2><ul class="rack"><li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/greetings">Greetings</a></h3>"#
-        )),
+        sorted.contains(&canonical(&format!(
+            r#"{MAIN}{}<div class="flash-region" role="status"></div><div id="modules-community"><section class="rack-group" aria-labelledby="rack-community"><h2 class="rack-heading label" id="rack-community">Community</h2><ul class="rack"><li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/greetings">Greetings</a></h3>"#,
+            overview_header()
+        ))),
         "{html}"
     );
     for (group, heading, title) in [
@@ -611,42 +639,72 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
         "{html}"
     );
     for path in ["ai", "patreon", "youtube"] {
-        assert!(html.contains(&rack_status(path, false)), "{path}: {html}");
+        assert!(
+            sorted.contains(&canonical(&rack_status(path, false))),
+            "{path}: {html}"
+        );
     }
     assert!(!html.contains("Toggle module"), "{html}");
     assert!(!html.contains("module-card"), "{html}");
 
     let html = app.page("/guild/7/probe", Some(MEMBER)).await.unwrap();
+    let sorted = canonical(&html);
     assert!(
-        html.contains(&nav_link("/guild/7", Some(GRID), "Overview", false)),
+        sorted.contains(&canonical(&nav_link(
+            "/guild/7",
+            Some(GRID),
+            "Overview",
+            false
+        ))),
         "{html}"
     );
     assert!(
         html.contains(&format!(r#"{MAIN}<p id="probe">7/probe</p></main>"#)),
         "{html}"
     );
-    assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 0, "{html}");
+    assert_eq!(
+        count(&sorted, r#"aria-current="page" class="nav-link""#),
+        0,
+        "{html}"
+    );
 
     let html = app.page("/guild/7/settings", Some(MEMBER)).await.unwrap();
+    let sorted = canonical(&html);
     let general =
         nav_link("/guild/7/settings", Some(SETTINGS), "Server settings", true);
-    assert_eq!(count(&html, &general), 2, "{html}");
-    assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 2, "{html}");
+    assert_eq!(count(&sorted, &canonical(&general)), 2, "{html}");
+    assert_eq!(
+        count(&sorted, r#"aria-current="page" class="nav-link""#),
+        2,
+        "{html}"
+    );
 
     let html = app.page("/guild/abc", Some(MEMBER)).await.unwrap();
-    assert!(html.contains(&format!(
-        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Server not found</h1><p class="error-text">That address doesn't name a Discord server.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#
-    )), "{html}");
+    let sorted = canonical(&html);
+    assert!(sorted.contains(&canonical(&format!(
+        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Server not found</h1><p class="error-text">That address doesn't name a Discord server.</p><div class="error-actions"><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
+        support::btn("primary")
+    ))), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
     assert!(
-        html.contains(&nav_link("/guild/abc", Some(GRID), "Overview", true)),
+        sorted.contains(&canonical(&nav_link(
+            "/guild/abc",
+            Some(GRID),
+            "Overview",
+            true
+        ))),
         "{html}"
     );
 
     let crafted = "/guild/1%2F..%2F..%2Flogout";
     let html = app.page(crafted, Some(MEMBER)).await.unwrap();
     assert!(
-        html.contains(&nav_link(crafted, Some(GRID), "Overview", true)),
+        canonical(&html).contains(&canonical(&nav_link(
+            crafted,
+            Some(GRID),
+            "Overview",
+            true
+        ))),
         "{html}"
     );
     assert!(!html.contains(r#"href="/guild/1/"#), "{html}");
@@ -709,7 +767,10 @@ async fn module_toggles_save_or_report_why_not(
         html.contains(&group_flash("integrations", "AI Chat turned on.")),
         "{html}"
     );
-    assert!(html.contains(&rack_status("ai", true)), "{html}");
+    assert!(
+        canonical(&html).contains(&canonical(&rack_status("ai", true))),
+        "{html}"
+    );
     assert_eq!(count(&html, "flash-text"), 1, "{html}");
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
     assert!(!html.contains("flash-text"), "{html}");
@@ -747,10 +808,10 @@ async fn module_toggles_save_or_report_why_not(
     let html = body_text(response).await.unwrap();
     assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(r#"aria-controls="server-switcher""#), "{html}");
-    assert!(html.contains(&format!(
-        r#"{}<p class="rack-error" role="alert">Not changed: Patreon is switched on from its own settings page, not from this toggle.</p></li>"#,
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"{}<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: Patreon is switched on from its own settings page, not from this toggle.</p></div></li>"#,
         rack_status("patreon", false)
-    )), "{html}");
+    ))), "{html}");
     assert_eq!(count(&html, "rack-error"), 1, "{html}");
 
     let response = app
@@ -759,7 +820,9 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="rack-error" role="alert">Not changed: invalid value for `guild`</p>"#), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: invalid value for `guild`</p></div>"#
+    ))), "{html}");
     assert!(app.app.settings.ai.get(7).await.unwrap().enabled);
 
     let response = app
@@ -768,7 +831,9 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="rack-error" role="alert">Not changed: unknown field `extra`</p>"#), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<div class="{ERROR_ALERT} rack-error" role="alert">{ALERT_TITLE}Not changed: unknown field `extra`</p></div>"#
+    ))), "{html}");
 
     for (body, message) in [
         ("guild=7&enabled=true", "missing field `module_id`"),
@@ -778,9 +843,9 @@ async fn module_toggles_save_or_report_why_not(
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY, "{body}");
         let html = body_text(response).await.unwrap();
         assert!(
-            html.contains(&format!(
-                r#"<div class="flash-region" role="status"></div><p class="error" role="alert">Not changed: {message}</p><div id="modules-community">"#
-            )),
+            canonical(&html).contains(&canonical(&format!(
+                r#"<div class="flash-region" role="status"></div><div class="{ERROR_ALERT} error" role="alert">{ALERT_TITLE}Not changed: {message}</p></div><div id="modules-community">"#
+            ))),
             "{html}"
         );
         assert_eq!(count(&html, "rack-error"), 0, "{html}");
@@ -792,12 +857,13 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<section class="error-panel"><h1 class="error-title">You can't manage this server</h1><p class="error-text">You need Manage Server in this server to change its modules.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section>"#), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(r#"<section class="error-panel"><h1 class="error-title">You can't manage this server</h1><p class="error-text">You need Manage Server in this server to change its modules.</p><div class="error-actions"><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary")))), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
 
     pool.close().await;
 }
 
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
 const KOFI_HELP: &str = "The email you pay with on Ko-fi. It is linked to the Discord account you are signed in with.";
 
 /// The Ko-fi form; `email` is the typed value kept after a refusal and
@@ -818,8 +884,9 @@ fn kofi_form(email: Option<&str>, error: Option<&str>) -> String {
         },
     );
     let invalid_row = if error.is_some() { r#" data-invalid="""# } else { "" };
+    let primary = support::btn("primary");
     format!(
-        r#"<div class="field-row"{invalid_row}><label class="field-label" for="kofi-email">Ko-fi email</label><div class="kofi-link-form"><input class="input" id="kofi-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required=""{value} aria-describedby="{described}"{invalid}><button type="submit" class="btn btn-primary" data-pending-label="Linking…">Link email</button></div><p class="field-help" id="kofi-email-help">{KOFI_HELP}</p>{line}</div></form></section>"#
+        r#"<div class="field-row"{invalid_row}><label class="field-label" for="kofi-email">Ko-fi email</label><div class="kofi-link-form"><input class="{INPUT} flex-1 [&amp;]:min-w-[220px]" id="kofi-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required=""{value} aria-describedby="{described}"{invalid}><button type="submit" class="{primary}" data-pending-label="Linking…">Link email</button></div><p class="field-help" id="kofi-email-help">{KOFI_HELP}</p>{line}</div></form></section>"#
     )
 }
 
@@ -835,13 +902,18 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
     assert!(html.contains(r#"<header class="public-header">"#), "{html}");
     assert!(
-        html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#),
+        html.contains(&format!(
+            r#"<a href="/auth/discord" rel="external" class="{}">Sign in</a>"#,
+            support::btn("secondary")
+        )),
         "{html}"
     );
     assert_eq!(
         count(
-            &html,
-            r#"<a href="/upgrade" class="public-nav-link" aria-current="page">Pricing</a>"#
+            &canonical(&html),
+            &canonical(
+                r#"<a href="/upgrade" class="public-nav-link" aria-current="page">Pricing</a>"#
+            )
         ),
         2,
         "{html}"
@@ -853,12 +925,14 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
         "<strong>Lower greeting cooldowns</strong><span>Drop the per-member and server-wide limits on <code>/good</code> - for servers busy enough to hit them.</span>"
     ), "{html}");
     assert!(html.contains(&format!(
-        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="plan-head"><span class="tier-badge tier-pro">Pro</span><span class="plan-price">$2.99<small>/mo</small></span></div><ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul><a href="{UPGRADE_URL}" class="btn btn-primary" rel="external noopener noreferrer" target="_blank">Get Pro on upgrade.example</a></div></div>{SUBSCRIBE}"#
+        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="plan-head"><span class="{TIER_BADGE} tier-pro">Pro</span><span class="plan-price">$2.99<small>/mo</small></span></div><ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul><a href="{UPGRADE_URL}" class="{}" rel="external noopener noreferrer" target="_blank">Get Pro on upgrade.example</a></div></div>{}"#,
+        support::btn("primary"),
+        subscribe()
     )), "{html}");
-    assert!(html.contains(&format!(
+    assert!(canonical(&html).contains(&canonical(&format!(
         r#"<section class="card" id="kofi" aria-labelledby="kofi-title"><h2 class="label" id="kofi-title">Link your Ko-fi email</h2><p class="page-lead">Connect the email you subscribe with on Ko-fi so your paid membership follows your Discord account.</p><div class="flash-region" role="status"></div><form method="post" action="/upgrade" data-pending="">{}"#,
         kofi_form(None, None)
-    )), "{html}");
+    ))), "{html}");
 
     app.app
         .entitlements
@@ -868,9 +942,10 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert_eq!(app.app.entitlements.user_tier(44).await, Tier::Pro);
     let html = app.page("/upgrade", Some(PRO)).await.unwrap();
     assert!(
-        html.contains(
-            r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<a href="/guilds" class="{}">Open dashboard</a>"#,
+            support::btn("primary")
+        ))),
         "{html}"
     );
     assert!(!html.contains("plan-chip"), "{html}");
@@ -892,10 +967,10 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     let flash = flash_cookie(&response).unwrap();
     let html =
         app.page("/upgrade", Some(&format!("{MEMBER}; {flash}"))).await.unwrap();
-    assert!(html.contains(&format!(
+    assert!(canonical(&html).contains(&canonical(&format!(
         r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}<span class="flash-text">Ko-fi email linked. Your paid membership now follows your Discord account.</span></p></div><form method="post" action="/upgrade" data-pending="">{}"#,
         kofi_form(None, None)
-    )), "{html}");
+    ))), "{html}");
     assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
 
     let response =
@@ -903,19 +978,19 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     let taken = "This Ko-fi email is already linked to an account.";
-    assert!(html.contains(&format!(
-        r#"<form method="post" action="/upgrade" data-pending=""><div class="error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">Not linked: {taken}</div>{}"#,
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<form method="post" action="/upgrade" data-pending=""><div class="{ERROR_ALERT} error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}Not linked: {taken}</p></div>{}"#,
         kofi_form(Some("fan@example.com"), Some(taken))
-    )), "{html}");
+    ))), "{html}");
 
     let response = app.post("/upgrade", "email=nope", Some(MEMBER)).await.unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     let invalid = "Enter the email address you use on Ko-fi.";
-    assert!(html.contains(&format!(
-        r#"<div class="error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">Not linked: {invalid}</div>{}"#,
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"<div class="{ERROR_ALERT} error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}Not linked: {invalid}</p></div>{}"#,
         kofi_form(Some("nope"), Some(invalid))
-    )), "{html}");
+    ))), "{html}");
 
     let unlinked = harness(&pool, None).await.unwrap();
     let html = unlinked.page("/upgrade", None).await.unwrap();
@@ -923,10 +998,10 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
         html.contains(r#"<ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul></div></div>"#),
         "{html}"
     );
-    assert!(html.contains(SUBSCRIBE), "{html}");
+    assert!(html.contains(&subscribe()), "{html}");
     assert!(!html.contains("Get Pro"), "{html}");
     let html = unlinked.page("/guilds", Some(MEMBER)).await.unwrap();
-    assert!(html.contains(FREE_CHIP), "{html}");
+    assert!(canonical(&html).contains(&canonical(FREE_CHIP)), "{html}");
 
     pool.close().await;
 }
@@ -943,11 +1018,17 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
 
     let html = app.page("/upgrade", cookie).await.unwrap();
     assert!(!html.contains("Log out"), "{html}");
-    assert!(!html.contains(r#"class="btn btn-secondary">Sign in</a>"#), "{html}");
+    assert!(
+        !html.contains(&format!(
+            r#"class="{}">Sign in</a>"#,
+            support::btn("secondary")
+        )),
+        "{html}"
+    );
     assert!(!html.contains("Open dashboard"), "{html}");
     assert!(!html.contains("plan-chip"), "{html}");
     assert!(!html.contains("plan-ladder"), "{html}");
-    assert!(!html.contains(SUBSCRIBE), "{html}");
+    assert!(!html.contains(&subscribe()), "{html}");
     assert!(
         html.contains(
             r#"<h2 class="label" id="kofi-title">Link your Ko-fi email</h2>"#
@@ -963,7 +1044,11 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
         "{html}"
     );
     assert!(
-        html.contains(r#"<div class="error-actions"><a href="/guilds" class="btn btn-primary">Try again</a><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to a server</a></div>"#),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<div class="error-actions"><a href="/guilds" class="{}">Try again</a><a href="/invite" rel="external" class="{}">Add Zayden to a server</a></div>"#,
+            support::btn("primary"),
+            support::btn("secondary")
+        ))),
         "{html}"
     );
     assert!(!html.contains("error running server function"), "{html}");
@@ -995,9 +1080,11 @@ async fn a_missing_page_inside_a_managed_guild_keeps_the_guild_shell(
     let html = body_text(response).await.unwrap();
     assert!(html.contains("<title>Not found - Zayden</title>"), "{html}");
     assert!(html.contains(r#"popovertarget="server-switcher""#), "{html}");
-    assert!(html.contains(&format!(
-        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Page not found</h1><p class="error-text">There is no page at this address in this server. The link may have a typo, or the page may have moved.</p><div class="error-actions"><a href="/guild/7" class="btn btn-primary">Back to Guild 7</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section></div></main>"#
-    )), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(
+        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Page not found</h1><p class="error-text">There is no page at this address in this server. The link may have a typo, or the page may have moved.</p><div class="error-actions"><a href="/guild/7" class="{}">Back to Guild 7</a><a href="/guilds" class="{}">Back to servers</a></div></section></div></main>"#,
+        support::btn("primary"),
+        support::btn("secondary")
+    ))), "{html}");
 
     for path in ["/guild/8/nope", "/guild/abc/nope", "/nope"] {
         let response = app.get(path, Some(MEMBER)).await.unwrap();
@@ -1005,7 +1092,10 @@ async fn a_missing_page_inside_a_managed_guild_keeps_the_guild_shell(
         let html = body_text(response).await.unwrap();
         assert!(!html.contains("server-switcher"), "{path}: {html}");
         assert!(
-            html.contains(r#"<a href="/guilds" class="btn btn-primary btn-lg">Back to servers</a>"#),
+            canonical(&html).contains(&canonical(&format!(
+                r#"<a href="/guilds" class="{} w-full">Back to servers</a>"#,
+                support::btn("primary-lg")
+            ))),
             "{path}: {html}"
         );
     }
@@ -1014,7 +1104,10 @@ async fn a_missing_page_inside_a_managed_guild_keeps_the_guild_shell(
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let html = body_text(response).await.unwrap();
     assert!(
-        html.contains(r#"<a href="/" class="btn btn-primary btn-lg">Back home</a>"#),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<a href="/" class="{} w-full">Back home</a>"#,
+            support::btn("primary-lg")
+        ))),
         "{html}"
     );
 

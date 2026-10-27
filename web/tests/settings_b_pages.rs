@@ -36,10 +36,22 @@ use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const MEMBER: &str = "session=member-token";
 const FORM: &str = "application/x-www-form-urlencoded";
+const TEXTAREA: &str = "field-sizing-content min-h-16 max-md:min-h-20 w-full rounded-lg border border-input bg-popover px-3 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
+const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
+const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
+const TABS_LIST: &str =
+    "inline-flex w-fit items-center gap-1 rounded-lg border border-border p-1 mb-5";
+const TRIGGER: &str = "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background text-muted-foreground hover:bg-foreground/5 hover:text-foreground aria-[current=page]:bg-foreground/10 aria-[current=page]:text-foreground aria-[current=page]:hover:bg-foreground/10";
 
 /// Two connections per test pool keep the binary inside `sqlx::test`'s
 /// 20-permit master pool (see `tests/shell_pages.rs`).
@@ -568,15 +580,22 @@ fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
     between(html, &format!(r#"<p class="field-error" id="{id}-error">"#), "</p>")
 }
 
-/// The reason at the top of form `form`.
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const NEUTRAL_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-border text-foreground";
+const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+
+/// The reason at the top of form `form`: the title of the alert that
+/// carries the form's summary id.
 fn summary<'a>(html: &'a str, form: &str) -> Option<&'a str> {
-    between(
-        html,
-        &format!(
-            r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">"#
-        ),
-        "</div>",
-    )
+    let (_, rest) = html.split_once(&format!(r#" id="{form}-summary""#))?;
+    between(rest, ALERT_TITLE, "</p>")
+}
+
+/// `html` holds the full summary alert of form `form` with `reason`.
+fn has_summary(html: &str, form: &str, reason: &str) -> bool {
+    canonical(html).contains(&canonical(&format!(
+        r#"<div class="{ERROR_ALERT} error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}{reason}</p></div>"#
+    )))
 }
 
 /// The result line in the save bar of form `form`.
@@ -625,15 +644,11 @@ fn title(label: &str) -> String {
     format!("<title>{label} - Zayden Dashboard</title>")
 }
 
-fn confirm(
-    id: &str,
-    trigger: &str,
-    title: &str,
-    prompt: &str,
-    confirm: &str,
-) -> String {
+fn confirm(trigger: &str, title: &str, prompt: &str, confirm: &str) -> String {
+    let destructive = support::btn("destructive");
+    let secondary = support::btn("secondary");
     format!(
-        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">{trigger}</button><dialog class="dialog" aria-labelledby="{id}-title" aria-describedby="{id}-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="{id}-title">{title}</h2><p class="dialog-desc" id="{id}-desc">{prompt}</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">{confirm}</button></div></div></dialog></div>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="{destructive}" data-confirm-trigger="">{trigger}</button><dialog class="dialog" aria-labelledby="tc-ID" aria-describedby="tc-ID" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="tc-ID">{title}</h2><p class="dialog-desc" id="tc-ID">{prompt}</p><div class="dialog-actions"><button type="button" class="{secondary} max-md:flex-1" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="{destructive} max-md:flex-1">{confirm}</button></div></div></dialog></div>"#
     )
 }
 
@@ -661,17 +676,20 @@ async fn provider_pages_follow_the_connection(
     let main = main_content(&html);
     assert!(main.contains(r#"<div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-off" aria-hidden="true"></span><span class="lamp-text">Off</span></span></div>"#), "status text, no switch: {main}");
     assert!(!main.contains(r#"role="switch""#), "{main}");
-    assert!(main.contains(r#"<p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="settings-actions"><a class="btn btn-primary" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div>"#), "{main}");
+    assert!(main.contains(&format!(r#"<p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="settings-actions"><a class="{}" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div>"#, support::btn("primary"))), "{main}");
     assert!(!main.contains("<form"), "{main}");
 
     let html = app.page("/guild/7/youtube?youtube=declined").await.unwrap();
     assert!(
-        main_content(&html).contains(r#"<p class="warning" role="status">Authorisation was cancelled, so nothing changed.</p>"#),
+        canonical(main_content(&html)).contains(&canonical(&format!(
+            r#"<div class="{NEUTRAL_ALERT} warning" role="status">{ALERT_TITLE}Authorisation was cancelled, so nothing changed.</p></div>"#
+        ))),
         "the callback outcome lands on the feature page: {html}"
     );
     let html = app.page("/guild/7/youtube?youtube=bogus").await.unwrap();
     assert!(
-        !main_content(&html).contains(r#"role="status">Authorisation"#),
+        !canonical(main_content(&html))
+            .contains(&format!(r#"role="status">{ALERT_TITLE}Authorisation"#)),
         "{html}"
     );
 
@@ -688,10 +706,9 @@ async fn provider_pages_follow_the_connection(
         main.contains(r#"<p class="page-lead">Connected to Seed Channel.</p>"#),
         "{main}"
     );
-    assert!(main.contains(&format!(
+    assert!(opaque_ids(main).contains(&format!(
         r#"<form id="youtube-disconnect" method="post" action="/guild/7/youtube/disconnect" data-pending=""><input type="hidden" name="guild" value="7">{}</form>"#,
         confirm(
-            "youtube-disconnect-confirm",
             "Disconnect",
             "Disconnect YouTube channel Seed Channel?",
             "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
@@ -713,6 +730,14 @@ async fn provider_pages_follow_the_connection(
     assert_eq!(
         summary(&html, "youtube-settings"),
         Some(format!("Not saved: {BOT_CANNOT_POST}").as_str())
+    );
+    assert!(
+        has_summary(
+            &html,
+            "youtube-settings",
+            &format!("Not saved: {BOT_CANNOT_POST}")
+        ),
+        "{html}"
     );
     assert_eq!(selected(&html, "youtube-settings-channel-id"), Some("100"));
     assert!(youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().is_none());
@@ -766,7 +791,7 @@ async fn provider_pages_follow_the_connection(
 
     let html = app.page("/guild/7/patreon").await.unwrap();
     assert!(html.contains(&title("Patreon")), "{html}");
-    assert!(main_content(&html).contains(r#"<a class="btn btn-primary" href="/patreon/connect?guild=7" rel="external">Connect Patreon</a>"#), "{html}");
+    assert!(main_content(&html).contains(&format!(r#"<a class="{}" href="/patreon/connect?guild=7" rel="external">Connect Patreon</a>"#, support::btn("primary"))), "{html}");
 
     let tokens = patreon::TokenPair {
         access_token: "a".to_owned(),
@@ -792,9 +817,8 @@ async fn provider_pages_follow_the_connection(
         "only the callback's flash reports a connection: {main}"
     );
     assert!(main.contains(r#"<p class="page-lead">Connected to camp-1, but Patreon has rejected the stored authorisation. Reconnect to resume announcements.</p>"#), "{main}");
-    assert!(main.contains(r#"<a class="btn btn-secondary" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a>"#), "{main}");
-    assert!(main.contains(&confirm(
-        "patreon-disconnect-confirm",
+    assert!(main.contains(&format!(r#"<a class="{}" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a>"#, support::btn("secondary"))), "{main}");
+    assert!(opaque_ids(main).contains(&confirm(
         "Disconnect",
         "Disconnect Patreon from camp-1?",
         "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
@@ -940,9 +964,9 @@ async fn announcements_keep_a_message_and_ping_roles(
         .unwrap();
     assert_eq!(flash_after(&html, r#"id="ping-roles""#), Some("Role added."));
     assert!(
-        main_content(&html).contains(
-            r#"<th scope="row" role="rowheader" data-label="Role">@Mods</th>"#
-        ),
+        canonical(main_content(&html)).contains(&canonical(&format!(
+            r#"<th class="{TH}" scope="row" role="rowheader" data-label="Role">@Mods</th>"#
+        ))),
         "{html}"
     );
     assert!(
@@ -1170,16 +1194,16 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
         .map(|(href, label)| {
             if *label == current {
                 format!(
-                    r#"<li><a href="{href}" aria-current="page">{label}</a></li>"#
+                    r#"<a aria-current="page" class="{TRIGGER}" href="{href}">{label}</a>"#
                 )
             } else {
-                format!(r#"<li><a href="{href}">{label}</a></li>"#)
+                format!(r#"<a class="{TRIGGER}" href="{href}">{label}</a>"#)
             }
         })
         .collect();
-        format!(
-            r#"<nav aria-label="Support pages"><ul class="page-subnav">{links}</ul></nav>"#
-        )
+        canonical(&format!(
+            r#"<nav aria-label="Support pages"><div class="{TABS_LIST}">{links}</div></nav>"#
+        ))
     };
     for (path, page_title, current) in [
         (TICKETS, "Support", "Tickets"),
@@ -1191,13 +1215,15 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
         let html = app.page(path).await.unwrap();
         assert!(html.contains(&title(page_title)), "{path}: {html}");
         let main = main_content(&html);
-        assert!(main.contains(&subnav(current)), "{path}: {main}");
+        assert!(canonical(main).contains(&subnav(current)), "{path}: {main}");
         assert!(main.contains("<h1>Support</h1>"), "{path}");
         assert!(!main.contains(r#"role="tablist""#), "{path}");
         assert_eq!(
             count(
-                &html,
-                r#"<a href="/guild/7/support" class="nav-link" aria-current="page">"#
+                &canonical(&html),
+                &canonical(
+                    r#"<a href="/guild/7/support" class="nav-link" aria-current="page">"#
+                )
             ),
             2,
             "{path}"
@@ -1219,9 +1245,8 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
     );
     assert_eq!(value(main, "ticket-settings-idle-after-secs"), Some("172800"));
     assert!(
-        main.contains(
-            r#"name="idle_after_secs" value="172800" min="3600" max="2592000""#
-        ),
+        canonical(main)
+            .contains(r#"max="2592000" min="3600" name="idle_after_secs""#),
         "{main}"
     );
 
@@ -1433,22 +1458,24 @@ async fn support_roles_and_links_are_list_actions_behind_confirms(
     assert_eq!(top_flash(&html), None);
     let main = main_content(&html);
     assert!(
-        main.contains(
-            r#"<th scope="row" role="rowheader" data-label="Role">@Mods</th>"#
-        ),
+        canonical(main).contains(&canonical(&format!(
+            r#"<th class="{TH}" scope="row" role="rowheader" data-label="Role">@Mods</th>"#
+        ))),
         "{main}"
     );
-    assert!(main.contains(&format!(
+    assert!(opaque_ids(main).contains(&format!(
         r#"<form method="post" action="/guild/7/support/roles/remove-role" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="role_id" value="200">{}</form>"#,
         confirm(
-            "role-200-remove",
             "Remove",
             "Remove support role @Mods?",
             "Its members stop being pinged for new tickets and stop counting as helpers.",
             "Remove role"
         ).replace(
-            r#"class="btn btn-danger" data-confirm-trigger"#,
-            r#"class="btn btn-ghost" aria-label="Remove support role @Mods" data-confirm-trigger"#
+            &format!(r#"class="{}" data-confirm-trigger"#, support::btn("destructive")),
+            &format!(
+                r#"class="{}" aria-label="Remove support role @Mods" data-confirm-trigger"#,
+                support::btn("ghost")
+            )
         )
     )), "{main}");
     assert!(
@@ -1505,10 +1532,15 @@ async fn support_roles_and_links_are_list_actions_behind_confirms(
     assert_eq!(helper_users(&app).await.unwrap(), [501, 502]);
     let html = app.page(roles).await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<th scope="row" role="rowheader" data-label="Helper">Helper One</th><td role="cell" data-label="Link"><a href="https://example.com/d501" rel="external">https://example.com/d501</a></td>"#), "{main}");
-    assert!(main.contains(r#"data-label="Helper">unknown (502)</th>"#), "{main}");
+    assert!(canonical(main).contains(&canonical(&format!(r#"<th class="{TH}" scope="row" role="rowheader" data-label="Helper">Helper One</th><td class="{TD}" role="cell" data-label="Link"><a href="https://example.com/d501" rel="external">https://example.com/d501</a></td>"#))), "{main}");
+    assert!(
+        canonical(main).contains(
+            r#"data-label="Helper" role="rowheader" scope="row">unknown (502)</th>"#
+        ),
+        "{main}"
+    );
     assert!(app.discord.count("GET", "/guilds/7/members/501") > 0);
-    assert!(main.contains(r#"<h2 class="dialog-title" id="link-501-remove-title">Remove the donation link of Helper One?</h2>"#), "{main}");
+    assert!(opaque_ids(main).contains(r#"<h2 class="dialog-title" id="tc-ID">Remove the donation link of Helper One?</h2>"#), "{main}");
 
     let html = app
         .submit(
@@ -1541,7 +1573,7 @@ async fn support_roles_and_links_are_list_actions_behind_confirms(
 
     let html = app.page("/guild/9/support/roles").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<select class="input" id="add-role-role-id" aria-describedby="add-role-role-id-help" disabled="">"#), "{main}");
+    assert!(canonical(main).contains(&canonical(&format!(r#"<select class="{SELECT}" id="add-role-role-id" aria-describedby="add-role-role-id-help" disabled="">"#))), "{main}");
     assert!(
         main.contains("Couldn't reach Discord, so the role list is unavailable."),
         "{main}"
@@ -1574,12 +1606,18 @@ async fn faq_articles_have_list_new_and_edit_pages(
         "the list streams in: {html}"
     );
     assert!(html.contains(r#"<div class="empty-state"><h2 class="empty-title">No FAQ articles yet</h2>"#), "{html}");
-    assert!(html.contains(r#"<a href="/guild/7/support/faq/new" class="btn btn-primary">New article</a>"#), "{html}");
+    assert!(
+        canonical(&html).contains(&canonical(&format!(
+            r#"<a href="/guild/7/support/faq/new" class="{}">New article</a>"#,
+            support::btn("primary")
+        ))),
+        "{html}"
+    );
 
     let html = app.page(&format!("{faq}/new")).await.unwrap();
     assert!(html.contains(&title("New FAQ article - Support")), "{html}");
     let main = main_content(&html);
-    assert!(main.contains(r#"<label class="field-label" for="faq-article-content">Body (Markdown)</label><textarea class="input" id="faq-article-content" name="content" rows="14" required=""#), "the body has a bound label: {main}");
+    assert!(canonical(main).contains(&canonical(&format!(r#"<label class="field-label" for="faq-article-content">Body (Markdown)</label><textarea class="{TEXTAREA}" id="faq-article-content" name="content" rows="14" required="">"#))), "the body has a bound label: {main}");
     assert!(main.contains(r#"<form id="faq-article" method="post" action="/guild/7/support/faq/new" data-pending="" data-dirty-guard="">"#), "{main}");
     assert!(
         main.contains(r#"data-pending-label="Saving…">Create article</button>"#),
@@ -1657,8 +1695,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
         html.contains(&format!(r#"<p class="field-hint">Updated {updated}</p>"#)),
         "{html}"
     );
-    assert!(html.contains(&confirm(
-        &format!("faq-{id}-delete"),
+    assert!(opaque_ids(&html).contains(&confirm(
         "Delete article",
         "Delete article “Fixing 502”?",
         "This removes the article for everyone, including the wiki copy. It cannot be undone.",
@@ -1666,8 +1703,8 @@ async fn faq_articles_have_list_new_and_edit_pages(
     )), "{html}");
 
     let html = app.page(faq).await.unwrap();
-    assert!(html.contains(&format!(r#"<th scope="row" role="rowheader" data-label="Title"><a href="{edit}">Fixing 502</a></th>"#)), "{html}");
-    assert!(html.contains(&format!(r#"<td role="cell" data-label="Updated">{updated}</td><td role="cell" data-label="Source">Written here</td>"#)), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(r#"<th class="{TH}" scope="row" role="rowheader" data-label="Title"><a href="{edit}">Fixing 502</a></th>"#))), "{html}");
+    assert!(canonical(&html).contains(&canonical(&format!(r#"<td class="{TD}" role="cell" data-label="Updated">{updated}</td><td class="{TD}" role="cell" data-label="Source">Written here</td>"#))), "{html}");
 
     let body = "guild=7&title=Fixing+502+again&summary=&category=Media&tags=&content=Restart.";
     let html =
@@ -1697,7 +1734,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
         assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
         let html = body_text(response).await.unwrap();
         assert!(html.contains(r#"<h3 class="error-title" id="faq-missing-title">Article not found</h3>"#), "{html}");
-        assert!(html.contains(r#"<a href="/guild/7/support/faq" class="btn btn-primary">Back to FAQ articles</a>"#), "{html}");
+        assert!(canonical(&html).contains(&canonical(&format!(r#"<a href="/guild/7/support/faq" class="{}">Back to FAQ articles</a>"#, support::btn("primary")))), "{html}");
         assert!(
             html.contains(r#"class="nav-link""#),
             "the guild shell stays: {html}"
@@ -1736,9 +1773,9 @@ async fn faq_articles_have_list_new_and_edit_pages(
     assert!(generated.generated);
     let html = app.page(faq).await.unwrap();
     assert!(
-        html.contains(
-            r#"<td role="cell" data-label="Source">Solved ticket, thread 900</td>"#
-        ),
+        canonical(&html).contains(&canonical(&format!(
+            r#"<td class="{TD}" role="cell" data-label="Source">Solved ticket, thread 900</td>"#
+        ))),
         "{html}"
     );
     let html = app.page(&format!("{faq}/{}", generated.id)).await.unwrap();
@@ -1770,12 +1807,14 @@ async fn provider_pages_report_a_status_they_cannot_load() {
         let html = app.page(&format!("/guild/7/{slug}")).await.unwrap();
         let main = main_content(&html);
         assert!(
-            main.contains(&format!(r#"<p class="warning" role="alert">{warning}"#)),
+            canonical(main).contains(&canonical(&format!(
+                r#"<div class="{NEUTRAL_ALERT} warning" role="alert">{ALERT_TITLE}{warning}"#
+            ))),
             "{html}"
         );
         assert!(
             main.contains(&format!(
-                r#"</p><p class="page-lead">{lead}</p></section>"#
+                r#"</p></div><p class="page-lead">{lead}</p></section>"#
             )),
             "{html}"
         );
@@ -1795,4 +1834,17 @@ async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
             })
             .await;
     }
+}
+
+/// Replaces `element_id` values, which hash the render site, with `tc-ID`.
+fn opaque_ids(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some((head, tail)) = rest.split_once("\"tc-") {
+        out.push_str(head);
+        out.push_str("\"tc-ID\"");
+        rest = tail.split_once('"').map_or("", |(_, after)| after);
+    }
+    out.push_str(rest);
+    out
 }

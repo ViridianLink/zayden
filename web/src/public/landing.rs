@@ -1,10 +1,12 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::page;
+use topcoat::runtime::{link_attrs, prefetch_mode};
 use topcoat::view::{View, component, view};
 
 use super::layout::public_layout;
 use crate::auth;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::icons::{Icon, icon, module_icon, module_tint};
 
 struct Feature {
@@ -73,7 +75,10 @@ pub(crate) async fn landing(cx: &Cx) -> Result<impl View> {
                             <a
                                 href="/invite"
                                 rel="external"
-                                class="btn btn-primary btn-lg"
+                                class=(button_variants(
+                                    ButtonVariant::Primary,
+                                    ButtonSize::Lg,
+                                ))
                             >
                                 icon(name: Icon::Plus)
                                 "Add to Discord"
@@ -116,11 +121,23 @@ pub(crate) async fn landing(cx: &Cx) -> Result<impl View> {
                         "server from the dashboard."
                     </p>
                     <div class="hero-actions">
-                        <a href="/invite" rel="external" class="btn btn-primary btn-lg">
+                        <a
+                            href="/invite"
+                            rel="external"
+                            class=(button_variants(
+                                ButtonVariant::Primary,
+                                ButtonSize::Lg,
+                            ))
+                        >
                             icon(name: Icon::Plus)
                             "Add to Discord"
                         </a>
-                        <a href="/upgrade" class="btn btn-ghost btn-lg">"See plans"</a>
+                        <a
+                            class=(button_variants(ButtonVariant::Ghost, ButtonSize::Lg))
+                            (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
+                        >
+                            "See plans"
+                        </a>
                     </div>
                 </section>
             </div>
@@ -129,15 +146,22 @@ pub(crate) async fn landing(cx: &Cx) -> Result<impl View> {
 }
 
 #[component]
-async fn dashboard_link(signed_in: bool) -> Result<impl View> {
+async fn dashboard_link(cx: &Cx, signed_in: bool) -> Result<impl View> {
     Ok(view! {
         if signed_in {
-            <a href="/guilds" class="btn btn-secondary btn-lg">
+            <a
+                class=(button_variants(ButtonVariant::Secondary, ButtonSize::Lg))
+                (link_attrs(cx, "/guilds", prefetch_mode(cx)))
+            >
                 "Open dashboard"
                 icon(name: Icon::ArrowRight)
             </a>
         } else {
-            <a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">
+            <a
+                href="/auth/discord"
+                rel="external"
+                class=(button_variants(ButtonVariant::Secondary, ButtonSize::Lg))
+            >
                 "Sign in with Discord"
                 icon(name: Icon::ArrowRight)
             </a>

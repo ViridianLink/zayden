@@ -1,7 +1,8 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::{page, path_param};
-use topcoat::view::{View, ViewExt, component, suspense, view};
+use topcoat::runtime::{PrefetchMode, link_attrs};
+use topcoat::view::{View, ViewExt, attributes, component, suspense, view};
 
 use super::action::path_segment;
 use super::fields::{load_error, load_problem};
@@ -10,7 +11,16 @@ use super::state::PageState;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::empty_state::empty_state;
 use crate::components::flash::flash;
+use crate::components::pagination::{
+    pagination,
+    pagination_content,
+    pagination_item,
+    pagination_link,
+    pagination_next,
+    pagination_previous,
+};
 use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
+use crate::components::tabs::{tabs_list, tabs_trigger};
 use crate::engagement::levels::get_leaderboard;
 use crate::engagement::{LeaderboardEntry, LeaderboardView};
 use crate::shell::GuildId;
@@ -55,28 +65,29 @@ async fn levels_page(
 }
 
 #[component]
-async fn scope_switch(guild_id: &str, board: LeaderboardView) -> Result<impl View> {
+async fn scope_switch(
+    cx: &Cx,
+    guild_id: &str,
+    board: LeaderboardView,
+) -> Result<impl View> {
     let segment = path_segment(guild_id);
     let server = LeaderboardView::with_scope(false).href(&segment);
     let global = LeaderboardView::with_scope(true).href(&segment);
-    let current = move |global: bool| (board.global == global).then_some("page");
 
     Ok(view! {
-        <nav class="segmented" aria-label="Leaderboard">
-            <a
-                class=(if board.global { "seg" } else { "seg active" })
-                href=(server)
-                aria-current=(current(false))
-            >
-                "This server"
-            </a>
-            <a
-                class=(if board.global { "seg active" } else { "seg" })
-                href=(global)
-                aria-current=(current(true))
-            >
-                "Global"
-            </a>
+        <nav aria-label="Leaderboard">
+            tabs_list(
+                tabs_trigger(
+                    active: !board.global,
+                    attrs: link_attrs(cx, server, PrefetchMode::Intent),
+                    "This server"
+                )
+                tabs_trigger(
+                    active: board.global,
+                    attrs: link_attrs(cx, global, PrefetchMode::Intent),
+                    "Global"
+                )
+            )
         </nav>
     })
 }
@@ -168,6 +179,7 @@ async fn entry_row(entry: &LeaderboardEntry) -> Result<impl View> {
 
 #[component]
 async fn pager(
+    cx: &Cx,
     guild_id: &str,
     board: LeaderboardView,
     has_next: bool,
@@ -175,25 +187,34 @@ async fn pager(
     let segment = path_segment(guild_id);
     let previous = board.previous().map(|view| view.href(&segment));
     let next = board.next(has_next).map(|view| view.href(&segment));
+    let here = board.href(&segment);
 
     Ok(view! {
-        <nav class="pager" aria-label="Leaderboard pages">
-            match previous {
-                Some(href) => <a class="btn btn-secondary" href=(href)>"Previous"</a>,
-                None => <button type="button" class="btn btn-secondary" disabled="">
-                    "Previous"
-                </button>,
-            }
-            <span class="pager-page">
-                "Page "
-                (board.page)
-            </span>
-            match next {
-                Some(href) => <a class="btn btn-secondary" href=(href)>"Next"</a>,
-                None => <button type="button" class="btn btn-secondary" disabled="">
-                    "Next"
-                </button>,
-            }
-        </nav>
+        pagination(
+            attrs: attributes! { class="mt-5" },
+            pagination_content(
+                if let Some(href) = previous {
+                    pagination_item(
+                        pagination_previous(
+                            attrs: link_attrs(cx, href, PrefetchMode::Intent)
+                        )
+                    )
+                }
+                pagination_item(
+                    pagination_link(
+                        active: true,
+                        attrs: link_attrs(cx, here, PrefetchMode::Intent),
+                        (board.page)
+                    )
+                )
+                if let Some(href) = next {
+                    pagination_item(
+                        pagination_next(
+                            attrs: link_attrs(cx, href, PrefetchMode::Intent)
+                        )
+                    )
+                }
+            )
+        )
     })
 }

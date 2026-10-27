@@ -5,6 +5,7 @@ use topcoat::view::{View, view};
 
 use super::chrome::app_shell;
 use super::overview::plain;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::empty_state::empty_state;
 use crate::components::error_panel::{ErrorAction, error_panel};
 use crate::components::guild_grid::{GuildCard, guild_grid};
@@ -42,7 +43,14 @@ pub(super) async fn guilds(cx: &Cx) -> Result<impl View> {
                                 </p>
                             </div>
                             if !cards.is_empty() {
-                                <a href="/invite" rel="external" class="btn btn-secondary">
+                                <a
+                                    href="/invite"
+                                    rel="external"
+                                    class=(button_variants(
+                                        ButtonVariant::Secondary,
+                                        ButtonSize::Md,
+                                    ))
+                                >
                                     "Add Zayden to a server"
                                 </a>
                             }

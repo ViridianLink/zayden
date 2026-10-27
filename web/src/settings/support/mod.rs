@@ -6,11 +6,13 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::runtime::{PrefetchMode, link_attrs};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 
 use super::header::switch_module;
 use super::state::PageState;
 use super::{Lists, Page, settings_page};
+use crate::components::tabs::{tabs_list, tabs_trigger};
 use crate::guild::dto::SupportSection;
 use crate::shell::GuildId;
 
@@ -72,23 +74,28 @@ async fn switch(
 }
 
 #[component]
-pub(super) async fn subnav(guild_id: &str, current: Pane) -> Result<impl View> {
+pub(super) async fn subnav(
+    cx: &Cx,
+    guild_id: &str,
+    current: Pane,
+) -> Result<impl View> {
     Ok(view! {
         <nav aria-label="Support pages">
-            <ul class="page-subnav">
+            tabs_list(
+                attrs: attributes! { class="mb-5" },
                 #[key(pane.label())]
                 for pane in Pane::ALL {
-                    let here = pane == current;
-                    <li>
-                        <a
-                            href=(Page::Support(pane).href(guild_id))
-                            aria-current=(here.then_some("page"))
-                        >
-                            (pane.label())
-                        </a>
-                    </li>
+                    tabs_trigger(
+                        active: pane == current,
+                        attrs: link_attrs(
+                            cx,
+                            Page::Support(pane).href(guild_id),
+                            PrefetchMode::Intent,
+                        ),
+                        (pane.label())
+                    )
                 }
-            </ul>
+            )
         </nav>
     })
 }

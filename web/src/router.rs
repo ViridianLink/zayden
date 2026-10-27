@@ -1,6 +1,6 @@
 use topcoat::cookie::RouterBuilderCookieExt;
 use topcoat::router::{Router, RouterBuilder};
-use topcoat::runtime::RouterBuilderRuntimeExt;
+use topcoat::runtime::{PrefetchMode, RouterBuilderRuntimeExt};
 
 use crate::{
     account,
@@ -37,6 +37,7 @@ pub fn router(base: RouterBuilder) -> Router {
         .fold(base, |builder, group| group(builder))
         .origin_policy(providers::origin_policy())
         .runtime()
+        .prefetch(PrefetchMode::Never)
         .cookies()
         .build()
 }

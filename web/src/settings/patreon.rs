@@ -15,6 +15,7 @@ use super::fields::channels;
 use super::provider::{Banner, banner, query_value, status_unknown};
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm::confirm_button;
 use crate::components::field_row::{
     form_summary,
@@ -251,7 +252,7 @@ async fn panel(
                 }
                 <div class="settings-actions">
                     <a
-                        class="btn btn-secondary"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         href=(connect_href.as_str())
                         rel="external"
                     >
@@ -265,7 +266,6 @@ async fn panel(
                     >
                         <input type="hidden" name="guild" value=(guild_id)>
                         confirm_button(
-                            id: "patreon-disconnect-confirm",
                             label: "Disconnect",
                             prompt: "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
                             confirm: "Disconnect Patreon",
@@ -344,7 +344,7 @@ async fn panel(
                 </p>
                 <div class="settings-actions">
                     <a
-                        class="btn btn-primary"
+                        class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
                         href=(connect_href.as_str())
                         rel="external"
                     >

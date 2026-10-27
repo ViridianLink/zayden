@@ -5,10 +5,13 @@
 
 use topcoat::Result;
 use topcoat::context::Cx;
-use topcoat::view::{Child, View, ViewExt, component, view};
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{Child, View, ViewExt, class, component, view};
 
 use crate::auth::{SessionUser, check_session, current_session_user};
+use crate::components::badge::{BadgeVariant, badge_variants};
 use crate::components::brand::brand_mark;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::guild_grid::GuildCard;
 use crate::components::icons::{Icon, icon};
 use crate::components::nav_links::NavAccess;
@@ -102,6 +105,7 @@ pub async fn app_shell(#[default] child: Child<'_>) -> Result<impl View> {
 
 #[component]
 async fn topbar(
+    cx: &Cx,
     viewer: &Viewer,
     show_plate: bool,
     #[default] guilds: &[GuildInfo],
@@ -120,7 +124,7 @@ async fn topbar(
             >
                 icon(name: Icon::Menu)
             </button>
-            <a href=(home) class="brand">
+            <a class="brand" (link_attrs(cx, home, prefetch_mode(cx)))>
                 brand_mark()
                 <span class="brand-name">"Zayden"</span>
             </a>
@@ -134,7 +138,11 @@ async fn topbar(
                     account_menu(name: account_name(viewer.user.as_ref()))
                 }
                 Some(false) => {
-                    <a href="/auth/discord" rel="external" class="btn btn-primary">
+                    <a
+                        href="/auth/discord"
+                        rel="external"
+                        class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    >
                         "Sign in"
                     </a>
                 }
@@ -148,19 +156,28 @@ async fn topbar(
 }
 
 #[component]
-async fn plan_chip(tier: Option<Tier>) -> Result<impl View> {
+async fn plan_chip(cx: &Cx, tier: Option<Tier>) -> Result<impl View> {
     Ok(view! {
         if let Some(tier) = tier {
             if tier == Tier::Free {
                 <a
-                    href="/upgrade"
-                    class="plan-chip"
+                    class=(class!(
+                        badge_variants(BadgeVariant::Outline),
+                        "plan-chip hover:bg-foreground/5",
+                    ))
                     aria-label="Upgrade, current plan: Free"
+                    (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
                 >
                     "Upgrade"
                 </a>
             } else {
-                <a href="/upgrade" class="plan-chip">
+                <a
+                    class=(class!(
+                        badge_variants(BadgeVariant::Outline),
+                        "plan-chip hover:bg-foreground/5",
+                    ))
+                    (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
+                >
                     "Your plan: "
                     (tier.label())
                 </a>
@@ -175,7 +192,7 @@ pub fn account_name(user: Option<&SessionUser>) -> &str {
 }
 
 #[component]
-async fn account_menu(name: &str) -> Result<impl View> {
+async fn account_menu(cx: &Cx, name: &str) -> Result<impl View> {
     Ok(view! {
         <button
             type="button"
@@ -195,8 +212,15 @@ async fn account_menu(name: &str) -> Result<impl View> {
             class="popover-panel menu-panel menu-panel-end"
         >
             <p class="menu-label"><strong>"Signed in with Discord"</strong></p>
-            <a href="/upgrade" class="menu-item menu-plan">"Plans"</a>
-            <a href="/account" class="menu-item">"Linked accounts"</a>
+            <a
+                class="menu-item menu-plan"
+                (link_attrs(cx, "/upgrade", prefetch_mode(cx)))
+            >
+                "Plans"
+            </a>
+            <a class="menu-item" (link_attrs(cx, "/account", prefetch_mode(cx)))>
+                "Linked accounts"
+            </a>
             <a href="/logout" rel="external" class="menu-item">
                 icon(name: Icon::LogOut)
                 <span class="plate-name">"Log out"</span>

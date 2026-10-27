@@ -8,6 +8,7 @@ use twilight_model::channel::ChannelType;
 use super::fields::channels;
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, ensure_path_guild, settings_page};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::field_row::{form_summary, select_row};
 use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
@@ -172,7 +173,7 @@ pub(super) async fn tab(
                 <div class="form-actions">
                     <button
                         type="submit"
-                        class="btn btn-secondary"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         data-pending-label="Creating\u{2026}"
                     >
                         "Create creator channel"

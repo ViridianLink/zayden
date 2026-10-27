@@ -1,9 +1,12 @@
 use topcoat::Result;
-use topcoat::view::{View, component, view};
+use topcoat::context::Cx;
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{View, attributes, component, view};
 
 use super::action::path_segment;
 use super::state::plain;
 use crate::auth::AuthError;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::error_panel::ErrorAction;
 use crate::engagement::EngagementError;
 use crate::guild::GuildError;
@@ -45,6 +48,7 @@ pub(super) fn load_problem(
 
 #[component]
 pub(super) async fn load_error(
+    cx: &Cx,
     title: &str,
     message: &str,
     actions: &[ErrorAction],
@@ -56,13 +60,17 @@ pub(super) async fn load_error(
             <div class="error-actions">
                 #[key(index)]
                 for (index, action) in actions.iter().enumerate() {
-                    let class = if index == 0 {
-                        "btn btn-primary"
+                    let variant = if index == 0 {
+                        ButtonVariant::Primary
                     } else {
-                        "btn btn-secondary"
+                        ButtonVariant::Secondary
                     };
-                    let rel = action.external.then_some("external");
-                    <a href=(action.href.as_str()) rel=(rel) class=(class)>
+                    let link = if action.external {
+                        attributes! { href=(action.href.as_str()) rel="external" }
+                    } else {
+                        link_attrs(cx, action.href.as_str(), prefetch_mode(cx))
+                    };
+                    <a class=(button_variants(variant, ButtonSize::Md)) (link)>
                         (action.label.as_str())
                     </a>
                 }

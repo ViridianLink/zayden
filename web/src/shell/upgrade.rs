@@ -5,13 +5,17 @@ use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::error::see_other;
 use topcoat::router::{StatusCode, page};
-use topcoat::view::{View, ViewExt, component, suspense, view};
+use topcoat::view::{View, ViewExt, attributes, class, component, suspense, view};
 use url::Url;
 
 use super::overview::plain;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::badge::{BadgeVariant, badge_variants};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::field_row::{describedby, field_row};
 use crate::components::flash::flash;
 use crate::components::icons::{Icon, icon};
+use crate::components::input::input;
 use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::flash::{Flash, FlashKind, set_in as set_flash, take as take_flash};
 use crate::guild::GuildError;
@@ -172,15 +176,17 @@ async fn kofi_form(
             flash(notice: notice)
             <form method="post" action=(PAGE) data-pending="">
                 if let Some(message) = summary {
-                    <div
-                        class="error"
-                        id="kofi-summary"
-                        role="alert"
-                        tabindex="-1"
-                        autofocus=""
-                    >
-                        (format!("Not linked: {message}"))
-                    </div>
+                    alert(
+                        variant: AlertVariant::Destructive,
+                        attrs: attributes! {
+                            class="error"
+                            id="kofi-summary"
+                            role="alert"
+                            tabindex="-1"
+                            autofocus=""
+                        },
+                        alert_title((format!("Not linked: {message}")))
+                    )
                 }
                 field_row(
                     id: EMAIL_ID,
@@ -188,25 +194,30 @@ async fn kofi_form(
                     help: Some(EMAIL_HELP),
                     error: field_error,
                     <div class="kofi-link-form">
-                        <input
-                            class="input"
-                            id=(EMAIL_ID)
-                            type="email"
-                            name="email"
-                            autocomplete="email"
-                            placeholder="you@example.com"
-                            required=""
-                            value=(email)
-                            aria-describedby=(describedby(
-                                EMAIL_ID,
-                                true,
-                                field_error.is_some(),
-                            ))
-                            aria-invalid=(field_error.map(|_| "true"))
-                        >
+                        input(
+                            attrs: attributes! {
+                                class="flex-1 [&]:min-w-[220px]"
+                                id=(EMAIL_ID)
+                                type="email"
+                                name="email"
+                                autocomplete="email"
+                                placeholder="you@example.com"
+                                required=""
+                                value=(email)
+                                aria-describedby=(describedby(
+                                    EMAIL_ID,
+                                    true,
+                                    field_error.is_some(),
+                                ))
+                                aria-invalid=(field_error.map(|_| "true"))
+                            }
+                        )
                         <button
                             type="submit"
-                            class="btn btn-primary"
+                            class=(button_variants(
+                                ButtonVariant::Primary,
+                                ButtonSize::Md,
+                            ))
                             data-pending-label="Linking\u{2026}"
                         >
                             "Link email"
@@ -236,7 +247,10 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                     <div class=(format!("plan-card plan-{}", plan.css_suffix()))>
                         <div class="plan-head">
                             <span
-                                class=(format!("tier-badge tier-{}", plan.css_suffix()))
+                                class=(class!(
+                                    badge_variants(BadgeVariant::Secondary),
+                                    format!("tier-{}", plan.css_suffix()),
+                                ))
                             >
                                 (plan.label())
                             </span>
@@ -269,7 +283,10 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                                 if let Some(url) = &info.upgrade_url {
                                     <a
                                         href=(url.as_str())
-                                        class="btn btn-primary"
+                                        class=(button_variants(
+                                            ButtonVariant::Primary,
+                                            ButtonSize::Md,
+                                        ))
                                         rel="external noopener noreferrer"
                                         target="_blank"
                                     >
@@ -290,7 +307,11 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                 <p class="page-lead">
                     "Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord."
                 </p>
-                <a href="/invite" rel="external" class="btn btn-secondary">
+                <a
+                    href="/invite"
+                    rel="external"
+                    class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
+                >
                     "Add Zayden to Discord"
                 </a>
             </div>

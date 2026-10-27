@@ -5,17 +5,17 @@ use topcoat::{
 
 /// Classes for the checkbox input that forms the switch track.
 const SWITCH: StaticClass = class!(
-    "peer h-4.5 w-8 shrink-0 appearance-none rounded-full \
-     bg-foreground/20 shadow-xs transition-colors outline-none checked:bg-primary \
-     focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
-     focus-visible:ring-offset-background disabled:pointer-events-none",
+    "peer h-4.5 w-8 shrink-0 appearance-none rounded-full",
+    "bg-foreground/20 shadow-xs transition-colors outline-none checked:bg-primary",
+    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "focus-visible:ring-offset-background disabled:pointer-events-none",
 );
 
 /// Classes that position the thumb at either end of the track according to the checked
 /// state.
 const THUMB: StaticClass = class!(
-    "pointer-events-none absolute top-1/2 left-0.5 size-3.5 -translate-y-1/2 \
-     rounded-full bg-background shadow-xs transition-transform peer-checked:translate-x-3.5",
+    "pointer-events-none absolute top-1/2 left-0.5 size-3.5 -translate-y-1/2",
+    "rounded-full bg-background shadow-xs transition-transform peer-checked:translate-x-3.5",
 );
 
 /// An on/off control for a setting.
@@ -27,8 +27,9 @@ const THUMB: StaticClass = class!(
 /// ```ignore
 /// view! {
 ///     <div class="flex items-center gap-2">
-///         switch(attrs: attributes! { id="airplane-mode" checked="" })
-///         label(attrs: attributes! { for="airplane-mode" }, "Airplane mode")
+///         let airplane_mode = element_id(cx);
+///         switch(attrs: attributes! { id=(&airplane_mode) checked="" })
+///         label(attrs: attributes! { for=(&airplane_mode) }, "Airplane mode")
 ///     </div>
 /// }
 /// ```

@@ -20,7 +20,8 @@ mod youtube;
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::RouterBuilder;
-use topcoat::view::{Child, View, ViewExt, component, view};
+use topcoat::runtime::{link_attrs, prefetch_mode};
+use topcoat::view::{Child, View, ViewExt, attributes, component, view};
 use twilight_model::channel::ChannelType;
 
 use self::header::feature_header;
@@ -28,6 +29,7 @@ pub use self::legacy::NOT_SAVED;
 use self::state::{PageState, plain};
 pub use self::support::Pane;
 use crate::auth::AuthError;
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::error_panel::ErrorAction;
 use crate::components::field_row::form_summary;
 use crate::components::flash::flash;
@@ -251,7 +253,7 @@ fn load_problem(
     if matches!(error, GuildError::Auth(AuthError::BotNotInGuild)) {
         let invite = format!("/invite?guild={}", nav::path_segment(guild_id));
         return ("Zayden isn't in this server yet.".to_owned(), vec![
-            ErrorAction::new("Add Zayden to this server", &invite),
+            ErrorAction::new("Add Zayden to this server", &invite).external(),
             back,
         ]);
     }
@@ -267,6 +269,7 @@ fn load_problem(
 
 #[component]
 async fn load_error(
+    cx: &Cx,
     guild_id: &str,
     page: Page,
     error: &GuildError,
@@ -286,12 +289,17 @@ async fn load_error(
             <div class="error-actions">
                 #[key(index)]
                 for (index, action) in actions.iter().enumerate() {
-                    let class = if index == 0 {
-                        "btn btn-primary"
+                    let variant = if index == 0 {
+                        ButtonVariant::Primary
                     } else {
-                        "btn btn-secondary"
+                        ButtonVariant::Secondary
                     };
-                    <a href=(action.href.as_str()) class=(class)>
+                    let link = if action.external {
+                        attributes! { href=(action.href.as_str()) rel="external" }
+                    } else {
+                        link_attrs(cx, action.href.as_str(), prefetch_mode(cx))
+                    };
+                    <a class=(button_variants(variant, ButtonSize::Md)) (link)>
                         (action.label.as_str())
                     </a>
                 }

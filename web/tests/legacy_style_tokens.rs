@@ -1,6 +1,6 @@
 //! The stylesheet's spacing ramp and its shared shells stay single-sourced:
 //! no bare `rem` spacing outside `tokens.css`, one `#fff` definition, one
-//! panel shell, one form-control shell and a tokenised content column.
+//! panel shell and a tokenised content column.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -291,29 +291,6 @@ fn the_panel_shell_is_declared_once() {
          (border-radius: var(--radius-panel); background-color: \
          var(--surface-1); border: 1px solid var(--border)) - it should live \
          once, in card.css: {matches:?}"
-    );
-}
-
-/// The `.input` shell in forms.css replaced three drifted copies of the
-/// same form control; a second block matching both defining declarations
-/// means a copy came back.
-#[test]
-fn the_form_control_shell_is_declared_once() {
-    let matches: Vec<String> = rule_blocks()
-        .into_iter()
-        .filter(|(_, _, declarations)| {
-            declarations.contains("background-color: var(--surface-2)")
-                && declarations.contains("border-radius: var(--radius-control)")
-        })
-        .map(|(label, selectors, _)| format!("{label}: {selectors}"))
-        .collect();
-
-    assert_eq!(
-        matches.len(),
-        1,
-        "form control shell (background-color: var(--surface-2); \
-         border-radius: var(--radius-control)) should be declared exactly once, \
-         by .input in forms.css: {matches:?}"
     );
 }
 

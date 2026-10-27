@@ -1,8 +1,8 @@
-Verified against: topcoat 0.10.0 (Cargo.lock), 2026-10-06
+Verified against: topcoat 0.11.0 (Cargo.lock), 2026-10-26
 
 # Topcoat core reference
 
-Framework core as the `web` crate uses it and as the UI redesign will need it. Every entry carries a status (see [README.md](README.md)), the cargo features it needs, a compiling example, and the source it was read from. Source paths are relative to the crate directory in `~/.cargo/registry/src/*/` (`topcoat-<crate>-0.10.0/`). Probe paths are local scratch crates and are not tracked.
+Framework core as the `web` crate uses it and as the UI redesign will need it. Every entry carries a status (see [README.md](README.md)), the cargo features it needs, a compiling example, and the source it was read from. Source paths are relative to the crate directory in `~/.cargo/registry/src/*/` (`topcoat-<crate>-0.11.0/`). Probe paths are local scratch crates and are not tracked.
 
 ## Contents
 
@@ -27,7 +27,7 @@ Framework core as the `web` crate uses it and as the UI redesign will need it. E
 
 Status: VERIFIED. Features: all. Probe: `scratch/topcoat-kb/core/features/<feature>/` (one crate per feature, `cargo tree -e normal` in `tree.txt`).
 
-The workspace pin is `topcoat = { version = "0.10", default-features = false }` (`Cargo.toml:334`); `web` re-enables exactly the runtime set below and adds two build-time features (`web/Cargo.toml` `[dependencies.topcoat]` and `[build-dependencies.topcoat]`).
+The workspace pin is `topcoat = { version = "0.11", default-features = false }` (`Cargo.toml:315`); `web` re-enables exactly the runtime set below and adds two build-time features (`web/Cargo.toml` `[dependencies.topcoat]` and `[build-dependencies.topcoat]`).
 
 ```toml
 [dependencies]
@@ -37,7 +37,7 @@ topcoat = { workspace = true, features = ["asset", "compression", "cookie", "rou
 topcoat = { workspace = true, features = ["tailwind", "ui"] }
 ```
 
-`default` is `asset, compression, cookie, font, icon, router, runtime, serve, session, view, discover` (`topcoat-0.10.0/Cargo.toml:72`). The runtime set above is that list minus `font`, `icon`, `session`, `discover`. Crate counts are distinct crate names in `cargo tree -e normal` for a crate enabling only that feature: 31 with no feature, 144 for the `web` set, 153 for `default`.
+`default` is `asset, compression, cookie, font, icon, router, runtime, serve, session, view, discover` (`topcoat-0.11.0/Cargo.toml:72`). The runtime set above is that list minus `font`, `icon`, `session`, `discover`. Crate counts are distinct crate names in `cargo tree -e normal` for a crate enabling only that feature: 32 with no feature, 145 for the `web` set, 154 for `default`. Topcoat 0.11 requires Rust 1.99 (`rust-version` in every crate); the workspace `rust-version` is 1.99 to match.
 
 | Feature | Implies | Adds (sub-crates) | Notable external crates it pulls | In `web` |
 |---|---|---|---|---|
@@ -61,17 +61,22 @@ topcoat = { workspace = true, features = ["tailwind", "ui"] }
 | `font` | none | `topcoat-font`, `-font-macro`, `-font-grammar` | none | no |
 | `tailwind` | none | `topcoat-tailwind` | `ureq`, `rustls`, `ring`, `webpki-roots`, `flate2` (downloads the Tailwind binary) | build-dependency |
 | `ui` | none | `topcoat-ui-registry` | none (the component and theme registry that `topcoat ui add` copies from) | build-dependency |
+| `l10n` | none | `topcoat-l10n` (new in 0.11) | `icu_locale`, `icu_locale_core`, `serde` | no |
+| `l10n-number` | `l10n` | none | `fixed_decimal`, `icu_decimal` | no |
+| `l10n-datetime` | `l10n` | none | `icu_calendar`, `icu_datetime` | no |
+| `l10n-fluent` | `l10n`, `l10n-number` | `topcoat-l10n-macro` | `fluent-bundle`, `intl-memoizer`, `unic-langid`, `inventory` (87 crates with `l10n-datetime`) | no |
 
-Also present and not used here: `alpine-ajax`, `htmx`, `datastar` (implies `sse`), `mail`, `mail-smtp`, `font-fontsource`, `icon-iconify`, `full`.
+Also present and not used here: `alpine-ajax`, `htmx`, `datastar` (implies `sse`), `mail`, `mail-smtp`, `font-fontsource`, `icon-iconify`, `jiff` (converts `jiff` `Zoned` and `Timestamp` into `l10n` `DateTime`), `full`.
 
 Notes:
 
 - `tailwind` and `ui` belong in `[build-dependencies]` only. Enabling `tailwind` on the runtime dependency would put `ureq`, `rustls` and `ring` in the server binary (they appear in `scratch/topcoat-kb/core/features/tailwind/tree.txt` and not in `web/tree.txt`). Tailwind build wiring is described in [tooling.md](tooling.md), the component registry in [ui.md](ui.md).
 - `.discover()` and `module_router!` need `discover`. `web` does not enable it: it registers every route by name (section 5), so no `inventory` link-time collection is involved.
 - `topcoat::session` exists under `session` and is not enabled (section 9).
-- A feature that adds a `topcoat::<module>` (`asset`, `cookie`, `router`, `runtime`, `session`, `view`, `icon`, `font`) is only importable when enabled. `topcoat::context`, `topcoat::core`, `topcoat::Result` and `topcoat::Error` are always present.
+- `topcoat::l10n` (locale negotiation, Fluent `messages!`/`t!`, `Number`, `DateTime`) exists under `l10n*` and is not enabled. Status: UNVERIFIED beyond `cargo tree` (`topcoat-0.11.0/src/l10n.rs:3-10`, `topcoat-l10n-0.11.0/src/lib.rs`, upstream `docs/l10n.md`).
+- A feature that adds a `topcoat::<module>` (`asset`, `cookie`, `router`, `runtime`, `session`, `view`, `icon`, `font`, `l10n`) is only importable when enabled. `topcoat::context`, `topcoat::core`, `topcoat::Result` and `topcoat::Error` are always present.
 
-Source: `topcoat-0.10.0/Cargo.toml:52-209` (feature table), `topcoat-0.10.0/src/lib.rs:15-60` (feature-gated modules).
+Source: `topcoat-0.11.0/Cargo.toml:52-235` (feature table), `topcoat-0.11.0/src/lib.rs:15-66` (feature-gated modules).
 
 ## 2. `view!` syntax
 
@@ -105,7 +110,7 @@ view! {
 - A `view!` body may hold several sibling roots. There is no `<> ... </>` fragment syntax and no HTML comment syntax (`<!-- -->` is rejected, only `<!DOCTYPE>` is accepted).
 - Attribute names may contain `-`, `:` and `.`, and Rust keywords are valid (`type=`, `for=`). `class:active=(flag)` and `style:color="red"` are not directives: they render an attribute literally named `class:active`.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:1-43`, `topcoat-view-macro-0.10.0/src/lib.rs:8`. Probe: `view_syntax.rs:46-101` (rendered output in `tests/rendering.rs:16`). Web: `web/src/document.rs:90-102` (document skeleton), `web/src/components/icons.rs:150` (SVG).
+Source: `topcoat-view-macro-0.11.0/docs/view.md:1-43`, `topcoat-view-macro-0.11.0/src/lib.rs:8`. Probe: `view_syntax.rs:46-101` (rendered output in `tests/rendering.rs:16`). Web: `web/src/document.rs:90-102` (document skeleton), `web/src/components/icons.rs:150` (SVG).
 
 ### 2.2 Interpolation, escaping and raw HTML
 
@@ -136,7 +141,7 @@ Rendered for `user_input = <b>&"x"</b>`:
 - `topcoat::view::Unescaped::new_unchecked(x)` writes `x` verbatim. Use it only for trusted markup: inline `<script>` bodies (a string literal inside `<script>` is escaped and breaks the code), SVG path data, pre-rendered HTML.
 - Dynamic attribute and element names (`(name)="x"`, `<(tag)>`) are validated as identifiers, not escaped. An invalid name panics at render and the router answers `500 internal server error` (`invalid attribute key "bad name": forbidden character ' '`).
 
-Source: `topcoat-view-0.10.0/src/html/escape.rs:197-219` (per-context escaping), `:221-250` (identifier validation), `topcoat-view-0.10.0/src/string.rs:65-79` (`Unescaped`). Probe: `view_syntax.rs:54-56,97-98,124` (`tests/rendering.rs:34`). Web: `web/src/components/icons.rs:150`, `web/src/admin/editor/view.rs:116`.
+Source: `topcoat-view-0.11.0/src/html/escape.rs:197-219` (per-context escaping), `:221-250` (identifier validation), `topcoat-view-0.11.0/src/string.rs:65-79` (`Unescaped`). Probe: `view_syntax.rs:54-56,97-98,124` (`tests/rendering.rs:34`). Web: `web/src/components/icons.rs:150`, `web/src/admin/editor/view.rs:116`.
 
 ### 2.3 Attributes: boolean, optional, enumerated, spread, conditional
 
@@ -171,7 +176,7 @@ Rendered: `<button id="bools" required="" aria-current="page" aria-expanded="tru
 - Attribute order is not preserved once a spread or control flow is involved (`class="active" data-on="" id="cond-attrs"` above). Do not depend on order.
 - `(attrs)` consumes an `Attributes` value. Clone it to reuse it.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:408-470`, `topcoat-view-macro-0.10.0/docs/attributes.md:22-62,89-113`. Probe: `view_syntax.rs:57-71`. Web: `web/src/components/settings.rs:24` (`:hidden`), `web/src/components/sidebar.rs:560-561` (`aria-current=$(...)`).
+Source: `topcoat-view-macro-0.11.0/docs/view.md:426-488`, `topcoat-view-macro-0.11.0/docs/attributes.md:22-62,89-113`. Probe: `view_syntax.rs:57-71`. Web: `web/src/components/settings.rs:24` (`:hidden`), `web/src/components/sidebar.rs:560-561` (`aria-current=$(...)`).
 
 ### 2.4 `class!`, `StaticClass` and inline style
 
@@ -194,7 +199,7 @@ Rendered: `class="card primary active off"`, `class="btn btn-lg"`, no `class` at
 - Tailwind finds class names by scanning source files for string literals (`@source "../src/**/*.rs"`, `web/style/input.css:28`), so keep class names as literals inside `class!(...)` and `class="..."`; a name assembled at runtime is not generated.
 - A forwarded `class` from an `Attributes` argument is combined with `attrs.remove("class")` (section 2.8).
 
-Source: `topcoat-view-macro-0.10.0/docs/class.md:20-66,88-106`, `topcoat-view-0.10.0/src/html/class.rs:333,378`. Probe: `view_syntax.rs:8,72-75`. Web: `web/src/components/card.rs:8,38`, `web/src/components/button.rs:32`.
+Source: `topcoat-view-macro-0.11.0/docs/class.md:20-66,88-106`, `topcoat-view-0.11.0/src/html/class.rs:333,378`. Probe: `view_syntax.rs:8,72-75`. Web: `web/src/components/card.rs:8,38`, `web/src/components/button.rs:32`.
 
 ### 2.5 Control flow: `if`, `if let`, `match`, keyed `for`, `let`
 
@@ -229,7 +234,7 @@ view! {
 - Components inside one `view!` render concurrently; the output is always in source order. Do not rely on side-effect order between components or template expressions.
 - A `view!` moves the variables it uses, like an `async move` block. Clone before building the view if the value is needed afterwards.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:107-292,348-407`, `topcoat-core-0.10.0/src/context.rs:92` (`Cx::keyed`). Probe: `view_syntax.rs:77-95` (output `tests/rendering.rs:16`), `client.rs:81-103` and `tests/client.rs:22` (unkeyed panic, keyed success). Web: `web/src/admin/pages/servers.rs:146-147` (keyed loop), `web/src/admin/pages/servers.rs:161` (`match` with `Some`/`None` arms).
+Source: `topcoat-view-macro-0.11.0/docs/view.md:107-292,348-425`, `topcoat-core-0.11.0/src/context.rs:92` (`Cx::keyed`). Probe: `view_syntax.rs:77-95` (output `tests/rendering.rs:16`), `client.rs:81-103` and `tests/client.rs:22` (unkeyed panic, keyed success). Web: `web/src/admin/pages/servers.rs:146-147` (keyed loop), `web/src/admin/pages/servers.rs:161` (`match` with `Some`/`None` arms).
 
 ### 2.6 Status codes and response headers from a view
 
@@ -250,7 +255,7 @@ Response: `418`, `cache-control: no-store`, body `<p>teapot</p>`.
 - Both must be set before the body streams. A status declared inside a `suspense` child that finishes later is ignored: the response stays `200` (probe `streaming.rs:77-89`). Declare it outside the `suspense` (section 14).
 - Rendering a view to a string (section 16) discards them. A header-only declaration works: `((header::LOCATION, ...))` in a page without a status leaves 200, with `(StatusCode::FOUND)` gives 302 (section 5.8).
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:495-532`, `topcoat-view-0.10.0/src/html/node.rs:155,169,180`. Probe: `view_syntax.rs:109-115`, `routes.rs:129-134`, `streaming.rs:51-57`. Web: `web/src/document.rs:76` (`(StatusCode::NOT_FOUND)`), `web/src/admin/pages/loadouts.rs:54` (`UNPROCESSABLE_ENTITY`).
+Source: `topcoat-view-macro-0.11.0/docs/view.md:513-550`, `topcoat-view-0.11.0/src/html/node.rs:155,169,180`. Probe: `view_syntax.rs:109-115`, `routes.rs:129-134`, `streaming.rs:51-57`. Web: `web/src/document.rs:76` (`(StatusCode::NOT_FOUND)`), `web/src/admin/pages/loadouts.rs:54` (`UNPROCESSABLE_ENTITY`).
 
 ### 2.7 Rendering outside a component, `boxed`, `single`
 
@@ -266,7 +271,7 @@ async fn render_outside(cx: &Cx) -> Result<String> {
 - Inside `#[component]`, `#[page]`, `#[layout]`, `#[shard]` the request context is implicit. In a plain function start the macro with `cx =>`; without it the macro fails with `cannot find value __cx`.
 - `ViewExt` (import it) adds `.single()` (collect to a `ViewHandle`, `.render(&cx)` makes the string) and `.boxed()`. Recursive components and `if/else` branches that build different view types need `.boxed()`; the error without it is `no method named boxed` until `ViewExt` is imported.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:533-547`, `topcoat-view-0.10.0/src/view.rs:59,79,95`, `topcoat-view-0.10.0/src/buffer/handle.rs:179`. Probe: `view_syntax.rs:118-121`, `components.rs:63-70`, `tests/harness.rs:9`. Web: `web/src/public/login.rs:16-17` (`.boxed()` branches), `web/src/engagement/pages/greetings/mod.rs:247`.
+Source: `topcoat-view-macro-0.11.0/docs/view.md:551-565`, `topcoat-view-0.11.0/src/view.rs:59,79,95`, `topcoat-view-0.11.0/src/buffer/handle.rs:179`. Probe: `view_syntax.rs:118-121`, `components.rs:63-70`, `tests/harness.rs:9`. Web: `web/src/public/login.rs:16-17` (`.boxed()` branches), `web/src/engagement/pages/greetings/mod.rs:247`.
 
 ### 2.8 `attributes!` and `Attributes` forwarding
 
@@ -299,7 +304,7 @@ card(attrs: attributes! { class="max-w-sm" }, <p>"body"</p>)
 
 `attrs.remove("class")` pulls the caller's class out so it is merged by `class!`; the remaining attributes spread onto the element. Output (probe `panel`): `<section class="panel x" data-x="1">`.
 
-Source: `topcoat-view-0.10.0/src/html/attribute/attributes.rs:20-113`, `topcoat-view-macro-0.10.0/docs/attributes.md:1-152`, `docs/class.md:68-86`. Probe: `components.rs:32-46`, `view_syntax.rs:130-141`. Web: `web/src/components/card.rs:35-38`.
+Source: `topcoat-view-0.11.0/src/html/attribute/attributes.rs:20-113`, `topcoat-view-macro-0.11.0/docs/attributes.md:1-152`, `docs/class.md:68-86`. Probe: `components.rs:32-46`, `view_syntax.rs:130-141`. Web: `web/src/components/card.rs:35-38`.
 
 ### 2.9 Custom values in markup
 
@@ -322,7 +327,7 @@ view! { <p>(Badge("<New>".to_owned()))</p> <article data-id=(DataId(Some("post-1
 
 Rendered: `<p>&lt;New&gt;</p><article data-id="post-1"></article>`. `push_string` escapes for the position; the `push_*_unescaped` methods do not. Other position traits: `AttributeKeyViewParts`, `AttributeViewParts`, `ElementNameViewParts`, `ClassViewParts`.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:548-633`, `topcoat-view-0.10.0/src/html/node.rs:24`, `topcoat-view-0.10.0/src/html/attribute/value.rs:31`. Probe: `view_syntax.rs:144-172`. Web: no direct use.
+Source: `topcoat-view-macro-0.11.0/docs/view.md:566-652`, `topcoat-view-0.11.0/src/html/node.rs:24`, `topcoat-view-0.11.0/src/html/attribute/value.rs:31`. Probe: `view_syntax.rs:144-172`. Web: no direct use.
 
 ## 3. Components
 
@@ -361,9 +366,9 @@ Rendered: `<span class="badge" data-max="80">plain</span><span class="badge badg
 - `?` inside a component bubbles to the nearest `error_boundary` or the router (section 15).
 - `#[derive(Props)]` generates a type-state builder with the same `#[default]`/`#[into]` field attributes: `ButtonProps::builder().label("Save").kind(Tone::Danger).build()` compiles and yields `disabled == false` (probe `components.rs:110-122`). No component in this repo uses it.
 - A plain `fn -> impl View` that calls `view!` does not work (no implicit `cx`); use a component, or `view! { cx => ... }` (section 2.7).
-- A `#[page]` or `#[layout]` doubles as a component: `crate::routes::root_layout(slot: Slot::new(view! { <p>"inner"</p> }))` and `crate::routes::home()` inside another view render inline (observed: `<!DOCTYPE html><html><body><nav>root</nav><p>inner</p></body></html><h1>home</h1>`, probe `components.rs:123-130`). A page that reads a body takes it as a `body:` prop (`topcoat-router-macro-0.10.0/docs/page.md`; not compiled).
+- A `#[page]` or `#[layout]` doubles as a component: `crate::routes::root_layout(slot: Slot::new(view! { <p>"inner"</p> }))` and `crate::routes::home()` inside another view render inline (observed: `<!DOCTYPE html><html><body><nav>root</nav><p>inner</p></body></html><h1>home</h1>`, probe `components.rs:123-130`). A page that reads a body takes it as a `body:` prop (`topcoat-router-macro-0.11.0/docs/page.md`; not compiled).
 
-Source: `topcoat-view-macro-0.10.0/docs/component.md:1-174`, `topcoat-view-macro-0.10.0/src/lib.rs:42-52`. Probe: `components.rs:16-31,48-61`. Web: `web/src/components/spinner.rs:22-34`, `web/src/admin/editor/view.rs:249` (`#[default] diamond: bool`).
+Source: `topcoat-view-macro-0.11.0/docs/component.md:1-174`, `topcoat-view-macro-0.11.0/src/lib.rs:42-52`. Probe: `components.rs:16-31,48-61`. Web: `web/src/components/spinner.rs:22-34`, `web/src/admin/editor/view.rs:249` (`#[default] diamond: bool`).
 
 ### 3.2 Children, named slots and attribute forwarding
 
@@ -403,7 +408,7 @@ Rendered: `<section class="panel x" data-x="1"><header><em>slot</em></header><h2
 - `Slot<'a>` (in layouts) is a type alias for `Child<'a>`.
 - `Attributes` parameters forward caller attributes (section 2.8).
 
-Source: `topcoat-view-macro-0.10.0/docs/component.md:40-80`, `topcoat-view-0.10.0/src/child.rs:18`, `topcoat-router-0.10.0/src/page.rs:135`. Probe: `components.rs:32-46`. Web: `web/src/components/card.rs:35-38`, `web/src/document.rs:86-102`.
+Source: `topcoat-view-macro-0.11.0/docs/component.md:40-80`, `topcoat-view-0.11.0/src/child.rs:18`, `topcoat-router-0.11.0/src/page.rs:135`. Probe: `components.rs:32-46`. Web: `web/src/components/card.rs:35-38`, `web/src/document.rs:86-102`.
 
 ### 3.3 Async components with `cx`, recursion, memoize
 
@@ -426,7 +431,7 @@ pub async fn countdown(n: u32) -> Result<impl View> {
 - A recursive component must `.boxed()` its view (`use topcoat::view::ViewExt`).
 - Per-request caching of an expensive helper is `#[memoize]` (section 6.3).
 
-Source: `topcoat-view-macro-0.10.0/docs/component.md:100-174`. Probe: `components.rs:63-70,82-86`. Web: `web/src/engagement/pages/greetings/mod.rs:247` (`.boxed()`), `web/src/admin/pages/servers.rs:65-66` (`cx: &Cx` component).
+Source: `topcoat-view-macro-0.11.0/docs/component.md:100-174`. Probe: `components.rs:63-70,82-86`. Web: `web/src/engagement/pages/greetings/mod.rs:247` (`.boxed()`), `web/src/admin/pages/servers.rs:65-66` (`cx: &Cx` component).
 
 ### 3.4 `error_boundary`
 
@@ -441,11 +446,37 @@ error_boundary(
 
 Rendered: `<p class="caught">caught: bad request: nope</p>`. The closure receives `topcoat::Error`; returning `Err(error)` re-throws to the enclosing boundary or the router. The fallback replaces everything the boundary guarded, including already-streamed content. It is also the 404 mechanism (section 5.7).
 
-Source: `topcoat-0.10.0/src/view/error_boundary.rs:50`. Probe: `components.rs:74-80,103-106`. Web: `web/src/document.rs:69-81`.
+Source: `topcoat-0.11.0/src/view/error_boundary.rs:50`. Probe: `components.rs:74-80,103-106`. Web: `web/src/document.rs:69-81`.
+
+### 3.5 `element_id(cx)` (new in 0.11)
+
+Status: VERIFIED. Features: `view`.
+
+```rust
+use topcoat::view::element_id;
+
+#[component]
+pub async fn email_field(cx: &Cx) -> Result<impl View> {
+    Ok(view! {
+        let id = element_id(cx);
+        <label for=(&id)>"Email"</label>
+        <input id=(&id) type="email">
+    })
+}
+```
+
+Observed: `<label for="tc-1TZTIABREBTeX50q8JdUGw">Email</label><input id="tc-1TZTIABREBTeX50q8JdUGw" ...>`; a second `email_field()` on the same page gets a different ID.
+
+- Returns `String` of the form `tc-` plus URL-safe base64 (`[A-Za-z0-9_-]`). It is derived from the component's identity and the call site (`#[track_caller]`): calls on different lines differ, the same call site with the same `cx` returns the same ID, and the ID survives a rerender.
+- A `#[key(..)]` on a `for` loop gives each iteration's components their own identity, but a direct `element_id(cx)` in the loop body still sees the page's `cx` and repeats (observed: both iterations `tc-1Y0XWSivKdvhNYrIwESDWQ`). Use `element_id(&cx.keyed(item))` there, or call it inside a component.
+- Panics inside a `#[memoize]` body and when `cx` is ambiguous (a component in an unkeyed `view!` loop).
+- The 0.11 registry components (`popover`, `dropdown_menu`, `label`, `checkbox`, `switch`, `radio_group`) document it for `for`/`id`/`popovertarget` wiring ([ui.md](ui.md)).
+
+Source: `topcoat-view-0.11.0/src/element_id.rs:8-46`, `topcoat-view-0.11.0/src/lib.rs:21`. Probe: `v011.rs:7-25`, `tests/v011.rs:6-11`. Web: none (`web` writes literal IDs).
 
 ## 4. Client expressions `$(...)`
 
-Features: `runtime` (plus `router` for pages, shards and procedures). The runtime is the only client-side code Topcoat generates: `$(...)` is a small Rust subset that runs on the server for the first render and is compiled to JavaScript that the browser runtime (49 KB, `topcoat-runtime-0.10.0/browser/dist/index.js`) evaluates. There is no WASM. Everything here is experimental upstream; expressions accept a closed vocabulary of types and syntax and reject the rest at compile time.
+Features: `runtime` (plus `router` for pages, shards and procedures). The runtime is the only client-side code Topcoat generates: `$(...)` is a small Rust subset that runs on the server for the first render and is compiled to JavaScript that the browser runtime (49 KB, `topcoat-runtime-0.11.0/browser/dist/index.js`) evaluates. There is no WASM. Everything here is experimental upstream; expressions accept a closed vocabulary of types and syntax and reject the rest at compile time.
 
 Probe: `scratch/topcoat-kb/core/probe/src/client.rs`, `tests/client.rs`; accept and reject matrices `exprcases/accept*.json`, `exprcases/reject.json`, results in `exprcases/results.txt`.
 
@@ -461,7 +492,7 @@ topcoat::runtime::script()
 
 `.runtime()` registers `RuntimeLayer` (page reruns and the connection endpoint) and the runtime setup marker; `script()` renders the tag and asserts the marker, so a page rendered by a router built without `.runtime()` panics with `the browser runtime is not set up on this router; call '.runtime()' on the router builder` and the router answers `500 internal server error`. The script file is an asset (`topcoat::runtime::SCRIPT`), so the asset bundle must be registered or the render panics (section 11). Call `.runtime()` after registering your own layers so they handle a rerun as the rewritten `GET`.
 
-Source: `topcoat-0.10.0/src/runtime.rs:6-26`, `topcoat-runtime-0.10.0/src/router.rs:14-80`, `topcoat-runtime-0.10.0/src/lib.rs:45`. Probe: `tests/assets.rs:46-58`. Web: `web/src/router.rs:35-38` (`.origin_policy(..).runtime().cookies().build()`), `web/src/document.rs:95` (`script()`).
+Source: `topcoat-0.11.0/src/runtime.rs:6-26`, `topcoat-runtime-0.11.0/src/router.rs:14-80`, `topcoat-runtime-0.11.0/src/lib.rs:45`. Probe: `tests/assets.rs:46-58`. Web: `web/src/router.rs:35-38` (`.origin_policy(..).runtime().cookies().build()`), `web/src/document.rs:95` (`script()`).
 
 ### 4.2 Signals
 
@@ -482,7 +513,7 @@ view! { <p>"count=" $(count.get())</p> }
 - Passing a signal to a component: `child_reads(flag: &open)` with `flag: &Signal<bool>`.
 - Page rerun: a `POST` to a page URL with header `X-Topcoat-Runtime: true` and JSON body `{"signals": {"<id>": <value>}}` is rewritten to a `GET` of that page with the values restored. Observed: `POST /client` with `count`'s id set to `5` renders `count=5` and answers `200`; the same `POST` without the header answers `405` on a `GET` page. A `POST` page keeps working normally because only requests carrying the header are intercepted.
 
-Source: `topcoat-runtime-0.10.0/src/signal.rs:17-300`, `topcoat-runtime-0.10.0/src/layer/rerun.rs:13-59`, `topcoat-runtime-0.10.0/src/surrogate.rs:31-34` (diagnostic), `topcoat-runtime-0.10.0/src/surrogate/tuple.rs` (`impl_tuple_surrogate!` up to 12). Probe: `client.rs:38-80` (page), `tests/client.rs:39-58` (rerun). Web: `web/src/shell/sidebar.rs:156`, `web/src/components/settings.rs:21`, `web/src/admin/pages/servers.rs:74-75`.
+Source: `topcoat-runtime-0.11.0/src/signal.rs:17-300`, `topcoat-runtime-0.11.0/src/layer/rerun.rs:13-59`, `topcoat-runtime-0.11.0/src/surrogate.rs:31-34` (diagnostic), `topcoat-runtime-0.11.0/src/surrogate/tuple.rs` (`impl_tuple_surrogate!` up to 12). Probe: `client.rs:38-80` (page), `tests/client.rs:39-58` (rerun). Web: `web/src/shell/sidebar.rs:156`, `web/src/components/settings.rs:21`, `web/src/admin/pages/servers.rs:74-75`.
 
 ### 4.3 What `$(...)` and `expr!` accept
 
@@ -535,7 +566,7 @@ Behavior notes:
 - A captured value is a snapshot taken at render; later server changes do not update it. Capturing clones. A captured `Expr<T>` (the result of `expr!`) behaves as `T` and re-evaluates on each use in the browser, so `let doubled = expr!(count.get() * 2); let label = expr!(if doubled > 10 { "big" } else { "small" });` stays reactive.
 - `raw!` is the escape hatch. The Rust argument must read the same signals the JavaScript depends on; omit it only for browser-only code (`raw!("document.getElementById('x').focus()")`). `${ident}` must name a binding inside the expression; prefix with `_` to avoid `unused_variables`.
 
-Source: `topcoat-runtime-macro-0.10.0/docs/expr.md:54-85`, grammar entry points (all under `topcoat-runtime-grammar-0.10.0/`) `src/expr.rs:129-153` (dispatch and `unsupported expression`), `src/expr/expr_binary.rs:12-32`, `src/expr/expr_unary.rs:23-33`, `src/expr/builtin_macro.rs:44-56`, `src/expr/expr_path.rs:28`, `src/expr/pat.rs:26`, `src/expr/stmt.rs:27,63`, `src/expr/expr_method_call.rs:19`, `src/expr/expr_lit.rs:33,53`, `src/expr/expr_struct.rs:38`, `src/expr/expr_break.rs:16`. Probe: `exprcases/accept.json`, `accept2.json`, `a3.json` (every listed method and signal value type), `reject.json`, `r3.json`, `r4.json`; results `exprcases/results.txt`. Web: `web/src/admin/pages/servers.rs:77-100` (`expr!` with `raw!` and a Rust fallback), `web/src/admin/pages/loadouts.rs:167`.
+Source: `topcoat-runtime-macro-0.11.0/docs/expr.md:54-85`, grammar entry points (all under `topcoat-runtime-grammar-0.11.0/`) `src/expr.rs:129-153` (dispatch and `unsupported expression`), `src/expr/expr_binary.rs:12-32`, `src/expr/expr_unary.rs:23-33`, `src/expr/builtin_macro.rs:44-56`, `src/expr/expr_path.rs:28`, `src/expr/pat.rs:26`, `src/expr/stmt.rs:27,63`, `src/expr/expr_method_call.rs:19`, `src/expr/expr_lit.rs:33,53`, `src/expr/expr_struct.rs:38`, `src/expr/expr_break.rs:16`. Probe: `exprcases/accept.json`, `accept2.json`, `a3.json` (every listed method and signal value type), `reject.json`, `r3.json`, `r4.json`; results `exprcases/results.txt`. Web: `web/src/admin/pages/servers.rs:77-100` (`expr!` with `raw!` and a Rust fallback), `web/src/admin/pages/loadouts.rs:167`.
 
 ### 4.4 `@event` handlers and `:attr` bindings
 
@@ -558,13 +589,14 @@ view! {
 
 Emitted HTML for the first line: `<button id="inc" data-topcoat-on:click="(__local0) => (cx.hydrate({...})).increment()">`; for a binding: `<input value="" data-topcoat-bind:value="(cx.hydrate({...})).get()" data-topcoat-on:input="...">`; a bound boolean renders the bare attribute when true (`hidden=""`), and a bound expression with no signal reads renders only the static attribute.
 
+- Rerendering in the browser (a connected page or shard) keeps the text of inputs the user has edited; untouched inputs take the new value (new in 0.11, `topcoat-core-0.11.0/browser/morph.ts:295-327,377-393`). A `:value` bound to an expression that reads a signal still updates. To force a value on every render, bind `Expr::dynamic`: `let draft = Expr::from(String::new()).dynamic(); view! { <input :value=(draft)> }` renders `value="" data-topcoat-bind:value="cx.hydrate(&quot;&quot;)"`, where a plain `Expr::from(..)` renders only `value="x"` (observed, `tests/v011.rs:13-18`; `topcoat-runtime-0.11.0/src/expr.rs:45-68`).
 - `@name=$(closure)` attaches a DOM event handler; `@name="js source"` is raw JavaScript that must evaluate to a function. `:name=$(expr)` binds an attribute or property; the server renders the initial value and the browser updates it when a signal the expression reads changes. `:class` replaces the whole `class` attribute. `:name=(expr)` (plain parentheses) is evaluated once on the server and renders as an ordinary attribute with no `data-topcoat-bind` marker.
 - `Event` fields (all surrogate values): `alt_key`, `bubbles`, `button`, `buttons`, `cancelable`, `client_x`, `client_y`, `code`, `ctrl_key`, `current_target`, `data`, `default_prevented`, `delta_x/y/z`, `event_type`, `input_type`, `is_composing`, `key`, `meta_key`, `movement_x/y`, `offset_x/y`, `page_x/y`, `pointer_id`, `pointer_type`, `repeat`, `screen_x/y`, `shift_key`, `target`, `time_stamp`. `target` and `current_target` (`EventTarget`) expose only `checked`, `id`, `name`, `text_content`, `value`. Methods: `prevent_default()`, `stop_propagation()`, `stop_immediate_propagation()`. There is no `files`, no `FormData`, no `dataset`. Numeric fields are `f64`.
-- **Defect, unchanged in 0.10:** a string-literal handler written after another attribute loses the separating space: `<input id="lit"data-topcoat-on:click="alert(1)">`. Browsers recover (`HTML parse error`, attribute still applies), but prefer `$(...)`. The same handler built through `attributes!` and spread renders correctly (`probe view_syntax.rs:130-141`).
+- **Defect, unchanged in 0.11:** a string-literal handler written after another attribute loses the separating space: `<input id="lit"data-topcoat-on:click="alert(1)">`. Browsers recover (`HTML parse error`, attribute still applies), but prefer `$(...)`. The same handler built through `attributes!` and spread renders correctly (`probe view_syntax.rs:130-141`).
 - The `data-topcoat-*` attributes and `<!--::topcoat::...-->` comments are part of the delivered HTML. Tests that compare markup strip them first (`web/tests/shell_pages.rs:271-293`).
 - The runtime evaluates handlers with `new Function(...)`, so a strict Content-Security-Policy needs `script-src 'unsafe-eval'`, and streamed `suspense` regions need inline scripts (section 14). Topcoat has no CSP nonce support. `web` sends no CSP header.
 
-Source: `topcoat-runtime-0.10.0/src/event_handler.rs:11-31`, `topcoat-runtime-0.10.0/src/bind_attribute.rs:12-40`, `topcoat-view-grammar-0.10.0/src/attributes/event_handler.rs:15-95`, `topcoat-view-grammar-0.10.0/src/attributes/bind_attribute.rs:17-62`, `topcoat-runtime-0.10.0/src/surrogate/event.rs:10-67`. Probe: `client.rs:38-80`, output `tests/client.rs:16`. Web: `web/src/admin/pages/servers.rs:107-109`, `web/src/shell/sidebar.rs:174-187`, `web/src/components/settings.rs:24-30`.
+Source: `topcoat-runtime-0.11.0/src/event_handler.rs:11-31`, `topcoat-runtime-0.11.0/src/bind_attribute.rs:12-40`, `topcoat-view-grammar-0.11.0/src/attributes/event_handler.rs:15-95`, `topcoat-view-grammar-0.11.0/src/attributes/bind_attribute.rs:17-62`, `topcoat-runtime-0.11.0/src/surrogate/event.rs:10-67`. Probe: `client.rs:38-80`, output `tests/client.rs:16`. Web: `web/src/admin/pages/servers.rs:107-109`, `web/src/shell/sidebar.rs:174-187`, `web/src/components/settings.rs:24-30`.
 
 ### 4.5 Procedures, shards, records
 
@@ -596,7 +628,7 @@ view! { rows_shard(label: "rows".to_owned()) }
 - `#[record]` (new in 0.10) allows named-field structs without generics in signals, procedure arguments, and expression struct literals. Capturing a record exposes every field, including private ones, to the browser; validate records sent back.
 - A WebSocket carries connected renders: `connected(cx)` returns `false` during the HTTP render and requests a connection; the connected render sees `true`. One socket per document, at most 64 concurrent renders per socket unless `.max_runs_per_connection(n)` is set; extra requests get `429`.
 
-Source: `topcoat-runtime-macro-0.10.0/docs/procedure.md:1-90`, `topcoat-runtime-macro-0.10.0/docs/shard.md:1-160`, `topcoat-runtime-macro-0.10.0/docs/record.md:1-62`, `topcoat-runtime-grammar-0.10.0/src/common/endpoint_path.rs:19-40` (hashed path), `topcoat-runtime-grammar-0.10.0/src/procedure.rs:20,170`, `topcoat-runtime-0.10.0/src/connection.rs:36`, `topcoat-runtime-0.10.0/src/router.rs:48-80`. Probe: `client.rs:10-35,106-117`, `tests/client.rs:30-37` (default procedure path). Web: none (the loadout editor uses a hand-written module, `web/src/admin/editor/mod.rs:13`).
+Source: `topcoat-runtime-macro-0.11.0/docs/procedure.md:1-90`, `topcoat-runtime-macro-0.11.0/docs/shard.md:1-160`, `topcoat-runtime-macro-0.11.0/docs/record.md:1-62`, `topcoat-runtime-grammar-0.11.0/src/common/endpoint_path.rs:19-40` (hashed path), `topcoat-runtime-grammar-0.11.0/src/procedure.rs:20,170`, `topcoat-runtime-0.11.0/src/connection.rs:36`, `topcoat-runtime-0.11.0/src/router.rs:48-80`. Probe: `client.rs:10-35,106-117`, `tests/client.rs:30-37` (default procedure path). Web: none (the loadout editor uses a hand-written module, `web/src/admin/editor/mod.rs:13`).
 
 ### 4.6 Hand-written JavaScript
 
@@ -609,7 +641,7 @@ view! { <script type="module" src=(PENDING_SUBMIT)></script> }
 
 Use an `asset!` module (section 11) for behaviour the expression grammar cannot express (form submission state, file readers, dialogs, focus management, `fetch`). Inline script text must go through `Unescaped::new_unchecked` (section 2.2). `web` does both: `web/src/document.rs:24` (`PENDING_SUBMIT`) and `web/src/admin/editor/mod.rs:13` (`LOADOUT_EDITOR_JS`).
 
-Source: `topcoat-0.10.0/docs/asset.md`. Probe: `assets.rs:6-27`. Web: `web/src/document.rs:24,96`.
+Source: `topcoat-0.11.0/docs/asset.md`. Probe: `assets.rs:6-27`. Web: `web/src/document.rs:24,96`.
 
 ## 5. Router
 
@@ -643,7 +675,7 @@ Router::builder()
 - Other builder methods: `.app_context(value)` (section 6), `.trusted_proxies(..)`, `.compression(Compression::..)`, `.base_url(..)`, `.assets(..)` (section 11), `.cookies()` (section 8), `.runtime()` (section 4).
 - `web` registers by name through route groups, so the whole route table is one fold: `ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 8]` and each module exports `pub fn routes(base: RouterBuilder) -> RouterBuilder`. Tests build the same router with their own base builder (`web::router(Router::builder().assets(..).app_context(..))`, section 16).
 
-Source: `topcoat-router-0.10.0/src/builder.rs:92-401` (builder methods, panics at `:469` and `:485`), `topcoat-router-macro-0.10.0/src/lib.rs:8-74`, `topcoat-0.10.0/docs/router.md`. Probe: `routes.rs:20-183`, `tests/routes.rs:8-34,122-132`. Web: `web/src/router.rs:11-39`, `web/src/public/mod.rs:15-23`, `web/src/engagement/pages/greetings/mod.rs:89,96`.
+Source: `topcoat-router-0.11.0/src/builder.rs:92-401` (builder methods, panics at `:469` and `:485`), `topcoat-router-macro-0.11.0/src/lib.rs:8-74`, `topcoat-0.11.0/docs/router.md`. Probe: `routes.rs:20-183`, `tests/routes.rs:8-34,122-132`. Web: `web/src/router.rs:11-39`, `web/src/public/mod.rs:15-23`, `web/src/engagement/pages/greetings/mod.rs:89,96`.
 
 ### 5.2 Module routing and `.discover()`
 
@@ -679,10 +711,11 @@ Observed (`tests/modroute.rs`): `/` 200, `/export` GET 405 `allow: POST`, `/blog
 - Module name to segment: static names are kebab-cased (`blog_posts` to `blog-posts`); a module starting with `_` is a group (no URL segment, still part of layout/layer matching); `segment!(rename = "..", kind = ..)` overrides. The function name does not matter; two module-derived handlers in one module share a path (different methods only).
 - A path starting `./` is joined below the module. An absolute path string opts out of the module tree and must be registered by name (`.page(legacy)`) or by `.discover()`.
 - `.discover()` (trait `RouterBuilderDiscoverExt`) also registers explicit-path handlers, procedures and shards linked into the binary. Discovered layers must have unique paths. Do not mix `.discover()` with `.page(x)` of the same item (double registration panics).
+- A `module_router!()` registers only handlers whose Rust module is its root module or below it (new in 0.11, `topcoat-router-0.11.0/src/module/router.rs:60-69,219-342`), so several module routers can live in one binary. `RouterBuilder::discover*` stays unscoped.
 - Discovery is `inventory`-based link-time collection, so the final binary must link the crate that defines the handlers. The probe's tests link the library by referencing it (`use core_probe::modroute::app`).
 - **Breaking in 0.10:** `path_param!` no longer sets the module's segment; `module_param!` does (see [changes-0.9-to-0.10.md](changes-0.9-to-0.10.md)).
 
-Source: `topcoat-router-0.10.0/docs/module.md`, `topcoat-router-0.10.0/src/module.rs:13-16`, `topcoat-router-0.10.0/src/module/segment.rs:16-40`, `topcoat-router-macro-0.10.0/docs/module_param.md`. Probe: `modroute.rs` (all), `tests/modroute.rs`. Web: none (it registers explicitly).
+Source: `topcoat-router-0.11.0/docs/module.md`, `topcoat-router-0.11.0/src/module.rs:13-16`, `topcoat-router-0.11.0/src/module/segment.rs:16-40`, `topcoat-router-macro-0.11.0/docs/module_param.md`. Probe: `modroute.rs` (all), `tests/modroute.rs`. Web: none (it registers explicitly).
 
 ### 5.3 Path syntax and path parameters
 
@@ -709,7 +742,7 @@ pub async fn guild_settings(cx: &Cx) -> Result<impl View> {
 - Declare the same `path_param!` once and import it where both layout and pages need it. `web` shares `path_param!(pub guild_id)` between `shell/guild_layout.rs:11` and the guild pages; `settings/mod.rs:30` declares `section`; `admin/editor/mod.rs:15` declares `loadout_id`. All three are untyped and parsed by the handler.
 - 0.10 change: `path_param!` only declares the type; it no longer emits a `segment!` override (that is `module_param!`). With explicit paths nothing changes.
 
-Source: `topcoat-router-macro-0.10.0/docs/path_param.md:1-204`, `topcoat-router-0.10.0/src/path_param.rs:40-83`, `topcoat-router-grammar-0.10.0/src/path_param.rs:283-322`, `topcoat-router-macro-0.10.0/docs/layout.md`, `docs/layer.md`. Probe: `routes.rs:16-18,39-76`, `routes2.rs:10-31`, `tests/routes.rs:61-94`, `tests/routes2.rs:6-20`. Web: `web/src/shell/guild_layout.rs:11,27-30`, `web/src/settings/mod.rs:30`.
+Source: `topcoat-router-macro-0.11.0/docs/path_param.md:1-204`, `topcoat-router-0.11.0/src/path_param.rs:40-83`, `topcoat-router-grammar-0.11.0/src/path_param.rs:283-322`, `topcoat-router-macro-0.11.0/docs/layout.md`, `docs/layer.md`. Probe: `routes.rs:16-18,39-76`, `routes2.rs:10-31`, `tests/routes.rs:61-94`, `tests/routes2.rs:6-20`. Web: `web/src/shell/guild_layout.rs:11,27-30`, `web/src/settings/mod.rs:30`.
 
 ### 5.4 Query parameters
 
@@ -724,7 +757,7 @@ let query = topcoat::router::query_params::<SearchQuery>(cx)?;
 
 Observed: `/search` is `q=- page=1`; `?q=a&page=2` parses; `?page=x` is `400 text/plain` ``bad request: invalid query value: invalid digit found in string (at `page`)``; `?page=` and `?q=` read as `None`. A missing key on a non-`Option` field is an error (`#[serde(default)]` is not applied). The macro derives `Deserialize`; the struct must be `Send + Sync + 'static` (it is memoized). `error = redirect("?")` clears a bad query and loops if an empty query is invalid.
 
-Source: `topcoat-router-macro-0.10.0/docs/query_params.md:1-60`, `topcoat-router-0.10.0/src/query_param.rs:32`. Probe: `routes.rs:79-91`. Web: `web/src/auth/login.rs:23-26,55`.
+Source: `topcoat-router-macro-0.11.0/docs/query_params.md:1-60`, `topcoat-router-0.11.0/src/query_param.rs:32`. Probe: `routes.rs:79-91`. Web: `web/src/auth/login.rs:23-26,55`.
 
 ### 5.5 Methods, HEAD, 405, handler return values
 
@@ -735,7 +768,7 @@ Status: VERIFIED.
 - Handlers take optional `cx: &Cx` and at most one body parameter (section 7). A route returns `Result<T>` where `T` is a response: `String` or `&'static str` (text/plain), `()` (empty), `Json<T>` (application/json), `Html<T>` (text/html), `Js`, `Css`, `Wasm`, a view, `Response`, `SeeOther`, or a tuple `(StatusCode, [(HeaderName, HeaderValue); N], body)`. Observed `Ok((StatusCode::ACCEPTED, Json(Health { .. })))` is `202 application/json {"ok":true,"guild":7}`; `Html("<b>raw</b>")` is `200 text/html`.
 - Panics inside a handler become `500 internal server error`.
 
-Source: `topcoat-router-macro-0.10.0/docs/route.md`, `topcoat-router-0.10.0/src/content.rs`, `topcoat-router-0.10.0/src/content/html.rs:19`, `topcoat-router-0.10.0/src/response.rs`. Probe: `routes.rs:157-175`, `routes2.rs:34-37`. Web: `web/src/admin/editor/endpoints.rs:19-27` (`(StatusCode, Json<Reply<T>>)`), `web/src/providers/kofi.rs:28`.
+Source: `topcoat-router-macro-0.11.0/docs/route.md`, `topcoat-router-0.11.0/src/content.rs`, `topcoat-router-0.11.0/src/content/html.rs:19`, `topcoat-router-0.11.0/src/response.rs`. Probe: `routes.rs:157-175`, `routes2.rs:34-37`. Web: `web/src/admin/editor/endpoints.rs:19-27` (`(StatusCode, Json<Reply<T>>)`), `web/src/providers/kofi.rs:28`.
 
 ### 5.6 Layouts and layers
 
@@ -764,7 +797,7 @@ pub fn require_auth(path: &'static str) -> LayerFn { LayerFn::new(Some(path), re
 - Layers registered explicitly on one path nest by registration order (the last is outermost); collected-by-`discover` layers need unique paths.
 - A layer that registers request-scoped values derives a child context with `cx.with(value)` (section 6) and passes that to `next.run` (documented upstream, not exercised in the probe).
 
-Source: `topcoat-router-0.10.0/src/layer.rs:66-130,170`, `topcoat-router-0.10.0/src/page.rs:135`, `topcoat-router-macro-0.10.0/docs/layout.md`, `topcoat-router-macro-0.10.0/docs/layer.md`. Probe: `routes.rs:20-51,176-181`, `routes2.rs:39-57`. Web: `web/src/document.rs:64-82` (`#[layout("/")]`), `web/src/shell/guild_layout.rs:26-37`, `web/src/auth/middleware.rs:10-44` (`LayerFn` guard), `web/src/providers/mod.rs:32-33` (`.layer(require_auth("/patreon"))`).
+Source: `topcoat-router-0.11.0/src/layer.rs:66-130,170`, `topcoat-router-0.11.0/src/page.rs:135`, `topcoat-router-macro-0.11.0/docs/layout.md`, `topcoat-router-macro-0.11.0/docs/layer.md`. Probe: `routes.rs:20-51,176-181`, `routes2.rs:39-57`. Web: `web/src/document.rs:64-82` (`#[layout("/")]`), `web/src/shell/guild_layout.rs:26-37`, `web/src/auth/middleware.rs:10-44` (`LayerFn` guard), `web/src/providers/mod.rs:32-33` (`.layer(require_auth("/patreon"))`).
 
 ### 5.7 Not-found pages, fallbacks, status pages
 
@@ -788,7 +821,7 @@ error_boundary(
 - Typed `path_param!(.., error = not_found)` failures and `ok_or_not_found()` land in the same boundary (observed: `/guild/abc` and `/guild/42/settings/missing` render `404 branded`).
 - Other router errors answer plain text and are not caught by the 404 branch: `401 unauthorized`, `403 forbidden`, `400 bad request: <msg>`, `500 internal server error` for anything else.
 
-Source: `topcoat-router-macro-0.10.0/docs/not_found.md`, `topcoat-router-0.10.0/docs/error.md:45-100`, `topcoat-router-0.10.0/src/error/not_found.rs:23`. Probe: `routes.rs:20-37,183`, `tests/routes.rs:116-120`. Web: `web/src/document.rs:64-82`, `web/src/pages/not_found.rs:7`.
+Source: `topcoat-router-macro-0.11.0/docs/not_found.md`, `topcoat-router-0.11.0/docs/error.md:45-100`, `topcoat-router-0.11.0/src/error/not_found.rs:23`. Probe: `routes.rs:20-37,183`, `tests/routes.rs:116-120`. Web: `web/src/document.rs:64-82`, `web/src/pages/not_found.rs:7`.
 
 ### 5.8 Redirects, rewrites and their status codes
 
@@ -806,7 +839,7 @@ Status: VERIFIED. All rows observed in `tests/routes.rs`.
 
 A redirect error returned from a page layout or component bubbles up as any other error. A custom error type with no mapping layer becomes `500`.
 
-Source: `topcoat-router-0.10.0/src/error/redirect.rs:33,59,161`, `topcoat-router-0.10.0/src/error/rewrite.rs:58-75`, `topcoat-router-0.10.0/src/error.rs:126-136`. Probe: `routes.rs:98-156`, `tests/routes.rs:61-94`. Web: `web/src/auth/login.rs:50,68`, `web/src/engagement/pages/greetings/mod.rs:107-110` (post then 303).
+Source: `topcoat-router-0.11.0/src/error/redirect.rs:33,59,161`, `topcoat-router-0.11.0/src/error/rewrite.rs:58-75`, `topcoat-router-0.11.0/src/error.rs:126-136`. Probe: `routes.rs:98-156`, `tests/routes.rs:61-94`. Web: `web/src/auth/login.rs:50,68`, `web/src/engagement/pages/greetings/mod.rs:107-110` (post then 303).
 
 ### 5.9 Trailing slash
 
@@ -816,7 +849,7 @@ Status: VERIFIED. `.trailing_slash(TrailingSlash::Redirect | Serve | Strict)`.
 - `Serve`: both forms answer `200`; the handler sees the requested URL in `uri(cx)`.
 - `Strict`: the other form is `404`.
 
-Source: `topcoat-router-0.10.0/src/trailing_slash.rs:31-55`, `topcoat-router-0.10.0/src/builder.rs:283`. Probe: `tests/routes.rs:105-114`. Web: default (`web/src/router.rs` does not set it).
+Source: `topcoat-router-0.11.0/src/trailing_slash.rs:31-55`, `topcoat-router-0.11.0/src/builder.rs:283`. Probe: `tests/routes.rs:105-114`. Web: default (`web/src/router.rs` does not set it).
 
 ### 5.10 Mounting axum or tower services and layers
 
@@ -842,7 +875,7 @@ Observed: the mounted axum app serves `POST /webhooks/kofi` (`kofi ok s3 3`), `G
 
 `web` does not use this: the Ko-fi, Patreon and YouTube webhooks, OAuth callbacks and `/logout` are native `#[route]`s taking `Bytes` or `Form<Vec<(String, String)>>` (`web/src/providers/*.rs`).
 
-Source: `topcoat-router-0.10.0/src/tower.rs:65-152` (`TowerRoute`), `:183-290` (`TowerLayer`), `:528-560` (`TowerService`), `topcoat-router-0.10.0/docs/tower.md`. Probe: `interop.rs:1-52`, `tests/interop.rs`. Web: `web/src/providers/kofi.rs:27-28` (native route instead).
+Source: `topcoat-router-0.11.0/src/tower.rs:65-152` (`TowerRoute`), `:183-290` (`TowerLayer`), `:528-560` (`TowerService`), `topcoat-router-0.11.0/docs/tower.md`. Probe: `interop.rs:1-52`, `tests/interop.rs`. Web: `web/src/providers/kofi.rs:27-28` (native route instead).
 
 ### 5.11 Serving and shutdown
 
@@ -855,9 +888,9 @@ topcoat::serve_until(listener, router, shutdown_future).await?;
 topcoat::start(router).await?;                           // binds HOST:PORT, default 127.0.0.1:3000
 ```
 
-`serve` and `serve_until` take any `Listener` (`TcpListener`, and `UnixListener` on Unix); active requests have `RouterService::shutdown_timeout` (default 30 s) to finish. `web` binds the address from `BotConfig` or an env override and calls `topcoat::serve` (`web/src/main.rs:57-58`). Under `topcoat dev`, `serve` notifies the dev server when ready.
+`serve` and `serve_until` take any `Listener` (`TcpListener`, and `UnixListener` on Unix); active requests have `RouterService::shutdown_timeout` (default 30 s) to finish. Since 0.11 each connection gets a Tokio timer, so Hyper's own timeouts apply (a client that does not send its request headers within 30 s is disconnected; `topcoat-router-0.11.0/src/service.rs:152-153`). `web` binds the address from `BotConfig` or an env override and calls `topcoat::serve` (`web/src/main.rs:57-58`). Under `topcoat dev`, `serve` notifies the dev server when ready.
 
-Source: `topcoat-0.10.0/src/serve.rs:29,44,66`. Web: `web/src/main.rs:42-58`.
+Source: `topcoat-0.11.0/src/serve.rs:29,44,66`, `topcoat-router-0.11.0/src/service.rs:152-153`. Web: `web/src/main.rs:42-58`.
 
 ### 5.12 `href!`, `href()` and `Href::is_current`
 
@@ -874,7 +907,7 @@ view! { <a href=(a) aria-current=(current.then_some("page"))>"x"</a> }
 
 `href!(handler, ParamValue, ..)` takes the handler's Rust name so URLs follow its registered path; values are the `path_param!` types, filled in path order, `Display`ed and percent-encoded. The `Href` renders directly in a view; `.resolve(cx)` gives a `String` for redirects. `.query(..)` takes a `Serialize` struct. Observed on `/guild/42` inside the guild layout: `aria-current="page"` and `class="nav on"` on the overview link only.
 
-Source: `topcoat-router-0.10.0/src/href.rs:443,499,528,590,650`, `topcoat-router-0.10.0/docs/href.md`. Probe: `extras.rs:15-30`, `routes.rs:39-51`, `tests/extras.rs`. Web: none (it writes paths as strings and compares `uri(cx).path()`: `web/src/shell/sidebar.rs:22`, `web/src/admin/pages/loadouts.rs:91`).
+Source: `topcoat-router-0.11.0/src/href.rs:443,499,528,590,650`, `topcoat-router-0.11.0/docs/href.md`. Probe: `extras.rs:15-30`, `routes.rs:39-51`, `tests/extras.rs`. Web: none (it writes paths as strings and compares `uri(cx).path()`: `web/src/shell/sidebar.rs:22`, `web/src/admin/pages/loadouts.rs:91`).
 
 ## 6. Request context `Cx`
 
@@ -907,7 +940,7 @@ format!("{} {} orig={} ua={ua}", method(cx), uri(cx), original_uri(cx))   // "GE
 
 Observed in the probe with no listener: `remote_addr` and `client_ip` are `None` under `Router::handle`. `web` reads `uri(cx).path()` for active-link logic and `try_endpoint(cx).path()` for page titles.
 
-Source: `topcoat-router-0.10.0/src/request.rs:173-512`, `topcoat-router-0.10.0/src/router.rs:248-341`, `topcoat-router-0.10.0/src/proxy.rs:59`. Probe: `routes.rs:165-175`, `extras.rs:15-30` (`tests/extras.rs`). Web: `web/src/document.rs:47-52` (`try_endpoint`), `web/src/shell/sidebar.rs:22` (`uri`), `web/src/providers/patreon.rs:259` (`headers`), `web/src/providers/fields.rs:49` (`content_type`).
+Source: `topcoat-router-0.11.0/src/request.rs:173-512`, `topcoat-router-0.11.0/src/router.rs:248-341`, `topcoat-router-0.11.0/src/proxy.rs:59`. Probe: `routes.rs:165-175`, `extras.rs:15-30` (`tests/extras.rs`). Web: `web/src/document.rs:47-52` (`try_endpoint`), `web/src/shell/sidebar.rs:22` (`uri`), `web/src/providers/patreon.rs:259` (`headers`), `web/src/providers/fields.rs:49` (`content_type`).
 
 ### 6.2 App context (shared state) and request context
 
@@ -927,7 +960,7 @@ let child = cx.with_many((A, B));                      // a tuple of values or a
 - `PrefetchMode` and `SuspenseMode` are read from request context, then app context, then default (sections 12 and 14).
 - A `Cx` is a handle to shared state: clone it into a streaming body or a spawned task (`let cx = cx.clone();`) instead of borrowing the one passed to the handler.
 
-Source: `topcoat-core-0.10.0/src/context.rs:31-140`, `topcoat-core-0.10.0/src/context/app_context.rs:25,59`, `topcoat-core-0.10.0/src/context/request_context.rs:31,66`, `topcoat-router-0.10.0/src/builder.rs:355`, `topcoat-0.10.0/docs/context.md`. Probe: `streaming.rs:59-75`, `tests/streaming.rs:31-42`, `tests/harness.rs:8-17`. Web: `web/src/auth/context.rs:14-41`, `web/src/main.rs:57` (`Router::builder().app_context(state).assets(assets)`), `web/src/state.rs:67` (`WebState`).
+Source: `topcoat-core-0.11.0/src/context.rs:31-140`, `topcoat-core-0.11.0/src/context/app_context.rs:25,59`, `topcoat-core-0.11.0/src/context/request_context.rs:31,66`, `topcoat-router-0.11.0/src/builder.rs:355`, `topcoat-0.11.0/docs/context.md`. Probe: `streaming.rs:59-75`, `tests/streaming.rs:31-42`, `tests/harness.rs:8-17`. Web: `web/src/auth/context.rs:14-41`, `web/src/main.rs:57` (`Router::builder().app_context(state).assets(assets)`), `web/src/state.rs:67` (`WebState`).
 
 ### 6.3 `#[memoize]` (per-request cache) and `Cx::keyed`
 
@@ -945,18 +978,19 @@ let b = lookup(cx, "k").await;   // cached: same request, one execution
 ```
 
 - The function must take `cx: &Cx` by name; every other argument must be `Hash`. The return type becomes `&T`; `as_ref` turns `Option<T>` into `Option<&T>` and `Result<T, E>` into `Result<&T, &E>`. Two calls in one request run the body once (observed: `LOOKUPS=1`).
+- Since 0.11, `?` converts a borrowed `&topcoat::Error` into `topcoat::Error` (clone), so `let v = failing(cx).await?;` propagates the `Result<&T, &Error>` of an `as_ref` function directly (compiled, `v011.rs:40-49`).
 - **A by-value `String` argument fails to compile** (`error[E0505]: cannot move out of 'key' because it is borrowed`) although the upstream docs say by-value works; `u64` and `&str` arguments compile. Take `&str`.
 - Cache lives for one request. There is no cross-request cache; keep a `moka` cache inside the app context (`web` does: `WebState.sessions`, `WebState.discord.user_guilds`).
 - `web` does not use `#[memoize]`; `web/src/auth/session.rs` looks the session up through its own cache each call. It is the natural fit for `current_session_identity` (called by every guard on a page).
 - `cx.keyed(id)` derives a context with a distinct identity for helper calls inside loops (`signal`, shards); see section 2.5.
 
-Source: `topcoat-core-macro-0.10.0/docs/memoize.md`, `topcoat-core-macro-0.10.0/src/lib.rs:8`, `topcoat-core-0.10.0/src/context.rs:92`. Probe: `streaming.rs:61-107`, `tests/streaming.rs:6-15,24-30`. Web: none (`web/src/auth/session.rs:79-86` is the call site that would use it).
+Source: `topcoat-core-macro-0.11.0/docs/memoize.md`, `topcoat-core-macro-0.11.0/src/lib.rs:8`, `topcoat-core-0.11.0/src/context.rs:92`. Probe: `streaming.rs:61-107`, `tests/streaming.rs:6-15,24-30`. Web: none (`web/src/auth/session.rs:79-86` is the call site that would use it).
 
 ### 6.4 `Cx` without a request
 
 Status: VERIFIED. `CxTestBuilder::new().app_context(v).request_context(w).build()` returns a `Cx` for unit tests that render components or call helpers without routing (section 16).
 
-Source: `topcoat-core-0.10.0/src/context.rs:198-240`. Probe: `tests/harness.rs`. Web: `web/tests/auth_routes.rs:550,555` (`CxTestBuilder` to call `auth::current_session_identity`).
+Source: `topcoat-core-0.11.0/src/context.rs:198-240`. Probe: `tests/harness.rs`. Web: `web/tests/auth_routes.rs:550,555` (`CxTestBuilder` to call `auth::current_session_identity`).
 
 ## 7. Forms and body parsing
 
@@ -985,7 +1019,7 @@ Status: VERIFIED. Observed in `tests/forms.rs` and `tests/routes.rs`.
 - Implement `FromRequest` yourself for bodies needing a signature check; delegate buffering to `Bytes` to keep the limit.
 - `web` reads webhook bodies as `Bytes` and parses them by hand so it can check the content type exactly and return its own rejection (`web/src/providers/fields.rs:44-57`).
 
-Source: `topcoat-router-0.10.0/src/content/form.rs:56-160`, `topcoat-router-0.10.0/src/content/json.rs:60`, `topcoat-router-0.10.0/src/urlencoded.rs:1-50`, `topcoat-router-0.10.0/src/content/multipart.rs:60`, `topcoat-router-0.10.0/src/body_limit.rs:9,40,71`, `topcoat-router-0.10.0/src/request.rs:85`, `topcoat-router-0.10.0/docs/content.md`. Probe: `forms.rs:14-40,73-80`, `tests/forms.rs:18-41,70-81`, `optional.rs:2-19`, `tests/optional.rs:7-15`. Web: `web/src/shell/overview.rs:37` (`Form<Vec<(String, String)>>`), `web/src/admin/editor/endpoints.rs:40` (`Json`), `web/src/providers/kofi.rs:28` (`Bytes`).
+Source: `topcoat-router-0.11.0/src/content/form.rs:56-160`, `topcoat-router-0.11.0/src/content/json.rs:60`, `topcoat-router-0.11.0/src/urlencoded.rs:1-50`, `topcoat-router-0.11.0/src/content/multipart.rs:60`, `topcoat-router-0.11.0/src/body_limit.rs:9,40,71`, `topcoat-router-0.11.0/src/request.rs:85`, `topcoat-router-0.11.0/docs/content.md`. Probe: `forms.rs:14-40,73-80`, `tests/forms.rs:18-41,70-81`, `optional.rs:2-19`, `tests/optional.rs:7-15`. Web: `web/src/shell/overview.rs:37` (`Form<Vec<(String, String)>>`), `web/src/admin/editor/endpoints.rs:40` (`Json`), `web/src/providers/kofi.rs:28` (`Bytes`).
 
 ### 7.2 A POST page: validation re-render or post/redirect/get
 
@@ -1011,7 +1045,7 @@ Observed: invalid input answers `422` with the page markup; valid input answers 
 
 To show a result without a redirect, re-handle the request as a `GET` carrying a value: `Err(rewrite("/form", Body::empty()).method(Method::GET).with(Saved).into())`; the receiving page sees `try_request_context::<Saved>(cx)` (observed: `POST /form/rewrite` answers `200` with `form true`).
 
-Source: `topcoat-router-macro-0.10.0/docs/page.md`, `topcoat-router-0.10.0/src/error/rewrite.rs:58-110`. Probe: `routes.rs:98-118`, `tests/routes.rs:80-86`. Web: `web/src/engagement/pages/greetings/mod.rs:96-119`, `web/src/admin/pages/loadouts.rs:47-56` (`422`).
+Source: `topcoat-router-macro-0.11.0/docs/page.md`, `topcoat-router-0.11.0/src/error/rewrite.rs:58-110`. Probe: `routes.rs:98-118`, `tests/routes.rs:80-86`. Web: `web/src/engagement/pages/greetings/mod.rs:96-119`, `web/src/admin/pages/loadouts.rs:47-56` (`422`).
 
 ### 7.3 Multipart uploads
 
@@ -1034,7 +1068,7 @@ pub async fn upload(mut multipart: Multipart) -> Result<String> {
 
 Observed: a body with a text field and a `x.png` file part answers `Some("a"):None:None:5,Some("f"):Some("x.png"):Some("image/png"):7`. Finish or drop each field before requesting the next. `web` receives its only upload (emoji images) as a URL or data URI inside a `Json` body instead (`web/src/admin/editor/endpoints.rs:32-35,53-60`).
 
-Source: `topcoat-router-0.10.0/docs/content/multipart.md`, `topcoat-router-0.10.0/src/content/multipart.rs:37-60`. Probe: `optional.rs:2-19`, `tests/optional.rs:7-15`. Web: `web/src/admin/editor/endpoints.rs:53`.
+Source: `topcoat-router-0.11.0/docs/content/multipart.md`, `topcoat-router-0.11.0/src/content/multipart.rs:37-60`. Probe: `optional.rs:2-19`, `tests/optional.rs:7-15`. Web: `web/src/admin/editor/endpoints.rs:53`.
 
 ## 8. Cookies
 
@@ -1071,7 +1105,7 @@ Observed `Set-Cookie`:
 - Writes must happen before the body streams. Upstream documents that `add`/`remove` after the jar is sealed (for example inside a streamed `suspense` child) panic; set cookies in the page body before any `suspense`. Reading still works. (Documented, not exercised in the probe.)
 - `.cookies()` installs a root layer; the most recently registered root layer runs first, so register it after other root layers that call `cookies(cx)`. `web` registers it last (`web/src/router.rs:37`).
 
-Source: `topcoat-cookie-0.10.0/src/lib.rs:37,261,307`, `topcoat-cookie-0.10.0/src/router.rs:30-69`, `topcoat-0.10.0/docs/cookie.md`. Probe: `forms.rs:44-72`, `tests/forms.rs:43-57`. Web: `web/src/auth/cookie.rs:9-21` (`build`), `web/src/auth/login.rs:44,122,149`, `web/src/auth/context.rs:35-41` (`cookie_jar`).
+Source: `topcoat-cookie-0.11.0/src/lib.rs:37,261,307`, `topcoat-cookie-0.11.0/src/router.rs:30-69`, `topcoat-0.11.0/docs/cookie.md`. Probe: `forms.rs:44-72`, `tests/forms.rs:43-57`. Web: `web/src/auth/cookie.rs:9-21` (`build`), `web/src/auth/login.rs:44,122,149`, `web/src/auth/context.rs:35-41` (`cookie_jar`).
 
 ### 8.2 Attribute defaults, prefixes, signed, private, typed stores
 
@@ -1088,9 +1122,9 @@ let cart = cookie_store::<Cart, _>(private_cookies(cx), "cart")
 Router::builder().app_context(Key::generate()).cookies()                    // key for signed_cookies/private_cookies
 ```
 
-`default_*` fill an attribute only when the cookie lacks it; `override_*` force it. `signed_cookies(cx)` and `private_cookies(cx)` read a `Key` from app context and panic when none is registered; `.signed(&key)` and `.private(&key)` take one explicitly. Generate the key once and persist it, or every restart invalidates the cookies.
+`default_*` fill an attribute only when the cookie lacks it; `override_*` force it. A prefix adapter reads a name given bare or already prefixed: `override_prefix_host().get("session")` and `.get("__Host-session")` find the same cookie (0.10 looked up `__Host-__Host-session` for the second; `topcoat-cookie-0.11.0/src/prefix.rs:113-123`). `signed_cookies(cx)` and `private_cookies(cx)` read a `Key` from app context and panic when none is registered; `.signed(&key)` and `.private(&key)` take one explicitly. Generate the key once and persist it, or every restart invalidates the cookies.
 
-Source: `topcoat-0.10.0/docs/cookie.md`, `topcoat-cookie-0.10.0/src/lib.rs:319,331`, `topcoat-cookie-0.10.0/src/macros.rs:45`, `topcoat-cookie-0.10.0/src/store.rs:131,253,282`. Probe: `forms.rs:83-112`, `tests/forms.rs:83-89`. Web: none.
+Source: `topcoat-0.11.0/docs/cookie.md`, `topcoat-cookie-0.11.0/src/lib.rs:319,331`, `topcoat-cookie-0.11.0/src/macros.rs:45`, `topcoat-cookie-0.11.0/src/store.rs:131,253,282`. Probe: `forms.rs:83-112`, `tests/forms.rs:83-89`. Web: none.
 
 ## 9. Sessions
 
@@ -1118,7 +1152,7 @@ Why the app avoids it, from the current schema and code:
 - The default store forces `Secure` and `Path=/` (`override_secure(true)`), which `web` currently makes depend on `cfg!(debug_assertions)` (`web/src/auth/cookie.rs:17`), so a debug build over plain http still receives the cookie.
 - A custom `TokenStore` can change the cookie name and encoding, but the stored value would still need to be the token hash.
 
-Source: `topcoat-0.10.0/docs/session.md`, `topcoat-session-0.10.0/src/session.rs:34,55,72,95,123`, `topcoat-session-0.10.0/src/token/store.rs:21-110` (cookie store: `override_prefix_host`, `override_secure(true)`), `topcoat-session-0.10.0/src/config.rs:23-95`, `topcoat-session-0.10.0/src/router.rs:31-42`, `topcoat-session-0.10.0/src/token.rs:13-60`. Probe: `optional.rs:20-46`, `tests/optional.rs:17-23,34-44`. Web: `web/src/auth/session.rs:11-77` (lookup against `web_sessions`), `web/src/auth/login.rs:116-156` (`start_session`).
+Source: `topcoat-0.11.0/docs/session.md`, `topcoat-session-0.11.0/src/session.rs:34,55,72,95,123`, `topcoat-session-0.11.0/src/token/store.rs:21-110` (cookie store: `override_prefix_host`, `override_secure(true)`), `topcoat-session-0.11.0/src/config.rs:23-95`, `topcoat-session-0.11.0/src/router.rs:31-42`, `topcoat-session-0.11.0/src/token.rs:13-60`. Probe: `optional.rs:20-46`, `tests/optional.rs:17-23,34-44`. Web: `web/src/auth/session.rs:11-77` (lookup against `web_sessions`), `web/src/auth/login.rs:116-156` (`start_session`).
 
 ## 10. Origin policy (CSRF)
 
@@ -1147,7 +1181,7 @@ Observed: `POST /both` with `sec-fetch-site: cross-site` is `403`; `same-origin`
 
 `web` exempts exactly its three webhook endpoints (`web/src/providers/mod.rs:15-19`); every other POST (settings forms, the editor's JSON endpoints) depends on the browser sending `Sec-Fetch-Site` or a matching `Origin`. There is no CSRF token: do not add state-changing `GET` routes.
 
-Source: `topcoat-router-0.10.0/src/origin.rs:31-216`, `topcoat-router-0.10.0/src/builder.rs:216`. Probe: `tests/routes.rs:88-103`, `tests/interop.rs:23-46`. Web: `web/src/providers/mod.rs:15-19`, `web/src/router.rs:35`.
+Source: `topcoat-router-0.11.0/src/origin.rs:31-216`, `topcoat-router-0.11.0/src/builder.rs:216`. Probe: `tests/routes.rs:88-103`, `tests/interop.rs:23-46`. Web: `web/src/providers/mod.rs:15-19`, `web/src/router.rs:35`.
 
 ## 11. Assets
 
@@ -1176,11 +1210,11 @@ Rendered with a bundle that maps `probe` and `renamed`: `<script type="module" s
 - Paths: `./x` and `../x` are relative to the source file that calls `asset!`; a bare relative path is relative to the crate's `CARGO_MANIFEST_DIR`; absolute paths are used as-is; `http(s)://...` is downloaded and cached by the bundler (UNVERIFIED here). A computed path (`concat!(env!("OUT_DIR"), ...)`) works, which is how the Tailwind output is referenced.
 - Options: `rename: "stem"`, `extension: "ext"`, `checksum: "sha256:<hex>"` (required match for the raw source), `content_type: "text/css"` (otherwise guessed from the extension).
 - An `Asset` renders as the served URL, so it can be used wherever an attribute value goes. `asset.id().as_u64()` is its manifest key (tests use it to forge manifests, section 16).
-- Served by `.assets(bundle)` at `GET /_topcoat/assets/<stem>-<16 hex>.<ext>` (prefix is fixed). Observed headers: `content-type: text/javascript`, `cache-control: public, max-age=31536000, immutable`; no `ETag`, no `Content-Length`; the file is read from disk on each request; an unknown file is `404 text/plain`. Compression (below) applies when the body is larger than 32 bytes and the client accepts it.
+- Served by `.assets(bundle)` at `GET /_topcoat/assets/<stem>-<16 hex>.<ext>` (prefix is fixed). Since 0.11 the filename is percent-encoded as one path segment in both the rendered URL and the route (space, `"`, `#`, `%`, `(`, `)`, `/`, `<`, `>`, `?`, backtick, `{`, `}`, `\` and controls; `logo#dark?50%25.svg` becomes `logo%23dark%3F50%2525-<hash>.svg`); `web`'s asset names contain none of these (`topcoat-asset-0.11.0/src/catalog.rs:22-50`, `src/config.rs:126-133`, `src/serve.rs:58`). Observed headers: `content-type: text/javascript`, `cache-control: public, max-age=31536000, immutable`; no `ETag`, no `Content-Length`; the file is read from disk on each request; an unknown file is `404 text/plain`. Compression (below) applies when the body is larger than 32 bytes and the client accepts it.
 - `AssetConfig::hosted_at("https://cdn.example.com/assets", bundle)` renders URLs on an external host and registers no routes (UNVERIFIED).
 - Assets whose handle is never referenced may be dropped by the compiler and then do not appear in the bundle.
 
-Source: `topcoat-asset-0.10.0/src/asset.rs:15,32,314` (`Asset`, `id`, `asset!`), `topcoat-asset-0.10.0/src/options.rs:14-40`, `topcoat-asset-0.10.0/src/serve.rs:15-90`, `topcoat-asset-0.10.0/src/config.rs:38,78`, `topcoat-0.10.0/docs/asset.md`. Probe: `assets.rs:6-27`, `tests/assets.rs:26-44`. Web: `web/src/document.rs:22-24` (stylesheet and `pending-submit.js`), `web/src/admin/editor/mod.rs:13` (`loadout-editor.js`).
+Source: `topcoat-asset-0.11.0/src/asset.rs:15,32,314` (`Asset`, `id`, `asset!`), `topcoat-asset-0.11.0/src/options.rs:14-40`, `topcoat-asset-0.11.0/src/serve.rs:15-90`, `topcoat-asset-0.11.0/src/config.rs:38,78`, `topcoat-0.11.0/docs/asset.md`. Probe: `assets.rs:6-27`, `tests/assets.rs:26-44`. Web: `web/src/document.rs:22-24` (stylesheet and `pending-submit.js`), `web/src/admin/editor/mod.rs:13` (`loadout-editor.js`).
 
 ### 11.2 The bundle: `AssetBundle`, manifest, failure modes
 
@@ -1209,7 +1243,7 @@ content_type = "text/javascript"
 - The binary and its bundle must come from the same build; asset ids depend on the build.
 - Fixed-URL directory serving is separate (feature `fs`): `Router::builder().public_dir("./assets")` serves `./assets/probe.js` at `/probe.js` with `last-modified`, `content-type` and `content-length` and no immutable caching (observed). `web` has no public directory.
 
-Source: `topcoat-asset-0.10.0/src/bundle.rs:29,60`, `topcoat-asset-0.10.0/src/manifest.rs:8-40`, `topcoat-asset-0.10.0/src/router.rs:62`, `topcoat-asset-0.10.0/src/view.rs:10`, `topcoat-router-0.10.0/src/route/directory.rs`. Probe: `tests/assets.rs:8-24,46-60`, `optional.rs:49-55`, `tests/optional.rs:25-30`. Web: `web/src/main.rs:48` (`AssetBundle::load()`), `web/src/main.rs:57` (`.assets(assets)`).
+Source: `topcoat-asset-0.11.0/src/bundle.rs:29,60`, `topcoat-asset-0.11.0/src/manifest.rs:8-40`, `topcoat-asset-0.11.0/src/router.rs:62`, `topcoat-asset-0.11.0/src/view.rs:10`, `topcoat-router-0.11.0/src/route/directory.rs`. Probe: `tests/assets.rs:8-24,46-60`, `optional.rs:49-55`, `tests/optional.rs:25-30`. Web: `web/src/main.rs:48` (`AssetBundle::load()`), `web/src/main.rs:57` (`.assets(assets)`).
 
 ### 11.3 Response compression
 
@@ -1217,7 +1251,7 @@ Status: VERIFIED. Features: `compression` (in `web`).
 
 Every response body is negotiated against `Accept-Encoding` after all layers run: `gzip` and `br` are offered, at the `Balanced` level, for bodies of 32 bytes or more and compressible content types; `vary: accept-encoding` is added. Observed on a page: `gzip` gives `content-encoding: gzip`, `br` gives `br`, `br, gzip` picks `br`, `identity` is untouched. Tune or disable with `.compression(Compression::new().brotli(false).level(CompressionLevel::Fastest))` or `Compression::off()`.
 
-Source: `topcoat-router-0.10.0/src/compression.rs:11-60`, `topcoat-router-0.10.0/src/builder.rs:261`. Probe: `tests/forms.rs:59-68`. Web: default configuration.
+Source: `topcoat-router-0.11.0/src/compression.rs:11-60`, `topcoat-router-0.11.0/src/builder.rs:261`. Probe: `tests/forms.rs:59-68`. Web: default configuration.
 
 ## 12. Runtime script and client navigation
 
@@ -1239,7 +1273,7 @@ Observed with a bundle and `.runtime()`:
 
 **New in 0.10:** the tag carries `data-topcoat-usize-bits` (`usize::BITS` of the server) so browser-created lengths match the server's integer width. Do not write your own `<script src=(topcoat::runtime::SCRIPT)>`; use `script()`. The upstream-visible effect for this repo is the exact head markup asserted in `web/tests/router.rs:127-147`.
 
-Source: `topcoat-0.10.0/src/runtime.rs:6-26`. Probe: `tests/assets.rs:26-31`. Web: `web/src/document.rs:95`, `web/tests/router.rs:127-147`.
+Source: `topcoat-0.11.0/src/runtime.rs:6-26`. Probe: `tests/assets.rs:26-31`. Web: `web/src/document.rs:95`, `web/tests/router.rs:127-147`.
 
 ### 12.2 `link`, `link_attrs`, `PrefetchMode` (new in 0.10)
 
@@ -1259,7 +1293,7 @@ let cx = cx.with(PrefetchMode::Never);                                 // scoped
 - `href` and `prefetch` override the same keys in `attrs`. `.runtime()` must be on the router and `script()` in the document head.
 - A WebSocket carries connected renders; `.max_runs_per_connection(n)` (default 64) caps them.
 
-Source: `topcoat-runtime-0.10.0/src/link.rs:24-130`, `topcoat-runtime-0.10.0/docs/link.md`, `topcoat-runtime-0.10.0/src/router.rs:48-80`. Probe: `client.rs:74-77`, `tests/client.rs:16`. Web: none (`web` navigates with plain `<a href>` and form posts).
+Source: `topcoat-runtime-0.11.0/src/link.rs:24-130`, `topcoat-runtime-0.11.0/docs/link.md`, `topcoat-runtime-0.11.0/src/router.rs:48-80`. Probe: `client.rs:74-77`, `tests/client.rs:16`. Web: none (`web` navigates with plain `<a href>` and form posts).
 
 ### 12.3 Dev script
 
@@ -1267,13 +1301,13 @@ Status: VERIFIED (renders nothing without `TOPCOAT_DEV_URL`; the tag itself was 
 
 `topcoat::dev::script()` (feature `router`) renders the dev-server live-reload tag when `TOPCOAT_DEV_URL` is set by `topcoat dev`, and nothing otherwise (`status_indicator: false` hides the badge). `web` does not include it. See [tooling.md](tooling.md).
 
-Source: `topcoat-0.10.0/src/dev.rs:63-77`.
+Source: `topcoat-0.11.0/src/dev.rs:63-77`.
 
 ## 13. Head, title and meta
 
 Status: NO EQUIVALENT for per-page head management. Features: `view`.
 
-0.10 has no `Title`, `Meta`, `Link` or head-hoisting component: a `<title>` or `<meta>` is emitted exactly where the markup that contains it is written. A page body renders inside the layouts' `<body>`, so a `<title>` written in a page lands in `<body>` and is not a document title. The pieces that exist:
+0.11 has no `Title`, `Meta`, `Link` or head-hoisting component: a `<title>` or `<meta>` is emitted exactly where the markup that contains it is written. A page body renders inside the layouts' `<body>`, so a `<title>` written in a page lands in `<body>` and is not a document title. The pieces that exist:
 
 - A layout owns the document skeleton (`<!DOCTYPE html><html lang=..><head>..</head><body>(slot)</body></html>`), so `<meta charset>`, viewport, stylesheet, `runtime::script()` and `<title>` go there.
 - The title can be derived from the route the layout is wrapping. `web` does this: `try_endpoint(cx)` gives the matched pattern (`/guild/{guild_id}/levels`), a static table maps patterns to titles (`PAGE_TITLES`), and `settings::route_title` computes the dynamic ones. The result is passed to a `document(title: &str, child)` component that writes `<title>(title)</title>`.
@@ -1307,7 +1341,7 @@ async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View>
 }
 ```
 
-Source: absence confirmed by `grep -rniE "fn title|struct Title|head!" topcoat-{view,router,runtime}-0.10.0/src` (no match); `topcoat-router-0.10.0/src/router.rs:295-307` (`endpoint`, `try_endpoint`); `topcoat-view-0.10.0/src/hoist.rs:78` (hoisting places parts before the enclosing view's content, not in `<head>`). Probe: `routes.rs:20-37` (layout skeleton), `tests/assets.rs:26-31` (head output). Web: `web/src/document.rs:26-102`, `web/tests/router.rs:127-141` (exact head markup).
+Source: absence confirmed by `grep -rniE "fn title|struct Title|head!" topcoat-{view,router,runtime}-0.11.0/src` (no match); `topcoat-router-0.11.0/src/router.rs:295-307` (`endpoint`, `try_endpoint`); `topcoat-view-0.11.0/src/hoist.rs:78` (hoisting places parts before the enclosing view's content, not in `<head>`). Probe: `routes.rs:20-37` (layout skeleton), `tests/assets.rs:26-31` (head output). Web: `web/src/document.rs:26-102`, `web/tests/router.rs:127-141` (exact head markup).
 
 ## 14. Streaming and async
 
@@ -1331,7 +1365,7 @@ The shell and each fallback arrive first, wrapped in `<!--::topcoat::region::sta
 - **After the first byte, status, headers and cookies cannot change.** A `StatusCode` set before the `suspense` applies (observed `202`); one set inside a later-finishing child is ignored (`200`). Upstream documents that `cookies(cx).add` after the jar is sealed panics.
 - A page without `suspense` sends nothing until every component is ready. `web` wraps the data-heavy parts in `suspense` with skeleton fallbacks: the tier badge in the nav, the overview module grid, the levels leaderboard, the FAQ articles, the loadout table and the upgrade page content.
 
-Source: `topcoat-0.10.0/src/view/suspense.rs:52-140`, `topcoat-0.10.0/src/view/error_boundary.rs:50`, `topcoat-router-0.10.0/src/content/view.rs:273-300` (`SWAP_SCRIPT`). Probe: `streaming.rs:7-57`, `tests/streaming.rs:6-15,17-22,44-50`. Web: `web/src/shell/overview.rs:94-100`, `web/src/shell/chrome.rs:57-60`, `web/src/engagement/pages/levels.rs:34`, `web/src/settings/support/faq.rs:51`, `web/src/admin/pages/loadouts.rs:114`.
+Source: `topcoat-0.11.0/src/view/suspense.rs:52-140`, `topcoat-0.11.0/src/view/error_boundary.rs:50`, `topcoat-router-0.11.0/src/content/view.rs:273-300` (`SWAP_SCRIPT`). Probe: `streaming.rs:7-57`, `tests/streaming.rs:6-15,17-22,44-50`. Web: `web/src/shell/overview.rs:94-100`, `web/src/shell/chrome.rs:57-60`, `web/src/engagement/pages/levels.rs:34`, `web/src/settings/support/faq.rs:51`, `web/src/admin/pages/loadouts.rs:114`.
 
 ### 14.2 `live!` and `emit!`
 
@@ -1347,7 +1381,7 @@ Status: VERIFIED (HTTP stream only).
 
 A `live!` region runs ordinary async Rust; each `emit!` replaces the region's content (first emission renders with the page, later ones stream as swaps; observed `first` inline, `second` as a trailing `<template data-topcoat-swap>`). The body must emit at least once and returns `Result<EmitToken>`. `connected(cx)` keeps a region updating over a WebSocket after the response finishes; one socket per document, 64 concurrent connected renders by default (`.max_runs_per_connection(n)`). Dev reload applies streamed `live!` updates without waiting for the whole response (0.10).
 
-Source: `topcoat-view-macro-0.10.0/docs/live.md`, `topcoat-view-macro-0.10.0/src/lib.rs:14-26`, `topcoat-runtime-0.10.0/src/connection.rs:36-51`. Probe: `streaming.rs:36-41`. Web: none.
+Source: `topcoat-view-macro-0.11.0/docs/live.md`, `topcoat-view-macro-0.11.0/src/lib.rs:14-26`, `topcoat-runtime-0.11.0/src/connection.rs:36-51`. Probe: `streaming.rs:36-41`. Web: none.
 
 ### 14.3 Concurrent rendering
 
@@ -1355,7 +1389,7 @@ Status: VERIFIED.
 
 Components, shards and template expressions in one `view!` are polled concurrently and written in source order. Observed: two sibling components that each sleep 200 ms render in 201 ms (`/concurrent`). Treat component bodies as free of side effects and do not depend on another component having run first.
 
-Source: `topcoat-view-macro-0.10.0/docs/view.md:400-407`. Probe: `streaming.rs:108-112`, `tests/streaming.rs:52-58`.
+Source: `topcoat-view-macro-0.11.0/docs/view.md:418-425`. Probe: `streaming.rs:108-112`, `tests/streaming.rs:52-58`.
 
 ## 15. Error handling
 
@@ -1374,12 +1408,12 @@ e.downcast_ref::<NotFoundError>().is_some()      // true
 let dyn_err: &(dyn std::error::Error + Send + Sync) = &*e;   // Deref to the stored error (new in 0.10)
 ```
 
-- `topcoat::Error` is a cheap-to-clone handle (`Arc` inside; two words wide). Any `std::error::Error + Send + Sync + 'static` converts into it with `?`. `downcast_ref`, `downcast_cloned`, `backtrace()` are available; the backtrace is captured only when `RUST_BACKTRACE`/`RUST_LIB_BACKTRACE` enable it.
+- `topcoat::Error` is a cheap-to-clone handle (`Arc` inside; two words wide). Any `std::error::Error + Send + Sync + 'static` converts into it with `?`, and since 0.11 so does `&topcoat::Error` (`impl From<&Error> for Error` clones; observed in `tests/v011.rs:20-26`). `downcast_ref`, `downcast_cloned`, `backtrace()` are available; the backtrace is captured only when `RUST_BACKTRACE`/`RUST_LIB_BACKTRACE` enable it.
 - **0.10 restored `thiserror` compatibility:** `#[error(transparent)]` forwards the message and `source()`, and `#[from]` with `#[error("...")]` keeps the topcoat error as the source (observed: `not found / None` and `wrapped: not found / Some("not found")`). `Deref<Target = dyn Error + Send + Sync>` is new.
 - Feature `anyhow` adds `Error::from_anyhow`.
 - `web` keeps its own domain errors (`AuthError`, `GuildError`, `EngagementError`, `AdminError`, all `thiserror` enums) and converts them at the edge: a redirect with `see_other`, a status in the view, or `Err(not_found().into())`.
 
-Source: `topcoat-core-0.10.0/src/error.rs:9-122,272`, `topcoat-core-0.10.0/CHANGELOG.md` (0.10.0 fixes). Probe: `tests/errors.rs`. Web: `web/src/auth/error.rs:8-30`, `web/src/engagement/error.rs:97` (`redirect_unauthenticated`).
+Source: `topcoat-core-0.11.0/src/error.rs:9-122,272,292-297`, `topcoat-core-0.11.0/CHANGELOG.md` (0.10.0 fixes, 0.11.0 `?` on `Result<T, &Error>`). Probe: `tests/errors.rs`. Web: `web/src/auth/error.rs:8-30`, `web/src/engagement/error.rs:97` (`redirect_unauthenticated`).
 
 ### 15.2 Router errors and their responses
 
@@ -1400,11 +1434,11 @@ Status: VERIFIED. Observed in `tests/routes.rs`.
 
 `RouterErrorExt` adds `ok_or_not_found()`, `ok_or_unauthorized()`, `ok_or_forbidden()`, `ok_or_bad_request(msg)`, `ok_or_redirect(uri)` and `ok_or_redirect_permanent(uri)` to `Option` and `Result`. Raise any of them with `?` from a page, route, layout or component. Errors bubble through `error_boundary` (section 3.4) and layouts before the router maps them; a layout can render a branded page for one type and re-throw the rest (section 5.7). `web` logs the cause (`tracing::warn!`) and answers a bare status from layers; pages map domain errors to redirects or statuses.
 
-Source: `topcoat-router-0.10.0/src/error.rs:30-136`, `topcoat-router-0.10.0/src/error/*.rs`, `topcoat-router-0.10.0/docs/error.md`. Probe: `routes.rs:129-155`, `tests/routes.rs:61-94`. Web: `web/src/auth/middleware.rs:19-44`.
+Source: `topcoat-router-0.11.0/src/error.rs:30-136`, `topcoat-router-0.11.0/src/error/*.rs`, `topcoat-router-0.11.0/docs/error.md`. Probe: `routes.rs:129-155`, `tests/routes.rs:61-94`. Web: `web/src/auth/middleware.rs:19-44`.
 
 ## 16. Test harness
 
-Features: `router` (the harness is `Router::handle`; no extra feature). There is no `topcoat::test` module in 0.10. Tests build the real `Router` and call it with an in-memory request. No socket, no server. A panic inside a handler is turned into a `500`, so a failing page shows up as a status, not as a test panic.
+Features: `router` (the harness is `Router::handle`; no extra feature). There is no `topcoat::test` module in 0.11. Tests build the real `Router` and call it with an in-memory request. No socket, no server. A panic inside a handler is turned into a `500`, so a failing page shows up as a status, not as a test panic.
 
 Probe: `scratch/topcoat-kb/core/probe/tests/` (every file). Web: `web/tests/`.
 
@@ -1432,7 +1466,7 @@ async fn render_raw(path: &str) -> Result<String, Box<dyn Error + Send + Sync>> 
 - Pages in tests are small `#[page("/t/...")]` functions registered next to the component under test, which is how `web` renders a component with fixed data: `web/tests/components_markup.rs:132-146`, `web/tests/admin_pages_markup.rs:18-79`.
 - Runtime bookkeeping markup (`<!--::topcoat::...-->` comments and `data-topcoat-*` attributes) is stripped before asserting on markup: `normalize` in `web/tests/shell_pages.rs:271-293`, `web/tests/admin_pages_markup.rs:83-95`.
 
-Source: `topcoat-router-0.10.0/src/router.rs:73` (`Router::handle`), `topcoat-router-0.10.0/src/request.rs:19` (`Request<T = Body>`). Probe: `tests/common/mod.rs`, `tests/rendering.rs`. Web: `web/tests/admin_pages_markup.rs:62-95`, `web/tests/shell_pages.rs:181-250`.
+Source: `topcoat-router-0.11.0/src/router.rs:73` (`Router::handle`), `topcoat-router-0.11.0/src/request.rs:19` (`Request<T = Body>`). Probe: `tests/common/mod.rs`, `tests/rendering.rs`. Web: `web/tests/admin_pages_markup.rs:62-95`, `web/tests/shell_pages.rs:181-250`.
 
 ### 16.2 Pages that render assets: a forged bundle
 
@@ -1461,7 +1495,7 @@ let router = web::router(base);
 
 Each asset the page can render needs an entry whose `id` is `<ASSET>.id().as_u64()`; the files can be empty. This avoids running `topcoat asset bundle` and Tailwind in tests. Without it the render panics and the test sees `500`. `web::router(base)` takes the builder, so a test supplies its own `app_context` and extra probe pages, then gets the production route table.
 
-Source: `topcoat-asset-0.10.0/src/manifest.rs:8-40`, `topcoat-asset-0.10.0/src/bundle.rs:60`. Probe: `tests/assets.rs:8-24`. Web: `web/tests/shell_pages.rs:71-101,220-226`, `web/tests/public_pages.rs:24-48`, `web/tests/document_script.rs:17-43`, `web/tests/router.rs:34-66`.
+Source: `topcoat-asset-0.11.0/src/manifest.rs:8-40`, `topcoat-asset-0.11.0/src/bundle.rs:60`. Probe: `tests/assets.rs:8-24`. Web: `web/tests/shell_pages.rs:71-101,220-226`, `web/tests/public_pages.rs:24-48`, `web/tests/document_script.rs:17-43`, `web/tests/router.rs:34-66`.
 
 ### 16.3 Unit-level: `CxTestBuilder` and `single().render`
 
@@ -1475,7 +1509,7 @@ let html = view! { cx => components::badge(label: "x") }.single().await?.render(
 
 `status`, headers and cookies declared in the view are discarded by `render`; use a router when those matter.
 
-Source: `topcoat-core-0.10.0/src/context.rs:198-240`, `topcoat-view-0.10.0/src/buffer/handle.rs:179`. Probe: `tests/harness.rs`. Web: `web/tests/auth_routes.rs:550-556`.
+Source: `topcoat-core-0.11.0/src/context.rs:198-240`, `topcoat-view-0.11.0/src/buffer/handle.rs:179`. Probe: `tests/harness.rs`. Web: `web/tests/auth_routes.rs:550-556`.
 
 ### 16.4 Panics at build time
 
@@ -1483,4 +1517,4 @@ Status: VERIFIED.
 
 `Router::build()` panics on a duplicate `METHOD path` and on a layer path that matches no route (section 5.1); a test that asserts it uses `#[test] #[should_panic(expected = "duplicate route")]` (`tests/routes.rs:122-132`). A page that returns `Err(not_found())` checks the branded 404 (`web/tests/router.rs:23-30,143-155`).
 
-Source: `topcoat-router-0.10.0/src/builder.rs:469,485`.
+Source: `topcoat-router-0.11.0/src/builder.rs:469,485`.

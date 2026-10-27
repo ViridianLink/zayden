@@ -15,6 +15,11 @@ use web::admin::pages::servers::servers_page;
 use web::auth::AuthError;
 use web::components::guild_grid::GuildCard;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 fn card(id: &str, name: &str, icon: Option<&str>) -> GuildCard {
@@ -103,8 +108,33 @@ fn strip_between(html: &str, marker: &str, skip: impl Fn(&str) -> &str) -> Strin
 }
 
 const HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>All bot servers</h1><p class="page-lead">Every server Zayden is in. Operator access ignores your own permissions in them.</p></div></div>"#;
-const TOOLS: &str = r#"<div class="operator-tools"><div class="field-row"><label class="field-label" for="server-filter">Filter by name</label><input class="input" id="server-filter" type="search" autocomplete="off" value=""></div><div class="field-row operator-jump"><label class="field-label" for="server-jump">Go to server ID</label><input class="input" id="server-jump" type="text" inputmode="numeric" autocomplete="off" value=""><button type="button" class="btn btn-secondary" disabled="">Go</button><a class="btn btn-secondary" href="" hidden="">Go</a></div></div>"#;
-const TABLE_HEAD: &str = r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">Servers Zayden is in</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Server</th><th scope="col" role="columnheader">Server ID</th></tr></thead><tbody role="rowgroup">"#;
+const INPUT: &str = "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 text-sm transition-colors outline-none placeholder:text-muted-foreground file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+fn tools() -> String {
+    format!(
+        r#"<div class="operator-tools"><div class="field-row"><label class="field-label" for="server-filter">Filter by name</label><input class="{INPUT} grow basis-64" id="server-filter" type="search" autocomplete="off" value=""></div><div class="field-row operator-jump"><label class="field-label" for="server-jump">Go to server ID</label><input class="{INPUT} [&amp;]:w-52 font-mono" id="server-jump" type="text" inputmode="numeric" autocomplete="off" value=""><button type="button" class="{secondary}" disabled="">Go</button><a class="{secondary}" href="" hidden="">Go</a></div></div>"#,
+        secondary = support::btn("secondary")
+    )
+}
+const ERROR_ALERT: &str = r#"<div class="grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive error"><p class="col-start-2 font-medium tracking-tight">"#;
+const TABLE: &str = "w-full caption-bottom border-collapse border-border text-sm [:not(:first-child)>&amp;]:border-t [:not(:last-child)>&amp;]:border-b data-table";
+const CAPTION: &str = "mt-4 text-sm text-muted-foreground visually-hidden";
+const THEAD: &str = "bg-foreground/5 [&amp;_tr]:border-b";
+const TBODY: &str = "[&amp;_tr:last-child]:border-0";
+const ROW: &str = "border-b border-border transition-colors hover:bg-foreground/5";
+const TH: &str = "p-3 text-left align-middle font-medium whitespace-nowrap text-muted-foreground first:pl-6 last:pr-6";
+const TD: &str = "p-3 align-middle whitespace-nowrap first:pl-6 last:pr-6";
+
+fn table_head() -> String {
+    format!(
+        r#"<div class="w-full overflow-x-auto" data-slot="table"><table class="{TABLE}" role="table"><caption class="{CAPTION}">Servers Zayden is in</caption><thead class="{THEAD}" role="rowgroup"><tr class="{ROW}" role="row"><th class="{TH}" scope="col" role="columnheader">Server</th><th class="{TH}" scope="col" role="columnheader">Server ID</th></tr></thead><tbody class="{TBODY}" role="rowgroup">"#
+    )
+}
+
+fn server_row(id: &str, name: &str) -> String {
+    format!(
+        r#"<tr role="row"><th class="{TH}" scope="row" role="rowheader" data-label="Server">{name}</th><td class="{TD}" role="cell" data-label="Server ID"><span class="mono">{id}</span></td></tr>"#
+    )
+}
 
 #[tokio::test]
 async fn the_list_has_labelled_tools_an_announced_count_and_a_table_row_per_server()
@@ -112,19 +142,25 @@ async fn the_list_has_labelled_tools_an_announced_count_and_a_table_row_per_serv
     let html = render("/t/list").await.unwrap();
 
     assert_eq!(
-        html,
-        format!(
-            "{HEADER}{TOOLS}{}{TABLE_HEAD}{}",
+        canonical(&html),
+        canonical(&format!(
+            "{HEADER}{tools}{}{table_head}{}{}{}",
             concat!(
                 r#"<div role="status"><p class="empty" hidden="">No server matches that name.</p>"#,
                 r#"<p class="operator-count">2 of 2 servers</p></div><div>"#,
             ),
-            concat!(
-                r#"<tr role="row"><th scope="row" role="rowheader" data-label="Server"><a href="/guild/7"><span class="guild-icon placeholder" aria-hidden="true">Z</span><span class="guild-name">Zayden's Server</span></a></th><td role="cell" data-label="Server ID"><span class="mono">7</span></td></tr>"#,
-                r#"<tr role="row"><th scope="row" role="rowheader" data-label="Server"><a href="/guild/9"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon"><span class="guild-name">-Mark-'s</span></a></th><td role="cell" data-label="Server ID"><span class="mono">9</span></td></tr>"#,
-                r#"</tbody></table></div></div></div>"#,
-            )
-        )
+            server_row(
+                "7",
+                r#"<a href="/guild/7"><span class="guild-icon placeholder" aria-hidden="true">Z</span><span class="guild-name">Zayden's Server</span></a>"#,
+            ),
+            server_row(
+                "9",
+                r#"<a href="/guild/9"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon"><span class="guild-name">-Mark-'s</span></a>"#,
+            ),
+            "</tbody></table></div></div></div>",
+            tools = tools(),
+            table_head = table_head(),
+        ))
     );
 }
 
@@ -158,15 +194,17 @@ async fn no_servers_reads_as_no_match() {
     let html = render("/t/none").await.unwrap();
 
     assert_eq!(
-        html,
-        format!(
-            "{HEADER}{TOOLS}{}{TABLE_HEAD}{}",
+        canonical(&html),
+        canonical(&format!(
+            "{HEADER}{tools}{}{table_head}{}",
             concat!(
                 r#"<div role="status"><p class="empty">No server matches that name.</p>"#,
                 r#"<p class="operator-count" hidden="">0 of 0 servers</p></div><div hidden="">"#,
             ),
             "</tbody></table></div></div></div>",
-        )
+            tools = tools(),
+            table_head = table_head(),
+        ))
     );
 }
 
@@ -178,8 +216,8 @@ async fn a_refused_list_shows_the_access_line_without_the_tools() {
         assert_eq!(
             html,
             format!(
-                "{HEADER}{}",
-                r#"<p class="error">Operator access is required to list every server.</p></div>"#
+                "{HEADER}{ERROR_ALERT}{}",
+                "Operator access is required to list every server.</p></div></div>"
             ),
             "{path}"
         );
@@ -193,8 +231,8 @@ async fn a_failed_list_shows_the_prefixed_reason() {
     assert_eq!(
         html,
         format!(
-            "{HEADER}{}",
-            r#"<p class="error">Couldn't load the server list: error running server function: 429 Too Many Requests</p></div>"#
+            "{HEADER}{ERROR_ALERT}{}",
+            "Couldn't load the server list: error running server function: 429 Too Many Requests</p></div></div>"
         )
     );
 }

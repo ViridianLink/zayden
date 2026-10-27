@@ -38,15 +38,20 @@ fn no_two_outcomes_explain_themselves_the_same_way() {
     assert_eq!(messages.len(), PatreonOutcome::ALL.len());
 }
 
-/// The banner is only visible if the class it carries has a rule; every other
-/// severity in the product comes from this same partial.
+/// The banner's severity class is a styling hook; every severity in the
+/// product is selected in this same partial.
 #[test]
 fn every_severity_class_is_defined_in_the_stylesheet() {
     const FEEDBACK: &str = include_str!("../style/partials/pages.css");
 
     for outcome in PatreonOutcome::ALL {
-        let rule = format!(".{} {{", outcome.class());
-        assert!(FEEDBACK.contains(&rule), "{rule} is not defined");
+        let selector = format!(".{}", outcome.class());
+        let defined = FEEDBACK.split(selector.as_str()).skip(1).any(|rest| {
+            rest.chars().next().is_some_and(|c| {
+                !(c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            })
+        });
+        assert!(defined, "{selector} is not defined");
     }
 }
 

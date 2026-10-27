@@ -2,9 +2,11 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::view::{View, ViewExt, attributes, component, view};
 
 use super::Pane;
+use crate::components::alert::{AlertVariant, alert, alert_title};
+use crate::components::button::{ButtonSize, ButtonVariant, button_variants};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::field_row::{form_summary, select_row, text_row};
@@ -263,7 +265,7 @@ async fn roles_section(
                 <div class="form-actions">
                     <button
                         type="submit"
-                        class="btn btn-secondary"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         data-pending-label="Adding\u{2026}"
                     >
                         "Add role"
@@ -278,9 +280,13 @@ async fn roles_section(
                 )
             }
             match support_roles {
-                Err(reason) => <p class="warning" role="alert">
-                    (format!("Couldn't load the support roles: {}", plain(reason)))
-                </p>,
+                Err(reason) => alert(
+                    variant: AlertVariant::Neutral,
+                    attrs: attributes! { class="warning" role="alert" },
+                    alert_title(
+                        (format!("Couldn't load the support roles: {}", plain(reason)))
+                    )
+                ),
                 Ok(_) => {
                     if rows.is_empty() {
                         <p class="page-lead">"No support roles yet."</p>
@@ -290,7 +296,6 @@ async fn roles_section(
                             columns: &["Role", "Action"],
                             #[key(row.id.as_str())]
                             for row in &rows {
-                                let confirm_id = format!("role-{}-remove", row.id);
                                 let confirm_title = format!(
                                     "Remove support role {}?",
                                     row.name,
@@ -315,7 +320,6 @@ async fn roles_section(
                                                 value=(row.id.as_str())
                                             >
                                             confirm_dialog(
-                                                id: &confirm_id,
                                                 trigger: "Remove",
                                                 title: &confirm_title,
                                                 description: Some(
@@ -396,7 +400,7 @@ async fn links_section(
                 <div class="form-actions">
                     <button
                         type="submit"
-                        class="btn btn-secondary"
+                        class=(button_variants(ButtonVariant::Secondary, ButtonSize::Md))
                         data-pending-label="Saving\u{2026}"
                     >
                         "Save link"
@@ -411,9 +415,13 @@ async fn links_section(
                 )
             }
             match helper_links {
-                Err(reason) => <p class="warning" role="alert">
-                    (format!("Couldn't load the helper links: {}", plain(reason)))
-                </p>,
+                Err(reason) => alert(
+                    variant: AlertVariant::Neutral,
+                    attrs: attributes! { class="warning" role="alert" },
+                    alert_title(
+                        (format!("Couldn't load the helper links: {}", plain(reason)))
+                    )
+                ),
                 Ok(links) => {
                     if links.is_empty() {
                         <p class="page-lead">"No helper links yet."</p>
@@ -423,7 +431,6 @@ async fn links_section(
                             columns: &["Helper", "Link", "Action"],
                             #[key(link.user_id.as_str())]
                             for link in links {
-                                let confirm_id = format!("link-{}-remove", link.user_id);
                                 let confirm_title = format!(
                                     "Remove the donation link of {}?",
                                     link.name,
@@ -458,7 +465,6 @@ async fn links_section(
                                                 value=(link.user_id.as_str())
                                             >
                                             confirm_dialog(
-                                                id: &confirm_id,
                                                 trigger: "Remove",
                                                 title: &confirm_title,
                                                 description: Some(

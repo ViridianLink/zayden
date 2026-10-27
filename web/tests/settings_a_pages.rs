@@ -34,10 +34,17 @@ use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+mod canonical;
+mod support;
+
+use canonical::canonical;
+
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
 const MEMBER: &str = "session=member-token";
 const FORM: &str = "application/x-www-form-urlencoded";
+const SELECT: &str = "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive focus-visible:ring-offset-background disabled:pointer-events-none [&amp;::picker(select)]:[appearance:base-select] [&amp;::picker(select)]:mt-1 [&amp;::picker(select)]:rounded-lg [&amp;::picker(select)]:border [&amp;::picker(select)]:border-border [&amp;::picker(select)]:bg-popover [&amp;::picker(select)]:p-1 [&amp;::picker(select)]:text-popover-foreground [&amp;::picker(select)]:shadow-sm [&amp;::picker-icon]:hidden [&amp;_optgroup>legend]:px-2 [&amp;_optgroup>legend]:py-1.5 [&amp;_optgroup>legend]:text-xs [&amp;_optgroup>legend]:font-medium [&amp;_optgroup>legend]:text-muted-foreground [&amp;_optgroup>legend]:cursor-default [&amp;_optgroup>legend]:select-none [&amp;_option]:flex [&amp;_option]:items-center [&amp;_option]:gap-2 [&amp;_option]:rounded-md [&amp;_option]:px-2 [&amp;_option]:py-1.5 [&amp;_option]:text-sm [&amp;_option]:outline-none [&amp;_option:hover]:bg-foreground/5 [&amp;_option:focus]:bg-foreground/5 [&amp;_option:checked]:font-medium [&amp;_option::checkmark]:order-1 [&amp;_option::checkmark]:ml-auto [&amp;_option::checkmark]:size-4 [&amp;_option::checkmark]:shrink-0 [&amp;_option::checkmark]:content-[''] [&amp;_option::checkmark]:bg-muted-foreground [&amp;_option::checkmark]:[mask-size:100%_100%] [&amp;_option::checkmark]:[mask-image:var(--select-checkmark)]";
+const CHEVRON: &str = r#"<svg aria-hidden="true" viewBox="0 0 24 24" width="1em" style="vertical-align: -0.125em" height="1em" class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground transition-transform"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m6 9 6 6 6-6"/></g></svg>"#;
 
 /// Two connections per test pool keep the binary inside `sqlx::test`'s
 /// 20-permit master pool (see `tests/shell_pages.rs`).
@@ -548,15 +555,21 @@ fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
     between(html, &format!(r#"<p class="field-error" id="{id}-error">"#), "</p>")
 }
 
-/// The reason at the top of form `form`.
+const ERROR_ALERT: &str = "grid w-full grid-cols-[0_1fr] items-start gap-y-1 rounded-lg border bg-background px-4 py-3 text-sm has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3 [&amp;>svg]:size-4 [&amp;>svg]:translate-y-0.5 border-destructive/50 text-destructive";
+const ALERT_TITLE: &str = r#"<p class="col-start-2 font-medium tracking-tight">"#;
+
+/// The reason at the top of form `form`: the title of the alert that
+/// carries the form's summary id.
 fn summary<'a>(html: &'a str, form: &str) -> Option<&'a str> {
-    between(
-        html,
-        &format!(
-            r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">"#
-        ),
-        "</div>",
-    )
+    let (_, rest) = html.split_once(&format!(r#" id="{form}-summary""#))?;
+    between(rest, ALERT_TITLE, "</p>")
+}
+
+/// `html` holds the full summary alert of form `form` with `reason`.
+fn has_summary(html: &str, form: &str, reason: &str) -> bool {
+    canonical(html).contains(&canonical(&format!(
+        r#"<div class="{ERROR_ALERT} error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{ALERT_TITLE}{reason}</p></div>"#
+    )))
 }
 
 /// The result line in the save bar of form `form`.
@@ -634,8 +647,10 @@ async fn every_page_renders_its_stored_settings(
     assert!(html.contains(&title("Server settings")), "{html}");
     assert_eq!(
         count(
-            &html,
-            r#"<a href="/guild/7/settings" class="nav-link" aria-current="page">"#
+            &canonical(&html),
+            &canonical(
+                r#"<a href="/guild/7/settings" class="nav-link" aria-current="page">"#
+            )
         ),
         2,
         "{html}"
@@ -676,8 +691,10 @@ async fn every_page_renders_its_stored_settings(
     assert!(html.contains(&title("AI Chat")), "{html}");
     assert_eq!(
         count(
-            &html,
-            r#"<a href="/guild/7/ai" class="nav-link" aria-current="page"><span>AI Chat</span></a>"#
+            &canonical(&html),
+            &canonical(
+                r#"<a href="/guild/7/ai" class="nav-link" aria-current="page"><span>AI Chat</span></a>"#
+            )
         ),
         2,
         "{html}"
@@ -698,8 +715,8 @@ async fn every_page_renders_its_stored_settings(
     assert!(!main.contains(r#"role="switch""#), "no switch before a sync: {main}");
     assert_eq!(value(main, "family-settings-max-partners"), Some("1"));
     assert!(
-        main.contains(
-            r#"type="number" name="max_partners" value="1" min="1" step="1" required"#
+        canonical(main).contains(
+            r#"min="1" name="max_partners" required="" step="1" type="number" value="1""#
         ),
         "{main}"
     );
@@ -711,7 +728,7 @@ async fn every_page_renders_its_stored_settings(
     assert!(html.contains(&title("Honeypot")), "{html}");
     let main = main_content(&html);
     assert_eq!(value(main, "honeypot-settings-purge-seconds"), Some("86400"));
-    assert!(main.contains(r#"min="0" max="604800""#), "{main}");
+    assert!(canonical(main).contains(r#"max="604800" min="0""#), "{main}");
     assert_eq!(selected(main, "honeypot-settings-exempt-admins"), Some("false"));
     assert_labelled(main, &[
         "honeypot-settings-channel-id",
@@ -734,7 +751,12 @@ async fn every_page_renders_its_stored_settings(
     assert!(!main.contains("lamp"), "LFG has no module: {main}");
     assert_eq!(selected(main, "lfg-settings-lfg-role-id"), Some("200"));
     assert_eq!(value(main, "lfg-settings-lfg-scheduled-thread-id"), Some("300"));
-    assert!(main.contains(r#"inputmode="numeric" pattern="[0-9]*""#), "{main}");
+    assert!(
+        canonical(main).contains(
+            r#"inputmode="numeric" name="lfg_scheduled_thread_id" pattern="[0-9]*""#
+        ),
+        "{main}"
+    );
 
     app.app.modules.set(7, "music", true).await.unwrap();
     let html = app.page("/guild/7/music").await.unwrap();
@@ -762,7 +784,7 @@ async fn every_page_renders_its_stored_settings(
         Some("")
     );
     assert!(main.contains(r#"<form id="temp-voice-create" method="post" action="/guild/7/temp-voice/create" data-pending="">"#), "{main}");
-    assert!(main.contains(r#"<button type="submit" class="btn btn-secondary" data-pending-label="Creating…">Create creator channel</button>"#), "{main}");
+    assert!(main.contains(&format!(r#"<button type="submit" class="{}" data-pending-label="Creating…">Create creator channel</button>"#, support::btn("secondary"))), "{main}");
     assert_eq!(
         duplicate_ids(&html),
         Vec::<String>::new(),
@@ -998,6 +1020,14 @@ async fn failures_re_render_with_the_reason_at_the_form_and_the_field(
         summary(&html, "server-settings"),
         Some("Not saved: that role is not in this server")
     );
+    assert!(
+        has_summary(
+            &html,
+            "server-settings",
+            "Not saved: that role is not in this server"
+        ),
+        "{html}"
+    );
     assert_eq!(
         settings.channels.get(7).await.unwrap().rules_channel_id,
         Some(101),
@@ -1047,7 +1077,7 @@ async fn failures_re_render_with_the_reason_at_the_form_and_the_field(
         if let Some(id) = field {
             assert_eq!(field_error(&html, id), Some(message), "{body}: {html}");
             assert!(
-                html.contains(&format!(
+                canonical(&html).contains(&format!(
                     r#"aria-describedby="{id}-error" aria-invalid="true""#
                 )),
                 "{body}: {html}"
@@ -1202,7 +1232,12 @@ async fn the_header_switch_turns_a_command_module_on_and_off(
         .await
         .unwrap();
     assert!(html.contains(&title("Music")), "{html}");
-    assert!(html.contains(r#"<p class="error" role="alert">Not changed: invalid value for `enabled`</p>"#), "{html}");
+    assert!(
+        canonical(&html).contains(&canonical(&format!(
+            r#"<div class="{ERROR_ALERT} error" role="alert">{ALERT_TITLE}Not changed: invalid value for `enabled`</p></div>"#
+        ))),
+        "{html}"
+    );
     let html = app
         .submit(
             "/guild/7/music/module",
@@ -1246,7 +1281,7 @@ async fn pages_report_what_they_cannot_load(
 
     let html = app.page("/guild/8/music").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">Couldn't load these settings</h2><p class="error-text">You need Manage Server in this server to change its settings.</p><div class="error-actions"><a href="/guild/8/music" class="btn btn-primary">Try again</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section>"#), "{main}");
+    assert!(canonical(main).contains(&canonical(&format!(r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">Couldn't load these settings</h2><p class="error-text">You need Manage Server in this server to change its settings.</p><div class="error-actions"><a href="/guild/8/music" class="{}">Try again</a><a href="/guilds" class="{}">Back to servers</a></div></section>"#, support::btn("primary"), support::btn("secondary")))), "{main}");
     assert!(!main.contains("<form"), "{main}");
 
     let html = app
@@ -1274,28 +1309,20 @@ async fn pages_report_what_they_cannot_load(
     assert!(html.contains(r#"<p class="error-text">That address doesn't name a Discord server.</p>"#), "{html}");
 
     let locked = |id: &str, name: &str, list: &str| {
-        format!(
-            r#"<select class="input" id="{id}" aria-describedby="{id}-help" disabled=""><option selected="">(not set)</option></select><span class="select-chevron">"#
-        ) + &format!(
-            r#"<input type="hidden" name="{name}" value=""><p class="field-help" id="{id}-help">Couldn't reach Discord, so the {list} list is unavailable. Saving keeps the current value.</p>"#
-        )
+        canonical(&format!(
+            r#"<select class="{SELECT}" id="{id}" aria-describedby="{id}-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</span><input type="hidden" name="{name}" value=""><p class="field-help" id="{id}-help">Couldn't reach Discord, so the {list} list is unavailable. Saving keeps the current value.</p>"#
+        ))
     };
     let html = app.page("/guild/9/settings").await.unwrap();
     assert_eq!(selected(&html, "server-settings-rules-channel-id"), Some(""));
     let artist = locked("server-settings-artist-role-id", "artist_role_id", "role");
-    let (select, rest) =
-        artist.split_once(r#"<span class="select-chevron">"#).unwrap();
-    assert!(html.contains(select), "{html}");
-    assert!(html.contains(rest), "{html}");
+    assert!(canonical(&html).contains(&artist), "{html}");
     assert_eq!(count(&html, "Saving keeps the current value."), 3, "{html}");
 
     let html = app.page("/guild/10/settings").await.unwrap();
     let rules =
         locked("server-settings-rules-channel-id", "rules_channel_id", "channel");
-    let (select, rest) =
-        rules.split_once(r#"<span class="select-chevron">"#).unwrap();
-    assert!(html.contains(select), "{html}");
-    assert!(html.contains(rest), "{html}");
+    assert!(canonical(&html).contains(&rules), "{html}");
     assert_eq!(selected(&html, "server-settings-artist-role-id"), Some(""));
     assert!(!html.contains("error running server function"), "{html}");
     app.redirected(
