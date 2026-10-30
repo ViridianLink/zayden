@@ -82,3 +82,6 @@ build/
 *.ntvs*
 *.njsproj
 *.sln
+
+# Shared Topcoat reference
+docs/topcoat

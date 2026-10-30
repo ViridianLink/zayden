@@ -104,8 +104,6 @@ cargo run -p web
 - `view!` bodies are formatted by `topcoat fmt`; `topcoat fmt --check` exits
   non-zero when a file would change. Pass explicit paths
   (`topcoat fmt web/src web/tests`) so it skips `target/`, then run `cargo fmt`.
-- `design-docs/topcoat/` documents the Topcoat APIs, UI components and tooling
-  for the pinned version.
 
 ### Dev loop
 

@@ -8,7 +8,7 @@ Discord bot (`bot/`, `bot-modules/*`), Topcoat dashboard (`web/`), shared app la
 - **Routing**: Manual Serenity routing and builders only. Never use `poise`.
 - **Database**: `sqlx` compile-time macros only (`query!`, `query_as!`, `query_scalar!`). Never runtime `query()`.
 - **Dependencies**: Workspace pins in root `Cargo.toml`. Crates set `dep.workspace = true` and may add features, never redefine versions. Do not downgrade. Run `cargo machete` when editing dependencies.
-- **Topcoat**: Pre-1.0 and volatile. Write Topcoat code only from `docs/topcoat/` (version-pinned, verified entries) or the pinned crate source, never from memory. Keep that reference in step when bumping Topcoat (`web/tests/topcoat_reference.rs` enforces the version).
+- **Topcoat**: Pre-1.0 and volatile. Write Topcoat code only from `docs/topcoat/` (version-pinned, verified entries) or the pinned crate source, never from memory. Keep that reference in step when bumping Topcoat: its `Verified against` line must match `Cargo.lock`.
 - **Lints**: Fix code instead of silencing lints. Use `#[expect(..., reason = "...")]` only when a code fix is demonstrably infeasible.
 
 ## Validation
@@ -58,7 +58,7 @@ When validation is requested:
 ## References
 
 - `docs/build-and-toolchain.md` — Toolchain, profile configurations, Cranelift notes.
-- `docs/topcoat/` — Topcoat reference for the pinned version: core APIs, UI components, tooling, release changes.
+- `docs/topcoat/` — gitignored symlink to the shared `~/Documents/Reference/topcoat/`, the Topcoat reference for the pinned version: core APIs, UI components, tooling, release changes.
 - `.claude/skills/rust-skills/` — Rust guidelines.
 - `README.md` — Layout, build commands, Docker/CI setup.
 
